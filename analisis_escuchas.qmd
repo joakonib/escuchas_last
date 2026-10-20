@@ -1,0 +1,138 @@
+---
+title: "Mis escuchas en Last.fm"
+date: today
+lang: es
+format:
+  html:
+    toc: true
+    code-fold: true
+    embed-resources: true
+    fig-width: 9
+    fig-height: 5
+execute:
+  warning: false
+  message: false
+---
+
+```{r}
+#| label: setup
+library(dplyr)
+library(readr)
+library(lubridate)
+library(ggplot2)
+library(forcats)
+
+# Zona horaria para analizar horas y días (los datos vienen en UTC)
+zona <- "America/Santiago"
+
+escuchas <- read_csv("data/escuchas.csv", col_types = cols(.default = "c", uts = "d")) |>
+  mutate(
+    fecha  = with_tz(as_datetime(uts), zona),
+    dia    = as_date(fecha),
+    mes    = floor_date(dia, "month"),
+    anio   = year(fecha),
+    hora   = hour(fecha),
+    semana = factor(wday(fecha, week_start = 1), levels = 1:7,
+                    labels = c("lun", "mar", "mié", "jue", "vie", "sáb", "dom"))
+  )
+
+theme_set(theme_minimal(base_size = 12))
+```
+
+## Resumen
+
+```{r}
+#| label: resumen
+dias_activos <- n_distinct(escuchas$dia)
+```
+
+- **Escuchas totales:** `r format(nrow(escuchas), big.mark = ".")`
+- **Período:** `r format(min(escuchas$dia), "%d-%m-%Y")` a `r format(max(escuchas$dia), "%d-%m-%Y")`
+- **Artistas distintos:** `r format(n_distinct(escuchas$artista), big.mark = ".")`
+- **Canciones distintas:** `r format(n_distinct(paste(escuchas$artista, escuchas$cancion)), big.mark = ".")`
+- **Promedio por día con escuchas:** `r round(nrow(escuchas) / dias_activos, 1)`
+
+## Escuchas en el tiempo
+
+```{r}
+#| label: por-mes
+escuchas |>
+  count(mes) |>
+  ggplot(aes(mes, n)) +
+  geom_col(fill = "#d51007") +
+  labs(x = NULL, y = "Escuchas por mes")
+```
+
+## Top artistas
+
+```{r}
+#| label: top-artistas
+#| fig-height: 6
+escuchas |>
+  count(artista, sort = TRUE) |>
+  slice_head(n = 20) |>
+  ggplot(aes(n, fct_reorder(artista, n))) +
+  geom_col(fill = "#d51007") +
+  labs(x = "Escuchas", y = NULL)
+```
+
+## Top canciones
+
+```{r}
+#| label: top-canciones
+escuchas |>
+  count(artista, cancion, sort = TRUE, name = "escuchas") |>
+  slice_head(n = 25) |>
+  knitr::kable()
+```
+
+## Top álbumes
+
+```{r}
+#| label: top-albumes
+escuchas |>
+  filter(!is.na(album), album != "") |>
+  count(artista, album, sort = TRUE, name = "escuchas") |>
+  slice_head(n = 20) |>
+  knitr::kable()
+```
+
+## ¿Cuándo escucho música?
+
+```{r}
+#| label: hora-dia
+escuchas |>
+  count(semana, hora) |>
+  ggplot(aes(hora, fct_rev(semana), fill = n)) +
+  geom_tile(color = "white") +
+  scale_fill_gradient(low = "#fde0dd", high = "#d51007", name = "Escuchas") +
+  scale_x_continuous(breaks = seq(0, 23, 3)) +
+  labs(x = "Hora del día", y = NULL)
+```
+
+## Artista más escuchado por año
+
+```{r}
+#| label: top-por-anio
+escuchas |>
+  count(anio, artista, name = "escuchas") |>
+  group_by(anio) |>
+  slice_max(escuchas, n = 3, with_ties = FALSE) |>
+  ungroup() |>
+  knitr::kable(col.names = c("Año", "Artista", "Escuchas"))
+```
+
+## Artistas nuevos por año
+
+Primer año en que aparece cada artista en el historial.
+
+```{r}
+#| label: descubrimientos
+escuchas |>
+  group_by(artista) |>
+  summarise(primer_anio = min(anio)) |>
+  count(primer_anio) |>
+  ggplot(aes(primer_anio, n)) +
+  geom_col(fill = "#d51007") +
+  labs(x = NULL, y = "Artistas descubiertos")
+```

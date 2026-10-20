@@ -3,3 +3,6 @@
 .RData
 .Rproj.user/
 data/
+analisis_escuchas.html
+*_files/
+.quarto/
