@@ -25,6 +25,10 @@ library(forcats)
 # Zona horaria para analizar horas y días (los datos vienen en UTC)
 zona <- "America/Santiago"
 
+if (!file.exists("data/escuchas.csv")) {
+  stop("No existe data/escuchas.csv: primero corre Rscript descargar_escuchas.R")
+}
+
 escuchas <- read_csv("data/escuchas.csv", col_types = cols(.default = "c", uts = "d")) |>
   mutate(
     fecha  = with_tz(as_datetime(uts), zona),
@@ -46,10 +50,10 @@ theme_set(theme_minimal(base_size = 12))
 dias_activos <- n_distinct(escuchas$dia)
 ```
 
-- **Escuchas totales:** `r format(nrow(escuchas), big.mark = ".")`
+- **Escuchas totales:** `r format(nrow(escuchas), big.mark = ".", decimal.mark = ",")`
 - **Período:** `r format(min(escuchas$dia), "%d-%m-%Y")` a `r format(max(escuchas$dia), "%d-%m-%Y")`
-- **Artistas distintos:** `r format(n_distinct(escuchas$artista), big.mark = ".")`
-- **Canciones distintas:** `r format(n_distinct(paste(escuchas$artista, escuchas$cancion)), big.mark = ".")`
+- **Artistas distintos:** `r format(n_distinct(escuchas$artista), big.mark = ".", decimal.mark = ",")`
+- **Canciones distintas:** `r format(n_distinct(paste(escuchas$artista, escuchas$cancion)), big.mark = ".", decimal.mark = ",")`
 - **Promedio por día con escuchas:** `r round(nrow(escuchas) / dias_activos, 1)`
 
 ## Escuchas en el tiempo
