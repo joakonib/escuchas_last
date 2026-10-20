@@ -8,18 +8,22 @@ library(dplyr)
 library(purrr)
 library(arrow)
 
+# Lee el parquet completo a memoria: así Windows no deja el archivo bloqueado
+# y se puede sobrescribir al final
+leer_parquet <- function(f) read_parquet(readBin(f, "raw", file.size(f)))
+
 api_key <- Sys.getenv("LASTFM_API_KEY")
 if (api_key == "") stop("Falta LASTFM_API_KEY en .Renviron")
 
 n_artistas <- 500
 archivo <- "data/tags_artistas.parquet"
 
-top <- read_parquet("data/escuchas.parquet") |>
+top <- leer_parquet("data/escuchas.parquet") |>
   count(artista, sort = TRUE) |>
   slice_head(n = n_artistas)
 
 previos <- if (file.exists(archivo)) {
-  read_parquet(archivo)
+  leer_parquet(archivo)
 } else {
   tibble(artista = character(), tag = character(), peso = numeric())
 }
@@ -64,7 +68,7 @@ message("Listo: ", n_distinct(bind_rows(previos, nuevos)$artista), " artistas co
 # nicho es lo que escucho
 archivo_info <- "data/info_artistas.parquet"
 previos_info <- if (file.exists(archivo_info)) {
-  read_parquet(archivo_info)
+  leer_parquet(archivo_info)
 } else {
   tibble(artista = character(), oyentes = numeric(), reproducciones = numeric())
 }

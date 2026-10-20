@@ -14,6 +14,10 @@ library(purrr)
 library(readr)
 library(arrow)
 
+# Lee el parquet completo a memoria: así Windows no deja el archivo bloqueado
+# y se puede sobrescribir al final
+leer_parquet <- function(f) read_parquet(readBin(f, "raw", file.size(f)))
+
 api_key <- Sys.getenv("LASTFM_API_KEY")
 usuario <- Sys.getenv("LASTFM_USER")
 if (api_key == "" || usuario == "") {
@@ -27,7 +31,7 @@ dir.create("data", showWarnings = FALSE)
 # Punto de partida para la descarga incremental. Si solo existe el CSV de
 # versiones anteriores, se usa como base y se reemplaza por el parquet.
 previas <- if (file.exists(archivo)) {
-  read_parquet(archivo)
+  leer_parquet(archivo)
 } else if (file.exists(csv_antiguo)) {
   read_csv(csv_antiguo, col_types = cols(.default = "c", uts = "d")) |>
     mutate(fecha_utc = as.POSIXct(uts, origin = "1970-01-01", tz = "UTC"))

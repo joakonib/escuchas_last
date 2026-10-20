@@ -1,8 +1,9 @@
+*_files/
+.RData
 .Renviron
 .Rhistory
-.RData
 .Rproj.user/
-data/
-analisis_escuchas.html
-*_files/
 .quarto/
+analisis_escuchas.html
+data/
+reportes/
