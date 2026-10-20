@@ -1,17 +1,18 @@
-# Descarga el historial de escuchas (scrobbles) de Last.fm a data/escuchas.csv
+# Descarga el historial de escuchas (scrobbles) de Last.fm a data/escuchas.parquet
 #
 # Credenciales: crear un archivo .Renviron en la raíz del proyecto con
 #   LASTFM_API_KEY=tu_api_key      (https://www.last.fm/api/account/create)
 #   LASTFM_USER=tu_usuario
 # y reiniciar R. .Renviron está en .gitignore.
 #
-# La descarga es incremental: si data/escuchas.csv existe, solo trae las
+# La descarga es incremental: si data/escuchas.parquet existe, solo trae las
 # escuchas posteriores a la última registrada.
 
 library(httr2)
 library(dplyr)
 library(purrr)
 library(readr)
+library(arrow)
 
 api_key <- Sys.getenv("LASTFM_API_KEY")
 usuario <- Sys.getenv("LASTFM_USER")
@@ -19,12 +20,17 @@ if (api_key == "" || usuario == "") {
   stop("Faltan LASTFM_API_KEY y/o LASTFM_USER en .Renviron")
 }
 
-archivo <- "data/escuchas.csv"
+archivo <- "data/escuchas.parquet"
+csv_antiguo <- "data/escuchas.csv"
 dir.create("data", showWarnings = FALSE)
 
-# Punto de partida para la descarga incremental
+# Punto de partida para la descarga incremental. Si solo existe el CSV de
+# versiones anteriores, se usa como base y se reemplaza por el parquet.
 previas <- if (file.exists(archivo)) {
-  read_csv(archivo, col_types = cols(.default = "c", uts = "d"))
+  read_parquet(archivo)
+} else if (file.exists(csv_antiguo)) {
+  read_csv(csv_antiguo, col_types = cols(.default = "c", uts = "d")) |>
+    mutate(fecha_utc = as.POSIXct(uts, origin = "1970-01-01", tz = "UTC"))
 } else {
   NULL
 }
@@ -71,6 +77,7 @@ message("Páginas por descargar: ", total_paginas)
 
 if (total_paginas == 0) {
   message("No hay escuchas nuevas.")
+  if (!is.null(previas) && !file.exists(archivo)) write_parquet(previas, archivo)
 } else {
   paginas <- c(
     list(primera),
@@ -81,13 +88,12 @@ if (total_paginas == 0) {
   )
   nuevas <- map(paginas, procesar_pagina) |> list_rbind()
 
-  escuchas <- bind_rows(
-    previas |> mutate(fecha_utc = as.POSIXct(uts, origin = "1970-01-01", tz = "UTC")),
-    nuevas
-  ) |>
+  escuchas <- bind_rows(previas, nuevas) |>
     distinct(uts, artista, cancion, .keep_all = TRUE) |>
     arrange(uts)
 
-  write_csv(escuchas, archivo)
+  write_parquet(escuchas, archivo)
   message("Escuchas nuevas: ", nrow(nuevas), " | total: ", nrow(escuchas))
 }
+
+if (file.exists(archivo) && file.exists(csv_antiguo)) file.remove(csv_antiguo)

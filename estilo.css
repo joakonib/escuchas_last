@@ -1,0 +1,85 @@
+/* Estilos del reporte analisis_escuchas.qmd */
+
+body {
+  background: #fcfcfb;
+  color: #0b0b0b;
+}
+
+h2 {
+  margin-top: 2.5rem;
+  padding-bottom: 0.3rem;
+  border-bottom: 2px solid #3a3a3a;
+}
+
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin: 1.5rem 0 2rem;
+}
+
+.tile {
+  background: #ffffff;
+  border: 1px solid #ecebe7;
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+
+.tile-valor {
+  font-size: 1.7rem;
+  font-weight: 700;
+  line-height: 1.1;
+  color: #0b0b0b;
+}
+
+.tile-etiqueta {
+  font-size: 0.85rem;
+  color: #52514e;
+  margin-top: 4px;
+}
+
+.tile-detalle {
+  font-size: 0.75rem;
+  color: #8a8984;
+  margin-top: 2px;
+}
+
+.callout {
+  font-size: 1.02rem;
+}
+
+/* El tema cosmo trae azul en enlaces e índice: se reemplaza por verde */
+a, a:hover,
+#TOC .nav-link.active,
+.sidebar nav[role="doc-toc"] ul > li > a.active {
+  color: #2f7d4a;
+}
+#TOC .nav-link.active,
+.sidebar nav[role="doc-toc"] ul > li > a.active {
+  border-left-color: #2f7d4a;
+}
+.callout.callout-style-simple {
+  border-left-color: #2f7d4a;
+}
+
+/* Refuerzo: Bootstrap define el azul con variables y alta especificidad */
+:root {
+  --bs-link-color: #2f7d4a;
+  --bs-link-color-rgb: 47, 125, 74;
+  --bs-link-hover-color: #27613a;
+  --bs-primary: #3a3a3a;
+  --bs-primary-rgb: 58, 58, 58;
+}
+#TOC a.nav-link.active,
+nav#TOC .nav-link.active {
+  color: #2f7d4a !important;
+  border-left-color: #2f7d4a !important;
+}
+div.callout-note.callout,
+.callout.callout-titled.callout-note,
+.callout-note {
+  border-left-color: #2f7d4a !important;
+}
+.callout-note .callout-icon::before {
+  filter: grayscale(1);
+}

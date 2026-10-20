@@ -10,4 +10,4 @@ Descarga y analiza mi historial de escuchas de Last.fm.
    LASTFM_USER=...
    ```
    (API key en https://www.last.fm/api/account/create)
-2. Ejecutar `Rscript descargar_escuchas.R` → genera `data/escuchas.csv` (incremental).
+2. Ejecutar `Rscript descargar_escuchas.R` → genera `data/escuchas.parquet` (incremental).
