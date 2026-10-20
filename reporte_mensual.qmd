@@ -29,6 +29,7 @@ library(scales)
 library(gt)
 library(htmltools)
 library(arrow)
+source("R/imagenes.R")
 
 zona <- "America/Santiago"
 minutos_por_cancion <- 3.5
@@ -84,7 +85,10 @@ theme_set(
 
 ```{r}
 #| label: cifras
-variacion <- if (nrow(anterior) > 0) {
+# La comparación solo tiene sentido si el mes anterior tiene registros suficientes
+variacion <- if (n_distinct(anterior$dia) < 10) {
+  "mes anterior con pocos registros"
+} else {
   v <- nrow(mes) / nrow(anterior) - 1
   paste0(ifelse(v >= 0, "+", ""), label_percent(accuracy = 1, decimal.mark = ",")(v), " vs. mes anterior")
 }
@@ -117,6 +121,22 @@ tagList(aviso, div(class = "tiles",
 ```
 
 ## Artistas del mes
+
+```{r}
+#| label: galeria-mes
+top5 <- mes |> count(artista, sort = TRUE) |> slice_head(n = 5)
+galeria(imagen_artista(top5$artista), top5$artista, paste(top5$n, "escuchas"))
+```
+
+```{r}
+#| label: galeria-discos-mes
+discos5 <- mes |>
+  filter(!is.na(album), album != "") |>
+  count(artista, album, sort = TRUE) |>
+  slice_head(n = 5)
+galeria(imagen_disco(discos5$artista, discos5$album), discos5$album,
+        paste0(discos5$artista, " · ", discos5$n))
+```
 
 ```{r}
 #| label: top-artistas

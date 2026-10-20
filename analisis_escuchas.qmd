@@ -36,6 +36,7 @@ library(scales)
 library(gt)
 library(reactable)
 library(htmltools)
+source("R/imagenes.R")
 
 # Zona horaria para analizar horas y días (los datos vienen en UTC)
 zona <- "America/Santiago"
@@ -507,6 +508,26 @@ Si una sesión termina tras 30 minutos sin música, he tenido `r miles(nrow(sesi
 ## Mis artistas
 
 ```{r}
+#| label: galeria-artistas
+top_art <- escuchas |> count(artista, sort = TRUE) |> slice_head(n = 12)
+galeria(imagen_artista(top_art$artista), top_art$artista, paste(miles(top_art$n), "escuchas"))
+```
+
+### Mis discos
+
+```{r}
+#| label: galeria-discos
+top_disc <- escuchas |>
+  filter(!is.na(album), album != "") |>
+  count(artista, album, sort = TRUE) |>
+  slice_head(n = 12)
+galeria(imagen_disco(top_disc$artista, top_disc$album), top_disc$album,
+        paste0(top_disc$artista, " · ", miles(top_disc$n)))
+```
+
+### Todos mis favoritos
+
+```{r}
 #| label: top-artistas
 #| fig-height: 7
 escuchas |>
@@ -634,6 +655,116 @@ escuchas |>
   labs(title = "Cómo han cambiado mis géneros",
        subtitle = "Proporción de las escuchas de cada año, para mis 8 géneros principales",
        x = NULL, y = NULL)
+```
+
+## Momentos
+
+### ¿Cuándo escucho a quién?
+
+Artistas con al menos 300 escuchas cuya música se concentra en ciertos momentos más que mi promedio.
+
+```{r}
+#| label: momentos-calculo
+con_momento <- escuchas |>
+  mutate(madrugada = hora < 6, finde = semana %in% c("sáb", "dom"))
+prom_madrugada <- mean(con_momento$madrugada)
+prom_finde <- mean(con_momento$finde)
+
+por_artista <- con_momento |>
+  group_by(artista) |>
+  summarise(total = n(), madrugada = mean(madrugada), finde = mean(finde)) |>
+  filter(total >= 300)
+
+tabla_momento <- function(datos, col, promedio, titulo) {
+  datos |>
+    slice_max({{ col }}, n = 8, with_ties = FALSE) |>
+    transmute(artista, pct = {{ col }}, veces = {{ col }} / promedio) |>
+    gt() |>
+    tab_header(title = titulo, subtitle = paste0("Mi promedio: ", pct(promedio))) |>
+    cols_label(artista = "Artista", pct = "% de sus escuchas", veces = "vs. promedio") |>
+    fmt_percent(pct, decimals = 0, dec_mark = ",") |>
+    fmt_number(veces, decimals = 1, dec_mark = ",", pattern = "{x} veces") |>
+    tab_options(quarto.disable_processing = TRUE, table.width = pct(1), table.font.size = px(13))
+}
+```
+
+:::: {layout-ncol=2}
+```{r}
+#| label: artistas-madrugada
+tabla_momento(por_artista, madrugada, prom_madrugada, "De madrugada (0 a 6 h)")
+```
+
+```{r}
+#| label: artistas-finde
+tabla_momento(por_artista, finde, prom_finde, "De fin de semana")
+```
+::::
+
+### Mis estaciones
+
+```{r}
+#| label: estaciones
+#| eval: !expr tiene_tags
+#| fig-height: 4.5
+estaciones <- escuchas |>
+  filter(!is.na(genero), genero %in% (escuchas |> filter(!is.na(genero)) |> count(genero, sort = TRUE) |>
+                                        slice_head(n = 10) |> pull(genero))) |>
+  mutate(estacion = case_when(
+    month(fecha) %in% c(12, 1, 2) ~ "Verano",
+    month(fecha) %in% 3:5         ~ "Otoño",
+    month(fecha) %in% 6:8         ~ "Invierno",
+    TRUE                          ~ "Primavera"
+  ),
+  estacion = factor(estacion, levels = c("Verano", "Otoño", "Invierno", "Primavera")))
+
+estaciones |>
+  count(estacion, genero) |>
+  group_by(estacion) |>
+  mutate(share = n / sum(n)) |>
+  group_by(genero) |>
+  mutate(dif = share / mean(share) - 1) |>
+  ungroup() |>
+  ggplot(aes(estacion, fct_reorder(genero, share, .fun = sum), fill = dif)) +
+  geom_tile(color = "white", linewidth = 0.8) +
+  geom_text(aes(label = paste0(ifelse(dif >= 0, "+", ""), round(dif * 100), "%")), size = 3.3) +
+  scale_fill_gradient2(low = "#b06b2c", mid = "#f4f3f0", high = verde, midpoint = 0, guide = "none") +
+  labs(title = "¿Qué género sube en cada estación?",
+       subtitle = "Peso del género en la estación comparado con su promedio del año (estaciones del hemisferio sur)",
+       x = NULL, y = NULL) +
+  theme(panel.grid = element_blank())
+```
+
+### Antes, durante y después de la pandemia
+
+```{r}
+#| label: pandemia
+# Período de pandemia: estado de catástrofe en Chile, 18-03-2020 al 30-09-2021
+inicio_p <- as_date("2020-03-18")
+fin_p <- as_date("2021-09-30")
+
+escuchas |>
+  mutate(periodo = case_when(
+    dia < inicio_p ~ "Antes",
+    dia <= fin_p   ~ "Pandemia",
+    TRUE           ~ "Después"
+  ),
+  periodo = factor(periodo, levels = c("Antes", "Pandemia", "Después"))) |>
+  group_by(periodo) |>
+  summarise(
+    dias = as.numeric(max(dia) - min(dia)) + 1,
+    por_dia = n() / dias,
+    chilenos = if (tiene_tags) mean(pais[!is.na(pais)] == "Chile") else NA_real_,
+    top = paste(names(sort(table(artista), decreasing = TRUE))[1:5], collapse = ", ")
+  ) |>
+  select(-dias) |>
+  gt() |>
+  tab_header(title = "Mi música en tres tiempos",
+             subtitle = "Pandemia = estado de catástrofe en Chile (18-03-2020 al 30-09-2021)") |>
+  cols_label(periodo = "Período", por_dia = "Escuchas por día", chilenos = "% chilenos",
+             top = "Mis 5 artistas") |>
+  fmt_number(por_dia, decimals = 0, sep_mark = ".") |>
+  fmt_percent(chilenos, decimals = 0, dec_mark = ",") |>
+  tab_options(quarto.disable_processing = TRUE, table.width = pct(1), table.font.size = px(13))
 ```
 
 ## Obsesiones y amores olvidados
