@@ -62,10 +62,13 @@ FASE 1. Descargas
       - Usa la misma API que 1.1: no correrlos en paralelo (límite de consultas).
   1.3 Letras de LRCLIB (scripts/descargar_letras.R).
       - Meta: 8.000 canciones (cerca del 78 % de las escuchas; al 21-10-2026
-        van 5.000 revisadas, 4.344 con letra = 61 % de las escuchas;
+        van 5.400 revisadas, 4.735 con letra = 61 % de las escuchas;
         todas las canciones con 5 o más escuchas).
       - Unas 30 canciones por minuto: 1.000 canciones nuevas toman ~35 min.
       - Puede correr en paralelo con 1.1 (otra API).
+      - Al final hace una segunda pasada para las no encontradas, con el
+        título limpio (sin "Remastered", "Live", "feat.", paréntesis ni
+        corchetes) y el artista principal. Una sola vez por canción.
 
 FASE 2. Análisis antes del render (el flujo se pausa hasta que termine)
   2.1 Chequeo de letras: filas, % encontradas, instrumentales, duplicadas,
@@ -183,14 +186,6 @@ PENDIENTES / PRÓXIMOS PASOS
   - actualizar.bat debe quedar SOLO en ASCII (sin tildes ni eñes): cmd.exe
     con chcp 65001 lee mal los saltos goto/call si hay caracteres UTF-8.
   - Portada: complementar "Sobre mí".
-  - Mascota: tres Ciros (rapero estilo Kneecap, black metal, tomando café).
-    Prompt en input/prompt_ciro.md y fotos en input/ciro_referencias/.
-    Cuando estén las imágenes: optimizarlas y ponerlas en la portada y en
-    el saludo de cada reporte.
-  - Letras: segunda pasada para las no encontradas en LRCLIB, con el título
-    limpio (sin "Remastered", "Live", "feat.", paréntesis ni corchetes) y el
-    artista principal. LRCLIB sigue siendo la fuente: Genius no entrega
-    letras por API, Musixmatch gratis solo el 30% y el resto exige raspar.
 
 
 HISTORIAL DE CAMBIOS DEL FLUJO
@@ -214,3 +209,11 @@ HISTORIAL DE CAMBIOS DEL FLUJO
               (4.344 con letra); temas de letras con nombres únicos y canción
               de ejemplo = la más escuchada entre las claramente del tema;
               mascotas de Ciro descartadas (queda el prompt en input/).
+  21-10-2026  (mañana) Letras: segunda pasada con título y artista limpios
+              (+74 letras) y tope configurable (N_CANCIONES); se corrige la
+              caída cuando LRCLIB responde un error en vez de resultados.
+              Corte a pedido en 5.400 revisadas (4.735 con letra). Nuevo tema
+              "Abrazos, frío y espera" en el diccionario de letras. Ciros en
+              la portada y en los reportes (scripts/ciro_sin_fondo.py quita
+              el damero y pasa los azules a verde). Reporte mensual: si el
+              mes anterior tiene pocos datos, usar el mes en curso (--mes).

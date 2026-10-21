@@ -61,6 +61,7 @@ Se actualiza cada vez que se agrega una fuente nueva.
 |---|---|---|
 | `proyecto_cv/datos/cv.yml` (mi CV) | Perfil breve y enlace a LinkedIn (sin teléfono ni correo, porque la página es pública) | Sección «Sobre mí» |
 | Foto propia de Ciro (`ciro_tatu1.jpg`) | Imagen de la portada | `docs/img/ciro.jpg` |
+| Ilustraciones de Ciro (stickers generados con IA a partir de fotos propias; originales en `input/ciro_ilustraciones/`, prompt en `input/prompt_ciro.md`) | Mascota: natural, metalero, post-punk, rapero, encuestador y con café y camisa hawaiana. Fondo quitado y azules pasados a verde con `scripts/ciro_sin_fondo.py` | `assets/ciro/` (saludos y secciones de los reportes) y `docs/img/` (portada) |
 | Skill de visualización de datos (dataviz) de Claude Code | Validación de la paleta para daltonismo y contraste; separación blanca de 1,5 px entre barras | `R/visual.R` (`interactivo()`) |
 
 ## Diseño y accesibilidad

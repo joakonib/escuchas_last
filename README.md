@@ -42,6 +42,7 @@ Deezer API ──► R/imagenes.R ───────────────�
 | `R/` | Funciones de apoyo que usan los reportes: `etiquetas.R` (países, ánimo, géneros), `imagenes.R` (Deezer), `letras.R` (texto) y `visual.R` (tablas y gráficos interactivos). |
 | `assets/` | `estilo.css` (diseño de ambos reportes) y `redibujar.html` (arregla los gráficos dentro de pestañas). |
 | `docs/` | Lo que se publica en GitHub Pages: portada (`index.html`, con «Sobre mí» y la foto de Ciro en `img/`), los dos reportes y la metodología. |
+| `assets/ciro/` | Ilustraciones de Ciro, la mascota, sin fondo (WebP). Se generan desde `input/ciro_ilustraciones/` con `scripts/ciro_sin_fondo.py`. |
 | `FUENTES.md` | Maestro de fuentes: APIs, papers y decisiones propias. |
 
 No se suben a GitHub (`.gitignore`): `data/` (escuchas, tags, letras, imágenes, log), `reportes/`, `input/`, `.Renviron` (credenciales) y los HTML de la raíz.

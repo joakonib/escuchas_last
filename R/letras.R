@@ -60,6 +60,8 @@ temas_conocidos <- tibble::tribble(
   c("day", "night", "days", "remember", "dance", "ride", "living", "tonight", "girl", "summer"),
   "Luz, cielo y lo sagrado", "Luz, sol, cielo, ojos y manos, y a veces Dios: un imaginario luminoso y espiritual.",
   c("light", "god", "sun", "sky", "eyes", "hands", "hand", "hold", "heaven", "pray"),
+  "Abrazos, frío y espera", "Esperar, quedarse, abrazar y el frío de afuera: canciones íntimas de cercanía y distancia.",
+  c("baby", "cold", "hold", "stay", "waiting", "wait", "water", "hand", "warm", "arms", "home", "rain"),
   "Pérdida, miedo y oscuridad", "Lo perdido, el miedo, la oscuridad y el cuerpo: el lado más sombrío e inquieto.",
   c("lost", "fear", "dark", "darkness", "left", "kill", "body", "hear", "alone", "afraid"),
   "La vida y el paso del tiempo", "Reflexiones sobre la vida, la pérdida, los días que pasan y las ganas de cambiar.",

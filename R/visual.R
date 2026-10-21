@@ -150,3 +150,16 @@ linea_generacion <- function(zona = "America/Santiago") {
   ahora <- format(lubridate::with_tz(Sys.time(), zona), "%d-%m-%Y, %H:%M")
   div(class = "generado", paste0("🕒 Fecha y hora de generación: ", ahora, " (hora de Chile)"))
 }
+
+# Ciro, la mascota del sitio, para el saludo de cada página (assets/ciro/, sin fondo)
+ciro <- function(cual = c("metal", "postpunk", "rapero", "encuestas", "natural", "cafe")) {
+  cual <- match.arg(cual)
+  alt <- c(metal    = "Ciro, mi gato gris y blanco, con muñequeras de púas y una guitarra de black metal",
+           postpunk = "Ciro, mi gato gris y blanco, con chaqueta de pana, chapitas y un ramo de flores, cara de post-punk",
+           rapero   = "Ciro, mi gato gris y blanco, con buzo verde y jockey, micrófono en mano, como rapero de Kneecap",
+           encuestas = "Ciro, mi gato gris y blanco, con chaleco verde, lápiz y una tablilla que dice «Ciro encuestas»",
+           natural  = "Ciro, mi gato gris y blanco de pelo largo, parado en dos patas",
+           cafe     = "Ciro, mi gato gris y blanco, con camisa hawaiana de flores y los ojos cerrados de gusto, tomando una taza de café")[[cual]]
+  htmltools::tags$img(src = paste0("assets/ciro/ciro_", cual, ".webp"), alt = alt, class = "ciro-saludo",
+                      width = 96, height = 126)
+}

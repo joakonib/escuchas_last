@@ -199,6 +199,25 @@ div.callout-note.callout,
   margin: 1rem 0 1.5rem;
 }
 .bienvenida p:last-child { margin-bottom: 0; }
+.bienvenida.con-ciro {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+.bienvenida.con-ciro > div { flex: 1; min-width: 0; }
+.bienvenida.con-ciro > div > p:last-child { margin-bottom: 0; }
+img.ciro-lateral {
+  float: right;
+  width: 90px;
+  height: auto;
+  margin: 0 0 8px 16px;
+}
+img.ciro-saludo {
+  flex: none;
+  width: 96px;
+  height: auto;
+  margin: 0;
+}
 .tile-icono {
   font-size: 1.5rem;
   line-height: 1;
@@ -568,6 +587,8 @@ html { scroll-padding-bottom: 80px; }
   .tabla-ayuda { flex-wrap: wrap; gap: 4px; }
 
   .bienvenida { padding: 12px 14px; }
+  .bienvenida.con-ciro { gap: 12px; align-items: flex-start; }
+  img.ciro-saludo { width: 64px; }
   .callout { font-size: 0.95rem; }
   .generado { font-size: 0.75rem; }
 

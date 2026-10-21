@@ -27,8 +27,12 @@ source("R/visual.R")
 tagList(navegacion("metodologia"), linea_generacion(), boton_volver())
 ```
 
-::: {.bienvenida}
+::: {.bienvenida .con-ciro}
+<img src="assets/ciro/ciro_encuestas.webp" alt="Ciro, mi gato gris y blanco, con chaleco verde, lápiz y una tablilla que dice «Ciro encuestas»" class="ciro-saludo" width="96" height="126">
+
+::: {}
 👋 Esta página explica **cómo se construyeron** el [reporte general](analisis_escuchas.html) y el [reporte mensual](reporte_mensual.html): de dónde salen los datos, cómo se limpian y qué hace cada técnica. Cada técnica tiene una explicación **en simple**, para cualquier lector, y otra **en detalle**, con fórmulas, supuestos y limitaciones. Todo el código está en [GitHub](https://github.com/joakonib/escuchas_last) y las referencias, en [FUENTES.md](https://github.com/joakonib/escuchas_last/blob/main/FUENTES.md).
+:::
 :::
 
 ## 🗺️ El recorrido de los datos
@@ -54,7 +58,7 @@ Para los **1.000 artistas más escuchados** (cerca del 98% de mis escuchas) se b
 
 ### 3. Letras e imágenes
 
-- **Letras:** la meta son las **8.000 canciones más escuchadas** (todas las que escuché 5 veces o más, cerca del 78% de mis escuchas). Al 21-10-2026 van 5.000 revisadas y 4.344 con letra (61% de mis escuchas); el resto se completa en las actualizaciones mensuales. Vienen de [LRCLIB](https://lrclib.net). Script `scripts/descargar_letras.R` → `data/letras.parquet`. Se usan solo para análisis: el reporte muestra palabras y temas agregados, nunca letras completas.
+- **Letras:** la meta son las **8.000 canciones más escuchadas** (todas las que escuché 5 veces o más, cerca del 78% de mis escuchas). Al 21-10-2026 van 5.400 revisadas y 4.735 con letra (61% de mis escuchas); el resto se completa en las actualizaciones mensuales. Vienen de [LRCLIB](https://lrclib.net). Si una canción no aparece, se busca otra vez con el título limpio (sin «Remastered», «Live», «feat.», paréntesis ni corchetes) y solo el artista principal: así aparecieron 74 letras más. Script `scripts/descargar_letras.R` → `data/letras.parquet`. Se usan solo para análisis: el reporte muestra palabras y temas agregados, nunca letras completas.
 - **Imágenes:** fotos de artistas y portadas de discos desde la API de Deezer (`R/imagenes.R`), guardadas en `data/imagenes/`.
 
 ### 4. Análisis
@@ -271,7 +275,7 @@ El reporte muestra en detalle solo la ganadora: las reglas si es el árbol, los 
 
 - **Last.fm no es todo lo que escucho**: hay meses en que el registro se cortó (agosto y septiembre de 2026), y la música fuera de las apps conectadas no queda registrada.
 - **Las etiquetas son de la comunidad**: géneros, países y ánimo dependen de lo que los usuarios de Last.fm ponen a cada artista, con sus sesgos (por ejemplo, "female vocalists" se usa mucho más que "male vocalists").
-- **Solo los artistas y canciones principales** tienen etiquetas (1.000 artistas, cerca del 98 % de las escuchas) y letras (meta de 8.000 canciones; hoy 4.344 con letra, el 61% de las escuchas). Cubren la mayor parte de las escuchas, pero no todas.
+- **Solo los artistas y canciones principales** tienen etiquetas (1.000 artistas, cerca del 98 % de las escuchas) y letras (meta de 8.000 canciones; hoy 4.735 con letra, el 61% de las escuchas). Cubren la mayor parte de las escuchas, pero no todas.
 - **Las interpretaciones psicológicas son lúdicas**: la investigación habla de tendencias promedio en muchas personas, no de diagnósticos individuales.
 
 ## 🛠️ Herramientas

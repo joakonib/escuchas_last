@@ -155,7 +155,7 @@ tagList(
           div(class = "hero-titulo", paste(miles(total), "canciones escuchadas")),
           div(class = "hero-sub", paste0("Desde ", format(primer_dia, "%Y"), " hasta hoy · ",
                                          miles(n_artistas), " artistas · post-punk, metal y mucho rock chileno")))),
-  div(class = "bienvenida",
+  div(class = "bienvenida con-ciro", ciro("metal"), div(
       p(HTML("👋 <b>¡Hola!</b> Soy Joaquín, sociólogo y amante de los datos. Desde ",
              format(primer_dia, "%Y"), " uso <a href='https://www.last.fm/user/jgaldamesh'>Last.fm</a>, ",
              "un servicio que registra automáticamente cada canción que escucho en Spotify u otras apps ",
@@ -165,7 +165,7 @@ tagList(
              "cambia de pestaña dentro de cada sección y ordena las tablas haciendo clic en sus columnas. ",
              "El índice (a la izquierda en el computador) te lleva a cada parte. 📅 También puedes ver ",
              "<a href='reporte_mensual.html'>mi reporte del último mes</a> y ",
-             "<a href='metodologia.html'>cómo está hecho</a>."))),
+             "<a href='metodologia.html'>cómo está hecho</a>.")))),
   div(class = "tiles",
     tile("🎵", miles(total), "canciones escuchadas", paste("desde el", fmt_fecha(primer_dia))),
     tile("⏱️", miles(round(horas)), "horas de música", paste0("≈ ", round(horas / 24), " días sin parar")),
@@ -684,6 +684,8 @@ franjas <- escuchas |>
 
 finde <- mean(escuchas$semana %in% c("sáb", "dom"))
 ```
+
+<img src="assets/ciro/ciro_cafe.webp" alt="Ciro, mi gato gris y blanco, con camisa hawaiana de flores y los ojos cerrados de gusto, tomando una taza de café" class="ciro-lateral" width="90" height="115">
 
 Escucho `r pct(filter(franjas, str_starts(franja, "Tarde"))$share)` de mi música en la tarde, `r pct(filter(franjas, str_starts(franja, "Noche"))$share)` en la noche, `r pct(filter(franjas, str_starts(franja, "Mañana"))$share)` en la mañana y `r pct(filter(franjas, str_starts(franja, "Madrugada"))$share)` de madrugada. Los fines de semana concentran el `r pct(finde)` de las escuchas (si fuera parejo, sería un 29%).
 
@@ -1819,6 +1821,8 @@ texto_modelos <- paste0(
 
 ## 📝 Lo que dicen mis canciones
 
+<img src="assets/ciro/ciro_rapero.webp" alt="Ciro, mi gato gris y blanco, con buzo verde y jockey, micrófono en mano, como rapero de Kneecap" class="ciro-lateral" width="90" height="118">
+
 Bajé las letras de mis canciones más escuchadas desde [LRCLIB](https://lrclib.net), una base abierta de letras, para ver **de qué hablan**. Por derechos de autor aquí solo muestro palabras y temas agregados, nunca letras completas.
 
 ```{r}
@@ -2009,7 +2013,7 @@ interactivo(p)
 ```
 
 ::: {.callout-note appearance="simple" icon="false"}
-**¿Qué me dice?** *Escrito el 21-10-2026, con 4.344 letras.* Con más del triple de letras que antes, los ocho temas quedan casi parejos (entre 11% y 16% cada uno): ninguno domina. El más presente es **el amor y la vida en español**, con el voseo del rock chileno y argentino (*amor, vida, vos, corazón, mundo*) y Tenemos Explosivos como ejemplo. A su lado aparece otra forma de hablar de amor en castellano, más de **deseo y noche**, la del lenguaje urbano y tropical (*noche, gusta, mami, casa*), con La Brígida Orquesta. En inglés están el **amor y las despedidas** (*love, time, feel, leave*) y los **días, noches y recuerdos** (*day, night, remember, dance*): dos maneras de cantar lo cotidiano. El lado oscuro se reparte en dos, **la muerte, la sangre y lo sagrado** del metal (*die, blood, dead, death, soul*) y **la pérdida y el miedo** (*lost, dark, kill, fear*), con un contrapeso luminoso de **luz, cielo y manos** (*light, sun, sky, eyes, hands*). Cierra **la rabia, la calle y el dinero** del hip-hop y el hardcore (*fuck, money, bad*). Los temas se separan primero por idioma, porque las palabras de cada idioma casi nunca se mezclan en una misma canción, y luego por escena: cada género tiene su propio vocabulario, y por eso un mismo gran tema, como el amor o la oscuridad, aparece partido en varios.
+**¿Qué me dice?** *Escrito el 21-10-2026, con 4.735 letras.* Los ocho temas quedan casi parejos (entre 11% y 16% cada uno): ninguno domina. El más presente es **el amor y la vida en español**, con el voseo del rock chileno y argentino (*amor, vida, vos, corazón, mundo*) y Tenemos Explosivos como ejemplo. A su lado aparece otra forma de hablar de amor en castellano, más de **deseo y noche**, la del lenguaje urbano y tropical (*noche, gusta, mami, dame*), con La Brígida Orquesta. En inglés, el amor se reparte entre **el amor y las despedidas** (*love, time, feel, heart, lost*), con Black Country, New Road, y uno más íntimo de **abrazos, frío y espera** (*baby, cold, hold, stay, waiting*), con IDLES. Le siguen **la vida y el paso del tiempo** (*life, day, live, people, leave*), con Interpol, y un imaginario contemplativo de **luz y oscuridad** (*night, eyes, light, black, sky*), con Deafheaven. El lado más duro está en **la muerte, la sangre y lo sagrado** del metal (*die, blood, death, pain*) y en **la rabia, la calle y el dinero** del hip-hop y el hardcore (*fuck, money, bad*). Los temas se separan primero por idioma, porque las palabras de cada idioma casi nunca se mezclan en una misma canción, y luego por escena: cada género tiene su propio vocabulario, y por eso un mismo gran tema, como el amor, aparece partido en varios.
 :::
 
 :::
