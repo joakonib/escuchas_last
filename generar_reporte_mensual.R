@@ -19,4 +19,6 @@ estado <- system2(quarto, c("render", "reporte_mensual.qmd", "-P", paste0("mes:"
 if (estado != 0) stop("Falló el render del reporte de ", mes)
 
 file.rename(salida, file.path("reportes", salida))
-message("Reporte listo: reportes/", salida)
+# Copia del último reporte en la raíz del proyecto, para tenerlo a mano
+file.copy(file.path("reportes", salida), "reporte_mensual.html", overwrite = TRUE)
+message("Reporte listo: reportes/", salida, " (copia en reporte_mensual.html)")

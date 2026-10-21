@@ -1,0 +1,10 @@
+<script>
+// Los gráficos plotly dentro de pestañas ocultas se dibujan con ancho cero.
+// Al abrir una pestaña se dispara un "resize" para que se redibujen a su tamaño real.
+document.addEventListener("shown.bs.tab", function () {
+  window.dispatchEvent(new Event("resize"));
+});
+window.addEventListener("load", function () {
+  setTimeout(function () { window.dispatchEvent(new Event("resize")); }, 300);
+});
+</script>

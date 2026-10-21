@@ -50,10 +50,16 @@ imagen <- function(tipo, artista, album = NULL) {
     buscar_deezer("album", sprintf('artist:"%s" album:"%s"', artista, album))
   }
   # Solo se acepta una coincidencia exacta del nombre, para no mostrar la foto de otro
-  elegido <- Find(\(r) {
+  exactos <- Filter(\(r) {
     if (tipo == "artist") normalizar(r$name) == normalizar(artista)
     else normalizar(r$artist$name) == normalizar(artista)
   }, resultados)
+  # Puede haber varios artistas con el mismo nombre (p. ej. "Idles" e "IDLES"):
+  # se elige el que tiene más seguidores
+  if (tipo == "artist" && length(exactos) > 1) {
+    exactos <- exactos[order(-vapply(exactos, \(r) as.numeric(r$nb_fan %||% 0), 0))]
+  }
+  elegido <- if (length(exactos) > 0) exactos[[1]] else NULL
   url <- if (tipo == "artist") elegido$picture_medium else elegido$cover_medium
   # Deezer usa una imagen genérica cuando el artista no tiene foto
   if (is.null(url) || grepl("/artist//", url, fixed = TRUE)) {

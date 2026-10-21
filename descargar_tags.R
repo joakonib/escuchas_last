@@ -47,7 +47,7 @@ pedir_tags <- function(artista) {
   tags <- resp$toptags$tag
   # Artistas sin tags quedan registrados con tag NA para no volver a consultarlos
   if (length(tags) == 0) return(tibble(artista = artista, tag = NA_character_, peso = NA_real_))
-  map(tags[seq_len(min(10, length(tags)))], \(t) tibble(
+  map(tags[seq_len(min(30, length(tags)))], \(t) tibble(
     artista = artista,
     tag     = tolower(t$name),
     peso    = as.numeric(t$count)

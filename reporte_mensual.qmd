@@ -1,5 +1,5 @@
 ---
-title: "Mi mes en Last.fm"
+title: "🎧 Mi mes en música"
 lang: es
 params:
   mes: ""
@@ -13,6 +13,7 @@ format:
     fig-height: 4.5
     fig-dpi: 144
     css: estilo.css
+    include-after-body: redibujar.html
 execute:
   warning: false
   message: false
@@ -26,10 +27,11 @@ library(lubridate)
 library(ggplot2)
 library(forcats)
 library(scales)
-library(gt)
+
 library(htmltools)
 library(arrow)
 source("R/imagenes.R")
+source("R/visual.R")
 
 zona <- "America/Santiago"
 minutos_por_cancion <- 3.5
@@ -81,7 +83,11 @@ theme_set(
 )
 ```
 
-## `r paste0(toupper(substr(nombre_mes, 1, 1)), substr(nombre_mes, 2, nchar(nombre_mes)))`
+## 📆 `r paste0(toupper(substr(nombre_mes, 1, 1)), substr(nombre_mes, 2, nchar(nombre_mes)))`
+
+::: {.bienvenida}
+👋 Este es el resumen de lo que escuché en `r nombre_mes`, según [Last.fm](https://www.last.fm/user/jgaldamesh), que registra cada canción que pongo (cada registro es un *scrobble*). 🖱️ Pasa el mouse sobre los gráficos para ver los valores y ordena las tablas haciendo clic en sus columnas.
+:::
 
 ```{r}
 #| label: cifras
@@ -94,8 +100,9 @@ variacion <- if (n_distinct(anterior$dia) < 10) {
 }
 dia_top <- mes |> count(dia) |> slice_max(n, n = 1, with_ties = FALSE)
 
-tile <- function(valor, etiqueta, detalle = NULL) {
+tile <- function(icono, valor, etiqueta, detalle = NULL) {
   div(class = "tile",
+      div(class = "tile-icono", icono),
       div(class = "tile-valor", valor),
       div(class = "tile-etiqueta", etiqueta),
       if (!is.null(detalle)) div(class = "tile-detalle", detalle))
@@ -110,17 +117,17 @@ aviso <- if (dias_con_registro < 10) {
 }
 
 tagList(aviso, div(class = "tiles",
-  tile(miles(nrow(mes)), "escuchas", variacion),
-  tile(miles(round(nrow(mes) * minutos_por_cancion / 60)), "horas aprox."),
-  tile(miles(n_distinct(mes$artista)), "artistas"),
-  tile(miles(n_distinct(paste(mes$artista, mes$cancion))), "canciones"),
-  tile(nrow(nuevos), ifelse(nrow(nuevos) == 1, "artista nuevo", "artistas nuevos"),
+  tile("🎵", miles(nrow(mes)), "canciones escuchadas", variacion),
+  tile("⏱️", miles(round(nrow(mes) * minutos_por_cancion / 60)), "horas de música"),
+  tile("🎤", miles(n_distinct(mes$artista)), "artistas"),
+  tile("💿", miles(n_distinct(paste(mes$artista, mes$cancion))), "canciones distintas"),
+  tile("✨", nrow(nuevos), ifelse(nrow(nuevos) == 1, "artista nuevo", "artistas nuevos"),
        "escuchados por primera vez"),
-  tile(miles(dia_top$n), "día con más escuchas", format(dia_top$dia, "%d-%m"))
+  tile("🔥", miles(dia_top$n), "canciones en mi mejor día", format(dia_top$dia, "%d-%m"))
 ))
 ```
 
-## Artistas del mes
+## 🌟 Artistas del mes
 
 ```{r}
 #| label: galeria-mes
@@ -141,78 +148,93 @@ galeria(imagen_disco(discos5$artista, discos5$album), discos5$album,
 ```{r}
 #| label: top-artistas
 #| fig-height: 5
-mes |>
+p <- mes |>
   count(artista, sort = TRUE) |>
   slice_head(n = 15) |>
-  ggplot(aes(n, fct_reorder(artista, n))) +
+  ggplot(aes(n, fct_reorder(artista, n), text = paste0("<b>", artista, "</b><br>", n, " escuchas"))) +
   geom_col(fill = principal, width = 0.7) +
-  geom_text(aes(label = miles(n)), hjust = -0.2, size = 3.3, color = tinta_2) +
-  scale_x_continuous(expand = expansion(mult = c(0, 0.1))) +
+  scale_x_continuous(expand = expansion(mult = c(0, 0.05))) +
   labs(title = "Los 15 artistas que más escuché", x = NULL, y = NULL)
+interactivo(p)
 ```
 
-## Canciones y álbumes
+## 🎶 Canciones, álbumes y descubrimientos
+
+::: {.panel-tabset}
+
+#### Canciones
 
 ```{r}
 #| label: top-canciones
-mes |>
+canciones <- mes |>
   count(cancion, artista, sort = TRUE, name = "veces") |>
   slice_head(n = 15) |>
-  mutate(pos = row_number(), .before = 1) |>
-  gt() |>
-  tab_header(title = "Canciones más escuchadas") |>
-  cols_label(pos = "", cancion = "Canción", artista = "Artista", veces = "Veces") |>
-  data_color(veces, palette = rampa[2:5]) |>
-  tab_options(quarto.disable_processing = TRUE, table.width = pct(100), table.font.size = px(13))
+  mutate(pos = row_number(), .before = 1)
+
+tabla(canciones, titulo = "Canciones más escuchadas", filas = 15,
+      columnas = list(
+        pos     = colDef(name = "", maxWidth = 45, style = list(fontWeight = 700, color = verde)),
+        cancion = colDef(name = "Canción", minWidth = 200),
+        artista = colDef(name = "Artista", minWidth = 150),
+        veces   = col_barra("Veces", max(canciones$veces))
+      ))
 ```
+
+#### Álbumes
 
 ```{r}
 #| label: top-albumes
-mes |>
+albumes <- mes |>
   filter(!is.na(album), album != "") |>
   count(album, artista, sort = TRUE, name = "escuchas") |>
   slice_head(n = 10) |>
-  mutate(pos = row_number(), .before = 1) |>
-  gt() |>
-  tab_header(title = "Álbumes más escuchados") |>
-  cols_label(pos = "", album = "Álbum", artista = "Artista", escuchas = "Escuchas") |>
-  data_color(escuchas, palette = rampa[2:5]) |>
-  tab_options(quarto.disable_processing = TRUE, table.width = pct(100), table.font.size = px(13))
+  mutate(pos = row_number(), .before = 1)
+
+tabla(albumes, titulo = "Álbumes más escuchados",
+      columnas = list(
+        pos      = colDef(name = "", maxWidth = 45, style = list(fontWeight = 700, color = verde)),
+        album    = colDef(name = "Álbum", minWidth = 200),
+        artista  = colDef(name = "Artista", minWidth = 150),
+        escuchas = col_barra("Escuchas", max(albumes$escuchas))
+      ))
 ```
 
-## Día a día
-
-```{r}
-#| label: por-dia
-#| fig-height: 3.5
-mes |>
-  count(dia) |>
-  right_join(tibble(dia = seq(inicio, fin, by = "day")), by = "dia") |>
-  mutate(n = coalesce(n, 0L),
-         finde = wday(dia, week_start = 1) >= 6) |>
-  ggplot(aes(dia, n, fill = finde)) +
-  geom_col(width = 0.75) +
-  scale_fill_manual(values = c(`FALSE` = principal, `TRUE` = verde),
-                    labels = c("Lunes a viernes", "Fin de semana"), name = NULL) +
-  scale_x_date(date_breaks = "1 week", date_labels = "%d-%m") +
-  labs(title = "Escuchas por día", x = NULL, y = NULL) +
-  theme(legend.position = "top", legend.justification = "left")
-```
-
-## Descubrimientos
+#### Descubrimientos
 
 ```{r}
 #| label: nuevos
 if (nrow(nuevos) == 0) {
   p("Este mes no escuché artistas nuevos.")
 } else {
-  nuevos |>
+  descubiertos <- nuevos |>
     slice_head(n = 10) |>
-    mutate(debut = format(debut, "%d-%m")) |>
-    gt() |>
-    tab_header(title = "Artistas que escuché por primera vez",
-               subtitle = paste(nrow(nuevos), ifelse(nrow(nuevos) == 1, "artista nuevo en total", "artistas nuevos en total"))) |>
-    cols_label(artista = "Artista", escuchas = "Escuchas", debut = "Primera escucha") |>
-    tab_options(quarto.disable_processing = TRUE, table.width = pct(100), table.font.size = px(13))
+    mutate(debut = format(debut, "%d-%m"))
+  tabla(descubiertos, titulo = "Artistas que escuché por primera vez",
+        subtitulo = paste(nrow(nuevos), ifelse(nrow(nuevos) == 1, "artista nuevo en total", "artistas nuevos en total")),
+        columnas = list(
+          artista  = colDef(name = "Artista", minWidth = 180),
+          escuchas = col_barra("Escuchas", max(descubiertos$escuchas)),
+          debut    = colDef(name = "Primera escucha", maxWidth = 130)
+        ))
 }
+```
+
+:::
+
+## 📊 Día a día
+
+```{r}
+#| label: por-dia
+#| fig-height: 3.5
+p <- mes |>
+  count(dia) |>
+  right_join(tibble(dia = seq(inicio, fin, by = "day")), by = "dia") |>
+  mutate(n = coalesce(n, 0L),
+         finde = ifelse(wday(dia, week_start = 1) >= 6, "Fin de semana", "Lunes a viernes")) |>
+  ggplot(aes(dia, n, fill = finde, text = paste0("<b>", format(dia, "%d-%m"), "</b><br>", n, " escuchas"))) +
+  geom_col(width = 0.75) +
+  scale_fill_manual(values = c(`Lunes a viernes` = principal, `Fin de semana` = verde), name = NULL) +
+  scale_x_date(date_breaks = "1 week", date_labels = "%d-%m") +
+  labs(title = "Escuchas por día", x = NULL, y = NULL)
+interactivo(p)
 ```

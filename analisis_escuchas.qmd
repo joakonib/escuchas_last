@@ -1,6 +1,6 @@
 ---
-title: "Mis escuchas en Last.fm"
-subtitle: "Radiografía de una vida escuchando música"
+title: "🎧 Mi vida en canciones"
+subtitle: "Más de una década de música, contada con datos"
 date: today
 date-format: "D [de] MMMM, YYYY"
 lang: es
@@ -17,9 +17,11 @@ format:
     fig-height: 5
     fig-dpi: 144
     css: estilo.css
+    include-after-body: redibujar.html
 execute:
   warning: false
   message: false
+  echo: false
 ---
 
 ```{r}
@@ -33,10 +35,8 @@ library(ggplot2)
 library(forcats)
 library(stringr)
 library(scales)
-library(gt)
-library(reactable)
-library(htmltools)
 source("R/imagenes.R")
+source("R/visual.R")
 
 # Zona horaria para analizar horas y días (los datos vienen en UTC)
 zona <- "America/Santiago"
@@ -61,10 +61,13 @@ escuchas <- read_parquet("data/escuchas.parquet") |>
   ) |>
   arrange(uts)
 
-# Paleta (principal secuencial + categóricos en orden fijo)
+# Paleta: gris oscuro para barras, verde como acento principal y morado y
+# rosado oscuro como secundarios (sin azul)
 principal <- "#3a3a3a"
 verde     <- "#2f7d4a"
 gris      <- "#a3a29d"
+morado    <- "#6b3fa0"
+rosado    <- "#b0306a"
 tinta     <- "#0b0b0b"
 tinta_2   <- "#52514e"
 rampa     <- c("#f1f5f1", "#d4e5d8", "#a7cbb0", "#72a982", "#428556", "#27613a", "#163f25")
@@ -75,7 +78,6 @@ theme_set(
       plot.title.position = "plot",
       plot.title    = element_text(face = "bold", size = 14, color = tinta),
       plot.subtitle = element_text(color = tinta_2, margin = margin(b = 10)),
-      plot.caption  = element_text(color = gris, size = 9),
       axis.text     = element_text(color = tinta_2),
       axis.title    = element_text(color = tinta_2, size = 10),
       panel.grid.major = element_line(color = "#ecebe7", linewidth = 0.4),
@@ -83,7 +85,8 @@ theme_set(
       strip.text    = element_text(face = "bold", hjust = 0, color = tinta),
       legend.position = "top",
       legend.justification = "left",
-      plot.background = element_rect(fill = "#fcfcfb", color = NA)
+      plot.background = element_rect(fill = "#fcfcfb", color = NA),
+      panel.background = element_rect(fill = "#fcfcfb", color = NA)
     )
 )
 
@@ -95,8 +98,8 @@ fmt_fecha <- function(x) format(x, "%d-%m-%Y")
 ```{r}
 #| label: tags
 #| echo: false
-# Tags de Last.fm por artista (descargar_tags.R). Se separan en géneros,
-# países de origen y tipo de voz; el resto (p. ej. "seen live") se descarta.
+# Tags de Last.fm por artista (descargar_tags.R). Se separan en géneros y
+# países de origen; el resto (p. ej. "seen live") se descarta.
 tiene_tags <- file.exists("data/tags_artistas.parquet")
 
 paises <- c(
@@ -112,8 +115,7 @@ paises <- c(
   korean = "Corea del Sur", "k-pop" = "Corea del Sur", italian = "Italia", belgian = "Bélgica",
   dutch = "Países Bajos", danish = "Dinamarca", finnish = "Finlandia", "new zealand" = "Nueva Zelanda"
 )
-voces <- c("female vocalists" = "Voz femenina", "female vocalist" = "Voz femenina",
-           "male vocalists" = "Voz masculina", "male vocalist" = "Voz masculina")
+voces <- c("female vocalists", "female vocalist", "male vocalists", "male vocalist")
 basura <- c(
   "seen live", "favorites", "favourite", "favourites", "favorite", "love", "awesome",
   "beautiful", "amazing", "cool", "good", "best", "fav", "my favorite", "all", "music",
@@ -128,7 +130,7 @@ if (tiene_tags) {
     filter(!is.na(tag), peso > 0)
 
   genero_artista <- tags |>
-    filter(!tag %in% c(basura, names(paises), names(voces))) |>
+    filter(!tag %in% c(basura, names(paises), voces)) |>
     group_by(artista) |>
     slice_max(peso, n = 1, with_ties = FALSE) |>
     ungroup() |>
@@ -142,18 +144,9 @@ if (tiene_tags) {
     ungroup() |>
     select(artista, pais)
 
-  voz_artista <- tags |>
-    filter(tag %in% names(voces)) |>
-    mutate(voz = voces[tag]) |>
-    group_by(artista) |>
-    slice_max(peso, n = 1, with_ties = FALSE) |>
-    ungroup() |>
-    select(artista, voz)
-
   escuchas <- escuchas |>
     left_join(genero_artista, by = "artista") |>
-    left_join(pais_artista, by = "artista") |>
-    left_join(voz_artista, by = "artista")
+    left_join(pais_artista, by = "artista")
 }
 ```
 
@@ -175,24 +168,53 @@ rachas <- tibble(dia = dias, grupo = grupo_racha) |>
   summarise(inicio = min(dia), fin = max(dia), largo = n())
 racha <- slice_max(rachas, largo, n = 1, with_ties = FALSE)
 
-tile <- function(valor, etiqueta, detalle = NULL) {
+tile <- function(icono, valor, etiqueta, detalle = NULL) {
   div(class = "tile",
+      div(class = "tile-icono", icono),
       div(class = "tile-valor", valor),
       div(class = "tile-etiqueta", etiqueta),
       if (!is.null(detalle)) div(class = "tile-detalle", detalle))
 }
 
-div(class = "tiles",
-  tile(miles(total), "escuchas", paste("desde el", fmt_fecha(primer_dia))),
-  tile(miles(round(horas)), "horas aprox.", paste0("≈ ", round(horas / 24), " días seguidos")),
-  tile(miles(n_artistas), "artistas distintos"),
-  tile(miles(n_canciones), "canciones distintas"),
-  tile(format(round(total / as.numeric(ultimo_dia - primer_dia + 1), 1), decimal.mark = ","), "escuchas por día", "promedio de todo el período"),
-  tile(paste(racha$largo, "días"), "racha más larga", paste(fmt_fecha(racha$inicio), "al", fmt_fecha(racha$fin)))
+# Portada: mosaico con las fotos de los 12 artistas más escuchados
+top_hero <- escuchas |> count(artista, sort = TRUE) |> slice_head(n = 12)
+fotos_hero <- imagen_artista(top_hero$artista)
+anios_hist <- year(ultimo_dia) - year(primer_dia)
+
+tagList(
+  div(class = "hero",
+      div(class = "hero-mosaico",
+          lapply(seq_along(fotos_hero), \(i) {
+            if (is.na(fotos_hero[i])) div(style = "background:#3a3a3a")
+            else img(src = fotos_hero[i], alt = top_hero$artista[i])
+          })),
+      div(class = "hero-texto",
+          div(class = "hero-titulo", paste(miles(total), "canciones escuchadas")),
+          div(class = "hero-sub", paste0("Desde ", format(primer_dia, "%Y"), " hasta hoy · ",
+                                         miles(n_artistas), " artistas · post-punk, metal y mucho rock chileno")))),
+  div(class = "bienvenida",
+      p(HTML("👋 <b>¡Hola!</b> Soy Joaquín, sociólogo y amante de los datos. Desde ",
+             format(primer_dia, "%Y"), " uso <a href='https://www.last.fm/user/jgaldamesh'>Last.fm</a>, ",
+             "un servicio que registra automáticamente cada canción que escucho en Spotify u otras apps ",
+             "(a cada registro se le llama <i>scrobble</i>). Este reporte convierte esos ",
+             anios_hist, " años de registros en una radiografía de mis gustos.")),
+      p(HTML("🖱️ <b>Cómo leerlo:</b> pasa el mouse sobre los gráficos para ver los valores, ",
+             "cambia de pestaña dentro de cada sección y ordena las tablas haciendo clic en sus columnas. ",
+             "El índice de la izquierda te lleva a cada parte."))),
+  div(class = "tiles",
+    tile("🎵", miles(total), "canciones escuchadas", paste("desde el", fmt_fecha(primer_dia))),
+    tile("⏱️", miles(round(horas)), "horas de música", paste0("≈ ", round(horas / 24), " días sin parar")),
+    tile("🎤", miles(n_artistas), "artistas distintos"),
+    tile("💿", miles(n_canciones), "canciones distintas"),
+    tile("📅", format(round(total / as.numeric(ultimo_dia - primer_dia + 1), 1), decimal.mark = ","),
+         "canciones al día", "en promedio"),
+    tile("🔥", paste(racha$largo, "días"), "racha sin parar",
+         paste(fmt_fecha(racha$inicio), "al", fmt_fecha(racha$fin)))
+  )
 )
 ```
 
-## Mi perfil musical
+## 🎸 Mi perfil musical
 
 ::: {.callout-note appearance="simple" icon="false"}
 ## En pocas palabras
@@ -210,161 +232,234 @@ div(class = "tiles",
 **Música para trabajar.** El patrón es de oficina: escucho sobre todo de lunes a viernes entre las 9 y las 18 horas. Los fines de semana solo suman un 16% de las escuchas.
 :::
 
+::: {.panel-tabset}
+
+#### Géneros
+
 ```{r}
 #| label: generos
 #| eval: !expr tiene_tags
 #| fig-height: 6
-escuchas |>
+p <- escuchas |>
   filter(!is.na(genero)) |>
   count(genero, sort = TRUE) |>
   mutate(share = n / sum(n)) |>
   slice_head(n = 15) |>
-  ggplot(aes(share, fct_reorder(genero, share))) +
+  ggplot(aes(share, fct_reorder(genero, share),
+             text = paste0("<b>", genero, "</b><br>", pct(share), " · ", miles(n), " escuchas"))) +
   geom_col(fill = principal, width = 0.7) +
-  geom_text(aes(label = pct(share)), hjust = -0.2, size = 3.3, color = tinta_2) +
-  scale_x_continuous(labels = pct, expand = expansion(mult = c(0, 0.1))) +
-  labs(
-    title = "Mis géneros",
-    subtitle = "Proporción de escuchas según el género principal de cada artista (tags de Last.fm)",
-    x = NULL, y = NULL
-  )
+  scale_x_continuous(labels = pct, expand = expansion(mult = c(0, 0.05))) +
+  labs(title = "Mis géneros",
+       subtitle = "Proporción de escuchas según el género principal de cada artista (tags de Last.fm)",
+       x = NULL, y = NULL)
+interactivo(p)
 ```
 
+#### Países
+
 ```{r}
-#| label: origen-voz
+#| label: paises
 #| eval: !expr tiene_tags
 #| fig-height: 4.5
-escuchas |>
+p <- escuchas |>
   filter(!is.na(pais)) |>
   count(pais, sort = TRUE) |>
   mutate(share = n / sum(n)) |>
   slice_head(n = 10) |>
-  ggplot(aes(share, fct_reorder(pais, share))) +
-  geom_col(fill = principal, width = 0.7) +
-  geom_text(aes(label = pct(share)), hjust = -0.2, size = 3.3, color = tinta_2) +
-  scale_x_continuous(labels = pct, expand = expansion(mult = c(0, 0.1))) +
-  labs(
-    title = "¿De dónde viene lo que escucho?",
-    subtitle = "Escuchas de artistas con país identificado en sus tags",
-    x = NULL, y = NULL
-  )
+  ggplot(aes(share, fct_reorder(pais, share),
+             text = paste0("<b>", pais, "</b><br>", pct(share), " · ", miles(n), " escuchas"))) +
+  geom_col(aes(fill = pais == "Chile"), width = 0.7) +
+  scale_fill_manual(values = c(`TRUE` = verde, `FALSE` = principal), guide = "none") +
+  scale_x_continuous(labels = pct, expand = expansion(mult = c(0, 0.05))) +
+  labs(title = "¿De dónde viene lo que escucho?",
+       subtitle = "Escuchas de artistas con país identificado en sus tags (en verde, Chile)",
+       x = NULL, y = NULL)
+interactivo(p)
 ```
 
-## Mi personalidad de oyente
+:::
 
-Inspirado en las [personalidades de oyente de Spotify Wrapped](https://www.aol.com/16-personality-types-spotify-wrapped-195652285.html), que combinan pares de rasgos (familiaridad/exploración, lealtad/variedad, común/único). Aquí se calculan con mis escuchas de **los últimos 12 meses**, para retratar cómo escucho hoy. Los umbrales que separan un polo del otro son una decisión propia y se muestran en cada eje.
+## 🧭 Mi personalidad de oyente
+
+Inspirado en las [personalidades de oyente de Spotify Wrapped](https://www.aol.com/16-personality-types-spotify-wrapped-195652285.html), que describen cómo escucha cada persona con pares de rasgos: si explora o vuelve a lo conocido, si es leal a pocos artistas o varía, si repite canciones y si escucha lo masivo o lo de nicho. Cada pestaña es un período: los **últimos 12 meses** y cada año desde que uso Last.fm. La pestaña **Evolución** muestra cómo fui cambiando. Los umbrales que separan un polo del otro son una decisión propia y se muestran bajo cada eje.
 
 ```{r}
-#| label: personalidad
-#| fig-height: 5
+#| label: personalidad-calculo
 tiene_info <- file.exists("data/info_artistas.parquet")
 if (tiene_info) {
   info <- read_parquet("data/info_artistas.parquet")
 }
+debut_artista <- escuchas |> group_by(artista) |> summarise(debut = min(dia))
 
-reciente <- escuchas |>
-  filter(dia > ultimo_dia - 365) |>
-  left_join(escuchas |> group_by(artista) |> summarise(debut = min(dia)), by = "artista")
-
-top10_rec <- reciente |> count(artista, sort = TRUE) |> slice_head(n = 10)
-
-ejes <- tibble(
-  izq = c("Familiar", "Variado", "Rotador"),
-  der = c("Explorador", "Leal", "Repetidor"),
-  valor = c(
-    mean(reciente$debut > ultimo_dia - 365),
-    sum(top10_rec$n) / nrow(reciente),
-    nrow(reciente) / n_distinct(paste(reciente$artista, reciente$cancion))
-  ),
-  umbral = c(0.15, 0.30, 3),
-  texto = c(
-    paste0(pct(valor[1]), " de las escuchas, a artistas que descubrí este año (umbral: 15%)"),
-    paste0(pct(valor[2]), " de las escuchas, a mis 10 artistas del año (umbral: 30%)"),
-    paste0(format(round(valor[3], 1), decimal.mark = ","), " escuchas por canción distinta (umbral: 3)")
-  )
-)
-
-if (tiene_info) {
-  oyentes_med <- reciente |>
-    inner_join(info, by = "artista") |>
-    filter(!is.na(oyentes)) |>
-    summarise(m = median(oyentes)) |>
-    pull(m)
-  # Aquí el polo derecho es el de *menos* oyentes, por eso el valor se invierte
-  ejes <- bind_rows(ejes, tibble(
-    izq = "Popular", der = "De nicho", valor = 1e6 / oyentes_med, umbral = 1,
-    texto = paste0("La escucha típica es de un artista con ", miles(round(oyentes_med, -3)),
-                   " oyentes en Last.fm (umbral: 1 millón)")
-  ))
-}
-
-# Posición en escala logarítmica: el umbral queda al centro y 4 veces el umbral, en el extremo
-ejes <- ejes |>
-  mutate(
+# Calcula los cuatro ejes para un período. "desde" marca qué artistas cuentan como nuevos.
+calcular_ejes <- function(datos, desde) {
+  datos <- datos |> left_join(debut_artista, by = "artista")
+  top10 <- datos |> count(artista, sort = TRUE) |> slice_head(n = 10)
+  e <- tibble(
+    eje = c("Exploración", "Lealtad", "Repetición"),
+    izq = c("Familiar", "Variado", "Rotador"),
+    der = c("Explorador", "Leal", "Repetidor"),
+    valor = c(
+      mean(datos$debut >= desde),
+      sum(top10$n) / nrow(datos),
+      nrow(datos) / n_distinct(paste(datos$artista, datos$cancion))
+    ),
+    umbral = c(0.15, 0.30, 3)
+  ) |>
+    mutate(texto = c(
+      paste0(pct(valor[1]), " de las escuchas, a artistas que descubrí en el período (umbral: 15%)"),
+      paste0(pct(valor[2]), " de las escuchas, a mis 10 artistas del período (umbral: 30%)"),
+      paste0(format(round(valor[3], 1), decimal.mark = ","), " escuchas por canción distinta (umbral: 3)")
+    ))
+  if (tiene_info) {
+    med <- datos |> inner_join(info, by = "artista") |> filter(!is.na(oyentes)) |>
+      summarise(m = median(oyentes)) |> pull(m)
+    # Aquí el polo derecho es el de *menos* oyentes, por eso el valor se invierte
+    e <- bind_rows(e, tibble(
+      eje = "Popularidad", izq = "Popular", der = "De nicho", valor = 1e6 / med, umbral = 1,
+      texto = paste0("La escucha típica es de un artista con ", miles(round(med, -3)),
+                     " oyentes en Last.fm (umbral: 1 millón)")
+    ))
+  }
+  # Posición en escala logarítmica: el umbral queda al centro y 4 veces el umbral, en el extremo
+  e |> mutate(
     pos  = pmin(pmax(0.5 + log(valor / umbral) / (2 * log(4)), 0.04), 0.96),
     polo = ifelse(pos >= 0.5, der, izq),
     fila = factor(row_number(), levels = rev(row_number()))
   )
+}
 
-ggplot(ejes, aes(y = fila)) +
-  geom_segment(aes(x = 0, xend = 1, yend = fila), color = "#e3e2de", linewidth = 3, lineend = "round") +
-  geom_point(aes(x = 0.5), color = "white", size = 2) +
-  geom_point(aes(x = pos), color = principal, size = 6) +
-  geom_text(aes(x = -0.02, label = izq, fontface = ifelse(pos < 0.5, "bold", "plain")),
-            hjust = 1, size = 4.3, color = tinta) +
-  geom_text(aes(x = 1.02, label = der, fontface = ifelse(pos >= 0.5, "bold", "plain")),
-            hjust = 0, size = 4.3, color = tinta) +
-  geom_text(aes(x = 0.5, label = texto), nudge_y = -0.38, size = 3.6, color = tinta_2) +
-  scale_x_continuous(limits = c(-0.25, 1.25)) +
-  labs(title = paste("Soy:", paste(ejes$polo, collapse = " · ")), x = NULL, y = NULL) +
-  theme_void() +
-  theme(plot.title = element_text(face = "bold", size = 15, hjust = 0.5, margin = margin(b = 12)),
-        plot.background = element_rect(fill = "#fcfcfb", color = NA))
+grafico_ejes <- function(e) {
+  ggplot(e, aes(y = fila)) +
+    geom_segment(aes(x = 0, xend = 1, yend = fila), color = "#e3e2de", linewidth = 3, lineend = "round") +
+    geom_point(aes(x = 0.5), color = "white", size = 2) +
+    geom_point(aes(x = pos, color = pos >= 0.5), size = 6) +
+    scale_color_manual(values = c(`TRUE` = verde, `FALSE` = morado), guide = "none") +
+    geom_text(aes(x = -0.02, label = izq, fontface = ifelse(pos < 0.5, "bold", "plain")),
+              hjust = 1, size = 4.3, color = tinta) +
+    geom_text(aes(x = 1.02, label = der, fontface = ifelse(pos >= 0.5, "bold", "plain")),
+              hjust = 0, size = 4.3, color = tinta) +
+    geom_text(aes(x = 0.5, label = texto), nudge_y = -0.38, size = 3.6, color = tinta_2) +
+    scale_x_continuous(limits = c(-0.25, 1.25)) +
+    labs(title = paste("Soy:", paste(e$polo, collapse = " · ")), x = NULL, y = NULL) +
+    theme_void() +
+    theme(plot.title = element_text(face = "bold", size = 15, hjust = 0.5, margin = margin(b = 12)),
+          plot.background = element_rect(fill = "#fcfcfb", color = NA))
+}
+
+# Períodos: últimos 12 meses y cada año (del más reciente al más antiguo)
+anios_pers <- sort(unique(escuchas$anio), decreasing = TRUE)
+periodos <- c(
+  list("Últimos 12 meses" = calcular_ejes(filter(escuchas, dia > ultimo_dia - 365), ultimo_dia - 364)),
+  setNames(lapply(anios_pers, \(a) calcular_ejes(filter(escuchas, anio == a), as_date(paste0(a, "-01-01")))),
+           as.character(anios_pers))
+)
+ejes <- periodos[["Últimos 12 meses"]]
 ```
 
+```{r}
+#| label: personalidad-pestanas
+#| output: asis
+#| fig-height: 5
+cat("::: {.panel-tabset}\n\n")
+for (nombre in names(periodos)) {
+  cat("####", nombre, "\n\n")
+  if (nombre == as.character(min(anios_pers))) {
+    cat("*Primer año del historial: todos los artistas cuentan como nuevos.*\n\n")
+  }
+  print(grafico_ejes(periodos[[nombre]]))
+  cat("\n\n")
+}
+```
+
+#### Evolución
+
+```{r}
+#| label: personalidad-evolucion
+evolucion <- bind_rows(lapply(names(periodos)[-1], \(a) {
+  periodos[[a]] |> transmute(anio = a, eje, celda = paste0(polo, "|", texto), derecha = pos >= 0.5)
+}))
+tabla_evo <- evolucion |>
+  select(anio, eje, celda) |>
+  pivot_wider(names_from = eje, values_from = celda)
+
+col_polo <- function(nombre) {
+  colDef(name = nombre, minWidth = 120, align = "center",
+         cell = \(v) strsplit(v, "|", fixed = TRUE)[[1]][1],
+         style = function(v) {
+           polo <- strsplit(v, "|", fixed = TRUE)[[1]][1]
+           derecha <- polo %in% c("Explorador", "Leal", "Repetidor", "De nicho")
+           list(background = if (derecha) "#e3efe6" else "#ece5f5",
+                color = if (derecha) verde else morado, fontWeight = 600)
+         })
+}
+
+tabla(tabla_evo, titulo = "Mi personalidad de oyente, año a año", filas = 20,
+      subtitulo = "En verde, el polo de la derecha de cada eje; en morado, el de la izquierda",
+      columnas = c(list(anio = colDef(name = "Año", maxWidth = 80, style = list(fontWeight = 700))),
+                   setNames(lapply(setdiff(names(tabla_evo), "anio"), col_polo),
+                            setdiff(names(tabla_evo), "anio"))))
+```
+
+:::
+
 ### ¿Qué tan de nicho es lo que escucho?
+
+::: {.panel-tabset}
+
+#### Popularidad de mis artistas
 
 ```{r}
 #| label: nicho
 #| eval: !expr file.exists("data/info_artistas.parquet")
 #| fig-height: 4
 con_oyentes <- escuchas |>
+  count(artista, name = "mias") |>
   inner_join(info, by = "artista") |>
   filter(!is.na(oyentes), oyentes > 0)
 
-ggplot(con_oyentes, aes(oyentes)) +
-  geom_histogram(bins = 40, fill = principal, color = "#fcfcfb", linewidth = 0.3) +
-  geom_vline(xintercept = median(con_oyentes$oyentes), color = verde, linewidth = 0.8) +
-  annotate("text", x = median(con_oyentes$oyentes), y = Inf, vjust = 1.5, hjust = -0.05,
-           size = 3.3, color = tinta, label = paste("Mediana:", miles(round(median(con_oyentes$oyentes), -3)), "oyentes")) +
+p <- ggplot(con_oyentes, aes(oyentes, mias,
+                             text = paste0("<b>", artista, "</b><br>", miles(mias), " escuchas mías<br>",
+                                           miles(oyentes), " oyentes en Last.fm"))) +
+  geom_point(color = principal, alpha = 0.55, size = 2) +
+  geom_vline(xintercept = 1e6, color = verde, linewidth = 0.6, linetype = "dashed") +
   scale_x_log10(labels = label_number(scale_cut = cut_short_scale(), decimal.mark = ",")) +
-  scale_y_continuous(labels = miles) +
-  labs(title = "Mis escuchas según la popularidad del artista",
-       subtitle = "Oyentes totales de cada artista en Last.fm (escala logarítmica), para mis 500 artistas principales",
-       x = "Oyentes del artista en Last.fm", y = "Escuchas")
+  scale_y_log10(labels = miles) +
+  labs(title = "Mis artistas según su popularidad",
+       subtitle = "Cada punto es un artista: cuánto lo escucho vs. cuántos oyentes tiene en Last.fm (línea: 1 millón)",
+       x = "Oyentes en Last.fm (escala logarítmica)", y = "Mis escuchas")
+interactivo(p)
 ```
+
+#### Joyas escondidas
 
 ```{r}
 #| label: joyas
 #| eval: !expr file.exists("data/info_artistas.parquet")
-escuchas |>
-  count(artista, name = "mias") |>
-  inner_join(info, by = "artista") |>
-  filter(mias >= 100, !is.na(oyentes)) |>
-  mutate(ratio = mias / oyentes) |>
+joyas <- con_oyentes |>
+  filter(mias >= 100) |>
   slice_min(oyentes, n = 12, with_ties = FALSE) |>
-  select(artista, mias, oyentes) |>
-  gt() |>
-  tab_header(title = "Joyas escondidas",
-             subtitle = "Los artistas con menos oyentes en Last.fm entre los que he escuchado al menos 100 veces") |>
-  cols_label(artista = "Artista", mias = "Mis escuchas", oyentes = "Oyentes en Last.fm") |>
-  fmt_number(c(mias, oyentes), decimals = 0, sep_mark = ".") |>
-  tab_options(quarto.disable_processing = TRUE, table.width = pct(1), table.font.size = px(13))
+  select(artista, mias, oyentes)
+
+tabla(joyas,
+      titulo = "Joyas escondidas",
+      subtitulo = "Los artistas con menos oyentes en Last.fm entre los que he escuchado al menos 100 veces",
+      columnas = list(
+        artista = colDef(name = "Artista", minWidth = 180),
+        mias    = col_barra("Mis escuchas", max(joyas$mias)),
+        oyentes = col_barra("Oyentes en Last.fm", max(joyas$oyentes), color = "#8a8984")
+      ))
 ```
+
+:::
 
 ### Mis gustos según el modelo MUSIC
 
-La psicología de la música resume las preferencias en cinco dimensiones, el [modelo MUSIC de Rentfrow y colaboradores](https://www.gsb.stanford.edu/index%2Ephp/node/428616): **M**ellow (suave, relajada), **U**npretentious (sencilla, de raíz), **S**ophisticated (compleja: jazz, clásica, experimental), **I**ntense (fuerte, enérgica) y **C**ontemporary (rítmica y actual: urbano, electrónica, pop). Aquí se aproximan asignando los tags de cada artista a una dimensión.
+La psicología de la música resume las preferencias musicales en cinco dimensiones: el [modelo MUSIC de Rentfrow y colaboradores](https://www.gsb.stanford.edu/index%2Ephp/node/428616). Su nombre son las iniciales de cada una en inglés. Aquí se aproximan asignando las etiquetas de cada artista a una dimensión; la pestaña **¿Qué es cada dimensión?** explica cada una.
+
+::: {.panel-tabset}
+
+#### Mi perfil MUSIC
 
 ```{r}
 #| label: music-model
@@ -408,35 +503,82 @@ music <- escuchas |>
   mutate(share = valor / sum(valor),
          dimension = factor(dimension, levels = names(dimensiones)))
 
-ggplot(music, aes(share, fct_rev(dimension))) +
-  geom_col(fill = principal, width = 0.65) +
-  geom_text(aes(label = pct(share)), hjust = -0.2, size = 3.5, color = tinta_2) +
-  scale_x_continuous(labels = pct, expand = expansion(mult = c(0, 0.12))) +
+p <- ggplot(music, aes(share, fct_rev(dimension),
+                       text = paste0("<b>", dimension, "</b><br>", pct(share), " de mis escuchas"))) +
+  geom_col(aes(fill = share == max(share)), width = 0.65) +
+  scale_fill_manual(values = c(`TRUE` = verde, `FALSE` = principal), guide = "none") +
+  scale_x_continuous(labels = pct, expand = expansion(mult = c(0, 0.05))) +
   labs(title = "Mi perfil MUSIC", subtitle = "Peso de cada dimensión en mis escuchas",
        x = NULL, y = NULL)
+interactivo(p)
 ```
 
-## La línea de tiempo
+#### ¿Qué es cada dimensión?
+
+```{r}
+#| label: music-definiciones
+definiciones <- tribble(
+  ~letra, ~dimension, ~que_es, ~ejemplos,
+  "M", "Suave (Mellow)",
+  "Música tranquila, lenta y relajante, de emociones apacibles o románticas.",
+  "Soft rock, R&B lento, chillout, dream pop, ambient, baladas",
+  "U", "De raíz (Unpretentious)",
+  "Música sencilla, directa y tradicional, ligada a lo cotidiano y a las raíces.",
+  "Country, folk, trova, folclore, cumbia, rock and roll clásico",
+  "S", "Sofisticada (Sophisticated)",
+  "Música compleja e intelectual, que pide atención: armonías y estructuras elaboradas.",
+  "Jazz, clásica, blues, post-rock, rock progresivo, experimental",
+  "I", "Intensa (Intense)",
+  "Música fuerte, enérgica y distorsionada, de emociones intensas.",
+  "Rock, metal, punk, hardcore, post-punk, noise, grunge",
+  "C", "Contemporánea (Contemporary)",
+  "Música rítmica y bailable, de producción actual y popular.",
+  "Hip-hop, electrónica, pop, reggaetón, funk, dance"
+)
+
+tabla(definiciones, titulo = "Las cinco dimensiones del modelo MUSIC",
+      subtitulo = "Basado en Rentfrow, Goldberg y Levitin (2011); los ejemplos son los géneros usados aquí para cada dimensión",
+      columnas = list(
+        letra     = colDef(name = "", maxWidth = 45, align = "center",
+                           style = list(fontWeight = 800, fontSize = "18px", color = verde)),
+        dimension = colDef(name = "Dimensión", minWidth = 150, style = list(fontWeight = 600)),
+        que_es    = colDef(name = "Qué es", minWidth = 250),
+        ejemplos  = colDef(name = "Géneros de ejemplo", minWidth = 200)
+      ))
+```
+
+:::
+
+## 📈 La línea de tiempo
+
+::: {.panel-tabset}
+
+#### Por mes
 
 ```{r}
 #| label: por-mes
+#| fig-height: 4.5
 por_mes <- escuchas |> count(mes)
 record  <- slice_max(por_mes, n, n = 1, with_ties = FALSE)
 
-ggplot(por_mes, aes(mes, n)) +
-  geom_col(fill = principal, width = 25) +
-  annotate("text", x = record$mes, y = record$n, vjust = -0.6, size = 3.3, color = tinta,
-           label = paste0("Récord: ", format(record$mes, "%m-%Y"), " (", miles(record$n), ")")) +
-  scale_y_continuous(labels = miles, expand = expansion(mult = c(0, 0.12))) +
-  labs(title = "Escuchas por mes", x = NULL, y = NULL)
+p <- ggplot(por_mes, aes(mes, n, text = paste0("<b>", format(mes, "%m-%Y"), "</b><br>", miles(n), " escuchas"))) +
+  geom_col(aes(fill = mes == record$mes), width = 25) +
+  scale_fill_manual(values = c(`TRUE` = verde, `FALSE` = principal), guide = "none") +
+  scale_y_continuous(labels = miles, expand = expansion(mult = c(0, 0.05))) +
+  labs(title = "Escuchas por mes",
+       subtitle = paste0("En verde, el mes récord: ", format(record$mes, "%m-%Y"), " (", miles(record$n), " escuchas)"),
+       x = NULL, y = NULL)
+interactivo(p)
 ```
+
+#### Calendario
 
 ```{r}
 #| label: calendario
 #| fig-height: 6
 anios_cal <- seq(max(escuchas$anio) - 2, max(escuchas$anio))
 
-escuchas |>
+p <- escuchas |>
   filter(anio %in% anios_cal) |>
   count(dia) |>
   complete(dia = seq(as_date(paste0(min(anios_cal), "-01-01")), ultimo_dia, by = "day"),
@@ -447,33 +589,47 @@ escuchas |>
     semana = factor(wday(dia, week_start = 1), levels = 7:1,
                     labels = rev(c("lun", "mar", "mié", "jue", "vie", "sáb", "dom")))
   ) |>
-  ggplot(aes(sem, semana, fill = n)) +
+  ggplot(aes(sem, semana, fill = n, text = paste0("<b>", fmt_fecha(dia), "</b><br>", n, " escuchas"))) +
   geom_tile(color = "white", linewidth = 0.6) +
   facet_wrap(~anio, ncol = 1) +
-  scale_fill_gradientn(colors = rampa, name = "Escuchas en el día",
-                       guide = guide_colorbar(barwidth = 12, barheight = 0.6)) +
+  scale_fill_gradientn(colors = rampa, name = "Escuchas") +
   scale_x_continuous(breaks = c(0, 9, 17, 26, 35, 44), expand = c(0, 0),
                      labels = c("ene", "mar", "may", "jul", "sep", "nov")) +
-  labs(title = "El calendario de los últimos años", x = NULL, y = NULL) +
+  labs(title = "El calendario de los últimos años", subtitle = "Pasa el mouse por un día para ver sus escuchas",
+       x = NULL, y = NULL) +
   theme(panel.grid = element_blank())
+interactivo(p)
 ```
 
-## Mi ritmo
+:::
+
+## ⏰ Mi ritmo
+
+::: {.panel-tabset}
+
+#### Hora y día
 
 ```{r}
 #| label: hora-dia
 #| fig-height: 4
-escuchas |>
+p <- escuchas |>
   count(semana, hora) |>
-  ggplot(aes(hora, fct_rev(semana), fill = n)) +
+  ggplot(aes(hora, fct_rev(semana), fill = n,
+             text = paste0("<b>", semana, " ", hora, ":00</b><br>", miles(n), " escuchas"))) +
   geom_tile(color = "white", linewidth = 0.6) +
-  scale_fill_gradientn(colors = rampa, labels = miles, name = "Escuchas",
-                       guide = guide_colorbar(barwidth = 12, barheight = 0.6)) +
+  scale_fill_gradientn(colors = rampa, labels = miles, name = "Escuchas") +
   scale_x_continuous(breaks = seq(0, 23, 3), labels = \(h) paste0(h, "h"), expand = c(0, 0)) +
   labs(title = "¿A qué hora escucho música?", subtitle = "Todas las escuchas, por hora y día de la semana",
        x = NULL, y = NULL) +
   theme(panel.grid = element_blank())
+interactivo(p)
 ```
+
+#### Franjas y sesiones
+
+::: {.callout-tip appearance="simple" icon="false"}
+**Teoría.** La socióloga Tia DeNora, en *Music in Everyday Life* (2000), describe la música como una **"tecnología del yo"**: la usamos para regular el ánimo, la energía y la concentración en la vida cotidiana. Mi patrón de horario de oficina calza con esa idea: la música como compañía para trabajar.
+:::
 
 ```{r}
 #| label: franjas
@@ -505,7 +661,13 @@ maraton <- slice_max(sesiones, canciones, n = 1, with_ties = FALSE)
 
 Si una sesión termina tras 30 minutos sin música, he tenido `r miles(nrow(sesiones))` sesiones. La mediana es de `r median(sesiones$canciones)` canciones. Mi maratón más larga fue el `r fmt_fecha(as_date(maraton$inicio))`: **`r maraton$canciones` canciones seguidas** durante `r round(maraton$horas, 1)` horas.
 
-## Mis artistas
+:::
+
+## 🌟 Mis artistas
+
+::: {.panel-tabset}
+
+#### Mis 12 artistas
 
 ```{r}
 #| label: galeria-artistas
@@ -513,7 +675,7 @@ top_art <- escuchas |> count(artista, sort = TRUE) |> slice_head(n = 12)
 galeria(imagen_artista(top_art$artista), top_art$artista, paste(miles(top_art$n), "escuchas"))
 ```
 
-### Mis discos
+#### Mis 12 discos
 
 ```{r}
 #| label: galeria-discos
@@ -525,27 +687,33 @@ galeria(imagen_disco(top_disc$artista, top_disc$album), top_disc$album,
         paste0(top_disc$artista, " · ", miles(top_disc$n)))
 ```
 
-### Todos mis favoritos
+#### Top 25
 
 ```{r}
 #| label: top-artistas
 #| fig-height: 7
-escuchas |>
+p <- escuchas |>
   count(artista, sort = TRUE) |>
   slice_head(n = 25) |>
-  ggplot(aes(n, fct_reorder(artista, n))) +
+  ggplot(aes(n, fct_reorder(artista, n), text = paste0("<b>", artista, "</b><br>", miles(n), " escuchas"))) +
   geom_col(fill = principal, width = 0.7) +
-  geom_text(aes(label = miles(n)), hjust = -0.2, size = 3.2, color = tinta_2) +
-  scale_x_continuous(labels = miles, expand = expansion(mult = c(0, 0.1))) +
+  scale_x_continuous(labels = miles, expand = expansion(mult = c(0, 0.05))) +
   labs(title = "Los 25 artistas que más he escuchado", x = NULL, y = NULL)
+interactivo(p)
 ```
+
+#### Ranking año a año
+
+::: {.callout-tip appearance="simple" icon="false"}
+**Teoría.** El **pico de reminiscencia** (*reminiscence bump*) es la tendencia a recordar con más cariño la música que escuchamos entre los 10 y los 30 años (Krumhansl y Zupnick, 2013). Los artistas que aparecen en el ranking todos los años, como Tenemos Explosivos o Black Sabbath, son candidatos a ser esa banda sonora fundacional.
+:::
 
 ```{r}
 #| label: ranking-anual
 #| fig-height: 6.5
 top15 <- escuchas |> count(artista, sort = TRUE) |> slice_head(n = 15) |> pull(artista)
 
-escuchas |>
+p <- escuchas |>
   count(anio, artista) |>
   group_by(anio) |>
   mutate(rank = min_rank(desc(n))) |>
@@ -555,16 +723,20 @@ escuchas |>
   mutate(artista = factor(artista, levels = rev(top15)),
          rank_txt = ifelse(is.na(rank), "", ifelse(rank > 99, "99+", rank)),
          rank_col = pmin(rank, 50)) |>
-  ggplot(aes(factor(anio), artista, fill = rank_col)) +
+  ggplot(aes(factor(anio), artista, fill = rank_col,
+             text = ifelse(is.na(rank), paste0(artista, ", ", anio, ": sin escuchas"),
+                           paste0("<b>", artista, ", ", anio, "</b><br>Puesto ", rank, " · ", miles(n), " escuchas")))) +
   geom_tile(color = "white", linewidth = 0.8) +
-  geom_text(aes(label = rank_txt, color = rank_col <= 5), size = 3) +
-  scale_fill_gradientn(colors = rev(rampa[2:7]), na.value = "#f6f5f2", guide = "none") +
-  scale_color_manual(values = c(`TRUE` = "white", `FALSE` = tinta), na.value = tinta, guide = "none") +
+  geom_text(aes(label = rank_txt), size = 3, color = tinta) +
+  scale_fill_gradientn(colors = rev(rampa[1:5]), na.value = "#f6f5f2", guide = "none") +
   labs(title = "El ranking de mis 15 favoritos, año a año",
        subtitle = "Posición de cada artista entre todo lo que escuché ese año (más oscuro = más arriba)",
        x = NULL, y = NULL) +
   theme(panel.grid = element_blank())
+interactivo(p)
 ```
+
+#### Artista y canción del año
 
 ```{r}
 #| label: artista-cancion-anio
@@ -582,21 +754,29 @@ por_anio_can <- escuchas |>
   ungroup() |>
   transmute(anio, cancion_top = paste0(cancion, " — ", artista), esc_cancion = n)
 
-escuchas |>
+por_anio <- escuchas |>
   count(anio, name = "escuchas") |>
   left_join(por_anio_art, by = "anio") |>
-  left_join(por_anio_can, by = "anio") |>
-  gt() |>
-  tab_header(title = "Artista y canción de cada año") |>
-  cols_label(anio = "Año", escuchas = "Escuchas", artista_top = "Artista del año",
-             esc_artista = "", cancion_top = "Canción del año", esc_cancion = "") |>
-  fmt_number(c(escuchas, esc_artista, esc_cancion), decimals = 0, sep_mark = ".") |>
-  data_color(escuchas, palette = rampa[1:4]) |>
-  opt_row_striping(FALSE) |>
-  tab_options(quarto.disable_processing = TRUE, table.width = pct(1), table.font.size = px(13))
+  left_join(por_anio_can, by = "anio")
+
+tabla(por_anio, titulo = "Artista y canción de cada año", filas = 20,
+      columnas = list(
+        anio        = colDef(name = "Año", maxWidth = 70),
+        escuchas    = col_barra("Escuchas", max(por_anio$escuchas)),
+        artista_top = colDef(name = "Artista del año", minWidth = 150),
+        esc_artista = colDef(name = "", maxWidth = 70, format = colFormat(separators = TRUE, locales = "es-CL")),
+        cancion_top = colDef(name = "Canción del año", minWidth = 220),
+        esc_cancion = colDef(name = "", maxWidth = 60)
+      ))
 ```
 
-## Explorar o volver a lo conocido
+:::
+
+## 🔍 Explorar o volver a lo conocido
+
+::: {.panel-tabset}
+
+#### Diversidad por año
 
 ```{r}
 #| label: diversidad
@@ -616,27 +796,56 @@ diversidad <- escuchas |>
     }
   )
 
-diversidad |>
-  gt() |>
-  tab_header(title = "Diversidad por año",
-             subtitle = "% de escuchas que fueron a artistas descubiertos ese año, y a los 10 más escuchados del año") |>
-  cols_label(anio = "Año", escuchas = "Escuchas", artistas = "Artistas", nuevos = "Artistas nuevos",
-             pct_nuevos = "% a nuevos", pct_top10 = "% a top 10") |>
-  fmt_number(c(escuchas, artistas, nuevos), decimals = 0, sep_mark = ".") |>
-  fmt_percent(c(pct_nuevos, pct_top10), decimals = 0, dec_mark = ",") |>
-  data_color(c(pct_nuevos), palette = rampa[1:4]) |>
-  data_color(c(pct_top10), palette = c("#f1f1f1", "#bdbdbd", "#5a5a5a")) |>
-  tab_options(quarto.disable_processing = TRUE, table.width = pct(1), table.font.size = px(13))
+tabla(diversidad, titulo = "Diversidad por año", filas = 20,
+      subtitulo = "% de escuchas que fueron a artistas descubiertos ese año, y a los 10 más escuchados del año",
+      columnas = list(
+        anio       = colDef(name = "Año", maxWidth = 70),
+        escuchas   = colDef(name = "Escuchas", format = colFormat(separators = TRUE, locales = "es-CL")),
+        artistas   = col_barra("Artistas", max(diversidad$artistas)),
+        nuevos     = colDef(name = "Artistas nuevos"),
+        pct_nuevos = col_calor("% a nuevos", c(0, 0.35), pct),
+        pct_top10  = col_calor("% a top 10", c(0.2, 0.4), pct)
+      ))
 ```
+
+#### ¿Soy omnívoro?
+
+::: {.callout-tip appearance="simple" icon="false"}
+**Teoría.** Bourdieu (1979) veía el gusto como marca de clase: las élites consumían "alta cultura" y despreciaban lo popular. Richard Peterson (1992; Peterson y Kern, 1996) mostró que eso cambió: el nuevo signo de distinción es ser **omnívoro**, es decir, disfrutar de muchos géneros, cultos y populares a la vez. Aquí mido mi omnivorismo con el **número efectivo de géneros** de cada año (el exponencial de la entropía de Shannon): cuántos géneros "pesan" de verdad en lo que escucho.
+:::
+
+```{r}
+#| label: omnivoro
+#| eval: !expr tiene_tags
+#| fig-height: 4
+omnivoro <- escuchas |>
+  filter(!is.na(genero)) |>
+  count(anio, genero) |>
+  group_by(anio) |>
+  summarise(efectivos = exp(-sum((n / sum(n)) * log(n / sum(n)))), generos = n_distinct(genero))
+
+p <- ggplot(omnivoro, aes(anio, efectivos,
+                          text = paste0("<b>", anio, "</b><br>", round(efectivos), " géneros efectivos<br>",
+                                        generos, " géneros distintos en total"))) +
+  geom_line(color = verde, linewidth = 1) +
+  geom_point(color = verde, size = 2.5) +
+  scale_x_continuous(breaks = omnivoro$anio) +
+  labs(title = "Mi índice de omnivorismo",
+       subtitle = "Número efectivo de géneros por año: más alto = gustos más repartidos entre géneros",
+       x = NULL, y = "Géneros efectivos")
+interactivo(p)
+```
+
+#### Géneros en el tiempo
 
 ```{r}
 #| label: generos-tiempo
 #| eval: !expr tiene_tags
-#| fig-height: 6
+#| fig-height: 5.5
 top_generos <- escuchas |> filter(!is.na(genero)) |> count(genero, sort = TRUE) |>
-  slice_head(n = 8) |> pull(genero)
+  slice_head(n = 12) |> pull(genero)
 
-escuchas |>
+p <- escuchas |>
   filter(!is.na(genero)) |>
   count(anio, genero) |>
   group_by(anio) |>
@@ -644,22 +853,28 @@ escuchas |>
   ungroup() |>
   filter(genero %in% top_generos) |>
   complete(anio, genero, fill = list(share = 0)) |>
-  mutate(genero = factor(genero, levels = top_generos)) |>
-  ggplot(aes(anio, share)) +
-  geom_area(fill = principal, alpha = 0.15) +
-  geom_line(color = principal, linewidth = 0.8) +
-  facet_wrap(~genero, ncol = 4) +
-  scale_y_continuous(labels = pct) +
-  scale_x_continuous(breaks = \(x) seq(ceiling(x[1]), floor(x[2]), by = 4),
-                     labels = \(x) paste0("'", substr(x, 3, 4))) +
+  mutate(genero = factor(genero, levels = rev(top_generos))) |>
+  ggplot(aes(factor(anio), genero, fill = share,
+             text = paste0("<b>", genero, " en ", anio, "</b><br>", pct(share), " de las escuchas del año"))) +
+  geom_tile(color = "white", linewidth = 0.8) +
+  geom_text(aes(label = ifelse(share >= 0.03, round(share * 100), ""),
+                color = ifelse(share >= 0.12, "white", tinta)), size = 2.9) +
+  scale_color_identity() +
+  scale_fill_gradientn(colors = rampa, labels = pct, name = "% del año") +
   labs(title = "Cómo han cambiado mis géneros",
-       subtitle = "Proporción de las escuchas de cada año, para mis 8 géneros principales",
-       x = NULL, y = NULL)
+       subtitle = "% de las escuchas de cada año, para mis 12 géneros principales (número = % si es 3% o más)",
+       x = NULL, y = NULL) +
+  theme(panel.grid = element_blank())
+interactivo(p)
 ```
 
-## Momentos
+:::
 
-### ¿Cuándo escucho a quién?
+## 🌦️ Momentos
+
+::: {.panel-tabset}
+
+#### ¿Cuándo escucho a quién?
 
 Artistas con al menos 300 escuchas cuya música se concentra en ciertos momentos más que mi promedio.
 
@@ -676,15 +891,16 @@ por_artista <- con_momento |>
   filter(total >= 300)
 
 tabla_momento <- function(datos, col, promedio, titulo) {
-  datos |>
+  d <- datos |>
     slice_max({{ col }}, n = 8, with_ties = FALSE) |>
-    transmute(artista, pct = {{ col }}, veces = {{ col }} / promedio) |>
-    gt() |>
-    tab_header(title = titulo, subtitle = paste0("Mi promedio: ", pct(promedio))) |>
-    cols_label(artista = "Artista", pct = "% de sus escuchas", veces = "vs. promedio") |>
-    fmt_percent(pct, decimals = 0, dec_mark = ",") |>
-    fmt_number(veces, decimals = 1, dec_mark = ",", pattern = "{x} veces") |>
-    tab_options(quarto.disable_processing = TRUE, table.width = pct(1), table.font.size = px(13))
+    transmute(artista, pct = {{ col }}, veces = {{ col }} / promedio)
+  tabla(d, titulo = titulo, subtitulo = paste0("Mi promedio: ", pct(promedio)),
+        columnas = list(
+          artista = colDef(name = "Artista", minWidth = 150),
+          pct     = col_barra("% de sus escuchas", max(d$pct), pct),
+          veces   = colDef(name = "vs. promedio", maxWidth = 100,
+                           cell = \(v) paste0(format(round(v, 1), decimal.mark = ","), "×"))
+        ))
 }
 ```
 
@@ -700,7 +916,7 @@ tabla_momento(por_artista, finde, prom_finde, "De fin de semana")
 ```
 ::::
 
-### Mis estaciones
+#### Mis estaciones
 
 ```{r}
 #| label: estaciones
@@ -717,24 +933,27 @@ estaciones <- escuchas |>
   ),
   estacion = factor(estacion, levels = c("Verano", "Otoño", "Invierno", "Primavera")))
 
-estaciones |>
+p <- estaciones |>
   count(estacion, genero) |>
   group_by(estacion) |>
   mutate(share = n / sum(n)) |>
   group_by(genero) |>
   mutate(dif = share / mean(share) - 1) |>
   ungroup() |>
-  ggplot(aes(estacion, fct_reorder(genero, share, .fun = sum), fill = dif)) +
+  ggplot(aes(estacion, fct_reorder(genero, share, .fun = sum), fill = dif,
+             text = paste0("<b>", genero, " en ", tolower(estacion), "</b><br>",
+                           ifelse(dif >= 0, "+", ""), round(dif * 100), "% vs. su promedio"))) +
   geom_tile(color = "white", linewidth = 0.8) +
   geom_text(aes(label = paste0(ifelse(dif >= 0, "+", ""), round(dif * 100), "%")), size = 3.3) +
-  scale_fill_gradient2(low = "#b06b2c", mid = "#f4f3f0", high = verde, midpoint = 0, guide = "none") +
+  scale_fill_gradient2(low = morado, mid = "#f4f3f0", high = verde, midpoint = 0, guide = "none") +
   labs(title = "¿Qué género sube en cada estación?",
        subtitle = "Peso del género en la estación comparado con su promedio del año (estaciones del hemisferio sur)",
        x = NULL, y = NULL) +
   theme(panel.grid = element_blank())
+interactivo(p)
 ```
 
-### Antes, durante y después de la pandemia
+#### Pandemia
 
 ```{r}
 #| label: pandemia
@@ -742,7 +961,7 @@ estaciones |>
 inicio_p <- as_date("2020-03-18")
 fin_p <- as_date("2021-09-30")
 
-escuchas |>
+pandemia <- escuchas |>
   mutate(periodo = case_when(
     dia < inicio_p ~ "Antes",
     dia <= fin_p   ~ "Pandemia",
@@ -756,38 +975,576 @@ escuchas |>
     chilenos = if (tiene_tags) mean(pais[!is.na(pais)] == "Chile") else NA_real_,
     top = paste(names(sort(table(artista), decreasing = TRUE))[1:5], collapse = ", ")
   ) |>
-  select(-dias) |>
-  gt() |>
-  tab_header(title = "Mi música en tres tiempos",
-             subtitle = "Pandemia = estado de catástrofe en Chile (18-03-2020 al 30-09-2021)") |>
-  cols_label(periodo = "Período", por_dia = "Escuchas por día", chilenos = "% chilenos",
-             top = "Mis 5 artistas") |>
-  fmt_number(por_dia, decimals = 0, sep_mark = ".") |>
-  fmt_percent(chilenos, decimals = 0, dec_mark = ",") |>
-  tab_options(quarto.disable_processing = TRUE, table.width = pct(1), table.font.size = px(13))
+  select(-dias)
+
+tabla(pandemia, titulo = "Mi música en tres tiempos",
+      subtitulo = "Pandemia = estado de catástrofe en Chile (18-03-2020 al 30-09-2021)",
+      columnas = list(
+        periodo  = colDef(name = "Período", maxWidth = 100, style = list(fontWeight = 600)),
+        por_dia  = col_barra("Escuchas por día", max(pandemia$por_dia), \(x) round(x)),
+        chilenos = col_calor("% chilenos", c(0.1, 0.35), pct, maxWidth = 100),
+        top      = colDef(name = "Mis 5 artistas", minWidth = 280)
+      ))
 ```
 
-## Obsesiones y amores olvidados
+:::
+
+## 🎭 Mi ánimo musical
+
+Un análisis de sentimiento a partir de las **etiquetas de ánimo** que la comunidad de Last.fm pone a cada artista ("melancholic", "aggressive", "happy", "chill", "dark"…). Cada etiqueta se ubica en el [modelo circunflejo del afecto de Russell](https://doi.org/10.1037/h0077714): **valencia** (triste ↔ alegre) y **energía** (calma ↔ intensidad). Cada artista recibe el promedio de sus etiquetas, ponderado por su peso, y cada período el promedio de lo que escuché. Mide el ánimo de la *música*, no el mío, aunque algo dice.
+
+```{r}
+#| label: animo-calculo
+#| eval: !expr tiene_tags
+# Diccionario de etiquetas: valencia (-1 triste, +1 alegre) y energía (-1 calma, +1 intensa)
+animo_tags <- tribble(
+  ~tag,               ~valencia, ~energia,
+  "happy",                  1,    0.4,
+  "upbeat",                 1,    0.6,
+  "fun",                    0.9,  0.5,
+  "feel good",              1,    0.3,
+  "uplifting",              0.9,  0.4,
+  "party",                  0.8,  0.8,
+  "summer",                 0.7,  0.3,
+  "love",                   0.6,  0,
+  "romantic",               0.5, -0.3,
+  "dance",                  0.6,  0.7,
+  "cumbia",                 0.6,  0.5,
+  "pop",                    0.4,  0.2,
+  "power pop",              0.6,  0.5,
+  "ska",                    0.6,  0.6,
+  "funk",                   0.6,  0.5,
+  "sad",                   -1,   -0.3,
+  "melancholic",           -0.9, -0.4,
+  "melancholy",            -0.9, -0.4,
+  "depressive",            -1,   -0.2,
+  "depressing",            -1,   -0.3,
+  "dark",                  -0.8,  0.2,
+  "gloomy",                -0.8, -0.3,
+  "bleak",                 -0.8,  0,
+  "lonely",                -0.8, -0.4,
+  "heartbreak",            -0.8, -0.2,
+  "emotional",             -0.4,  0,
+  "haunting",              -0.5, -0.2,
+  "misanthropic",          -0.8,  0.7,
+  "angry",                 -0.6,  0.9,
+  "aggressive",            -0.4,  1,
+  "energetic",              0.3,  1,
+  "intense",               -0.2,  0.9,
+  "heavy",                 -0.3,  0.8,
+  "loud",                   0,    0.8,
+  "brutal",                -0.5,  1,
+  "noise",                 -0.3,  0.8,
+  "chaotic",               -0.3,  0.9,
+  "powerful",               0.2,  0.8,
+  "calm",                   0.3, -1,
+  "chill",                  0.4, -0.9,
+  "chillout",               0.4, -0.9,
+  "mellow",                 0.2, -0.8,
+  "relaxing",               0.4, -1,
+  "soft",                   0.2, -0.8,
+  "peaceful",               0.5, -1,
+  "dreamy",                 0.2, -0.7,
+  "ambient",                0,   -0.9,
+  "atmospheric",           -0.2, -0.4,
+  "acoustic",               0.2, -0.6,
+  "slowcore",              -0.6, -0.9,
+  "doom metal",            -0.7,  0.4,
+  "black metal",           -0.7,  0.9,
+  "death metal",           -0.5,  1,
+  "thrash metal",          -0.2,  1,
+  "hardcore",              -0.3,  1,
+  "punk",                   0,    0.9,
+  "post-punk",             -0.4,  0.5,
+  "gothic",                -0.7,  0.2,
+  "darkwave",              -0.7,  0.3,
+  "shoegaze",              -0.2, -0.2,
+  "post-rock",             -0.2, -0.2,
+  "sludge",                -0.6,  0.8,
+  "folk",                   0.2, -0.5,
+  "singer-songwriter",     -0.1, -0.5
+)
+
+animo_artista <- tags |>
+  inner_join(animo_tags, by = "tag") |>
+  group_by(artista) |>
+  summarise(valencia = weighted.mean(valencia, peso), energia = weighted.mean(energia, peso))
+
+escuchas_animo <- escuchas |> inner_join(animo_artista, by = "artista")
+cobertura <- nrow(escuchas_animo) / nrow(escuchas)
+```
+
+Las etiquetas de ánimo cubren el `r if (tiene_tags) pct(cobertura) else "—"` de mis escuchas.
+
+::: {.panel-tabset}
+
+#### Año a año
+
+```{r}
+#| label: animo-anual
+#| eval: !expr tiene_tags
+#| fig-height: 4.6
+por_anio_animo <- escuchas_animo |>
+  group_by(anio) |>
+  summarise(valencia = mean(valencia), energia = mean(energia), n = n()) |>
+  filter(n >= 500)
+
+p <- por_anio_animo |>
+  pivot_longer(c(valencia, energia), names_to = "medida", values_to = "valor") |>
+  mutate(medida = ifelse(medida == "valencia", "Valencia (triste ← → alegre)", "Energía (calma ← → intensa)")) |>
+  ggplot(aes(anio, valor, color = medida, group = medida,
+             text = paste0("<b>", anio, "</b><br>", medida, ": ", round(valor, 2)))) +
+  geom_hline(yintercept = 0, color = gris, linewidth = 0.5) +
+  annotate("text", x = min(por_anio_animo$anio), y = 0.04, label = "neutro", hjust = 0, size = 3, color = gris) +
+  geom_line(linewidth = 1.1) +
+  geom_point(size = 2.4) +
+  scale_color_manual(values = c(`Valencia (triste ← → alegre)` = morado, `Energía (calma ← → intensa)` = verde),
+                     name = NULL) +
+  scale_x_continuous(breaks = por_anio_animo$anio) +
+  scale_y_continuous(limits = c(-0.6, 0.8), breaks = seq(-0.6, 0.8, 0.2)) +
+  labs(title = "Mi ánimo musical, año a año",
+       subtitle = "Sobre cero: más alegre / más intensa. Bajo cero: más triste / más calma (escala de -1 a 1)",
+       x = NULL, y = NULL)
+interactivo(p)
+```
+
+#### Según la hora
+
+::: {.callout-note appearance="simple" icon="false"}
+**¿Qué son valencia y energía?** Son las dos dimensiones con que la psicología ubica cualquier emoción (Russell, 1980):
+
+- 🙂 **Valencia**: qué tan **positiva o negativa** se siente la música. Va de −1 (triste, oscura, melancólica; p. ej. el doom de Black Sabbath) a +1 (alegre, luminosa; p. ej. la cumbia de Chico Trujillo).
+- ⚡ **Energía**: qué tan **activadora o calmada** es. Va de −1 (tranquila, suave; p. ej. ambient o folk) a +1 (intensa, rápida, fuerte; p. ej. hardcore o thrash).
+
+Combinadas dan cuatro estados: **eufórica** (alegre y enérgica), **serena** (alegre y calma), **melancólica** (triste y calma) y **tensa** (triste y enérgica). Se calculan a partir de las etiquetas de ánimo que los usuarios de Last.fm ponen a cada artista.
+:::
+
+```{r}
+#| label: animo-hora
+#| eval: !expr tiene_tags
+#| fig-height: 4.2
+p <- escuchas_animo |>
+  group_by(hora) |>
+  summarise(Valencia = mean(valencia), `Energía` = mean(energia)) |>
+  tidyr::pivot_longer(-hora, names_to = "medida") |>
+  ggplot(aes(hora, value, color = medida, group = medida,
+             text = paste0("<b>", hora, ":00</b><br>", medida, ": ", round(value, 2)))) +
+  geom_hline(yintercept = 0, color = gris, linewidth = 0.4) +
+  geom_line(linewidth = 1) +
+  geom_point(size = 2) +
+  scale_color_manual(values = c(Valencia = morado, `Energía` = verde), name = NULL) +
+  scale_x_continuous(breaks = seq(0, 21, 3), labels = \(h) paste0(h, "h")) +
+  labs(title = "¿Me pongo más oscuro de noche?",
+       subtitle = "Valencia (bajo cero = más triste) y energía (sobre cero = más intensa) según la hora del día",
+       x = NULL, y = NULL)
+interactivo(p)
+```
+
+#### Días extremos
+
+::: {.callout-note appearance="simple" icon="false"}
+**¿Cómo se leen?** Para cada día con al menos 40 escuchas promedié la **valencia** de todo lo que escuché ese día (de −1, muy triste u oscuro, a +1, muy alegre). Los **días más oscuros** son los cinco con el promedio más bajo: jornadas casi enteras de música sombría. Los **más luminosos**, los cinco con el promedio más alto. El "artista del día" es el que más sonó esa jornada y suele explicar el resultado.
+:::
+
+```{r}
+#| label: animo-dias
+#| eval: !expr tiene_tags
+extremos <- escuchas_animo |>
+  group_by(dia) |>
+  summarise(n = n(), valencia = mean(valencia),
+            top = names(sort(table(artista), decreasing = TRUE))[1]) |>
+  filter(n >= 40)
+
+dias_extremos <- bind_rows(
+  slice_min(extremos, valencia, n = 5) |> mutate(tipo = "Mis días más oscuros"),
+  slice_max(extremos, valencia, n = 5) |> mutate(tipo = "Mis días más luminosos")
+) |>
+  mutate(dia = fmt_fecha(dia)) |>
+  select(tipo, dia, top, valencia, n)
+
+tabla(dias_extremos, titulo = "Mis días más oscuros y más luminosos",
+      subtitulo = "Valencia promedio del día (−1 = muy triste, +1 = muy alegre), en días con al menos 40 escuchas",
+      groupBy = "tipo", defaultExpanded = TRUE,
+      columnas = list(
+        tipo     = colDef(name = ""),
+        dia      = colDef(name = "Día"),
+        top      = colDef(name = "Artista del día", minWidth = 160),
+        valencia = colDef(name = "Valencia", format = colFormat(digits = 2)),
+        n        = colDef(name = "Escuchas")
+      ))
+```
+
+:::
+
+## 🗺️ Mis eras musicales
+
+¿Mi gusto cambió de golpe o de a poco? Para responderlo puse **todos mis meses en fila**, cada uno descrito por la mezcla de géneros que escuché, y le pedí a un algoritmo que cortara la fila en tramos donde los meses se parecen entre sí. Cada tramo es una **era**: una etapa con un sonido propio, con inicio y final. El algoritmo decidió solo cuántas eras hay.
+
+```{r}
+#| label: eras-calculo
+#| eval: !expr tiene_tags
+generos_top <- escuchas |> filter(!is.na(genero)) |> count(genero, sort = TRUE) |>
+  slice_head(n = 15) |> pull(genero)
+
+mezcla <- escuchas |>
+  filter(!is.na(genero)) |>
+  mutate(genero = ifelse(genero %in% generos_top, genero, "Otros")) |>
+  count(mes, genero) |>
+  group_by(mes) |>
+  filter(sum(n) >= 300) |>
+  mutate(share = n / sum(n)) |>
+  ungroup() |>
+  select(-n) |>
+  pivot_wider(names_from = genero, values_from = share, values_fill = 0) |>
+  arrange(mes)
+
+X <- as.matrix(select(mezcla, -mes))
+
+# Clustering aglomerativo con restricción de contigüidad (criterio de Ward):
+# en cada paso se fusionan los dos grupos vecinos cuyo costo de unión es menor
+grupos <- as.list(seq_len(nrow(X)))
+costo_fusion <- numeric(0)
+particiones <- list()
+while (length(grupos) > 1) {
+  costos <- vapply(seq_len(length(grupos) - 1), \(i) {
+    a <- grupos[[i]]; b <- grupos[[i + 1]]
+    ma <- colMeans(X[a, , drop = FALSE]); mb <- colMeans(X[b, , drop = FALSE])
+    length(a) * length(b) / (length(a) + length(b)) * sum((ma - mb)^2)
+  }, 0)
+  i <- which.min(costos)
+  costo_fusion <- c(costo_fusion, costos[i])
+  grupos[[i]] <- c(grupos[[i]], grupos[[i + 1]])
+  grupos[[i + 1]] <- NULL
+  particiones[[as.character(length(grupos))]] <- grupos
+}
+
+# Número de eras: el mayor salto relativo en el costo de fusión, entre 4 y 8 eras
+k_posibles <- 4:8
+salto <- sapply(k_posibles, \(k) {
+  paso <- nrow(X) - k
+  costo_fusion[paso + 1] / costo_fusion[paso]
+})
+k <- k_posibles[which.max(salto)]
+
+eras <- tibble(mes = mezcla$mes, era = rep(seq_along(particiones[[as.character(k)]]),
+                                           lengths(particiones[[as.character(k)]])))
+
+# Nombre de cada era: los 2 géneros que la distinguen y además pesan en ella
+promedio_gen <- colMeans(X)
+genero_era <- as_tibble(X) |>
+  mutate(era = eras$era) |>
+  group_by(era) |>
+  summarise(across(everything(), mean)) |>
+  pivot_longer(-era, names_to = "genero", values_to = "share") |>
+  filter(genero != "Otros")
+
+nombres_era <- genero_era |>
+  mutate(puntaje = share * log(share / promedio_gen[genero])) |>
+  group_by(era) |>
+  slice_max(puntaje, n = 2, with_ties = FALSE) |>
+  summarise(nombre = paste(genero, collapse = " + "))
+
+eras <- eras |>
+  left_join(nombres_era, by = "era") |>
+  mutate(nombre = paste0(era, ". ", nombre),
+         nombre = factor(nombre, levels = unique(nombre)))
+
+colores_era <- c(verde, morado, rosado, "#c98500", "#6b6b67", "#72a982", "#9d7cc7", "#d97aa6")
+
+# Resumen por era: período, artistas principales y géneros con más peso
+resumen_eras <- escuchas |>
+  inner_join(eras, by = "mes") |>
+  group_by(era, nombre) |>
+  summarise(
+    inicio = min(mes), fin = max(mes), meses = n_distinct(mes), escuchas = n(),
+    artistas = list(names(sort(table(artista), decreasing = TRUE))[1:4]),
+    .groups = "drop"
+  ) |>
+  left_join(genero_era |> group_by(era) |> slice_max(share, n = 3, with_ties = FALSE) |>
+              summarise(generos = list(tibble(genero, share))), by = "era")
+
+meses_es <- c("ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic")
+fmt_mes <- \(d) paste(meses_es[month(d)], year(d))
+```
+
+El algoritmo encontró **`r if (tiene_tags) k else "—"` eras**.
+
+::: {.panel-tabset}
+
+#### Mis eras
+
+```{r}
+#| label: eras-tarjetas
+#| eval: !expr tiene_tags
+tarjeta_era <- function(fila, color) {
+  fotos <- imagen_artista(fila$artistas[[1]])
+  div(class = "era-card", style = paste0("border-top: 6px solid ", color),
+      div(class = "era-num", style = paste0("color:", color), paste("Era", fila$era)),
+      div(class = "era-nombre", sub("^[0-9]+\\. ", "", fila$nombre)),
+      div(class = "era-periodo", paste0(fmt_mes(fila$inicio), " → ", fmt_mes(fila$fin),
+                                        " · ", fila$meses, " meses")),
+      div(class = "era-fotos", lapply(seq_along(fotos), \(i) {
+        if (is.na(fotos[i])) div(class = "era-foto-vacia", substr(fila$artistas[[1]][i], 1, 1))
+        else img(src = fotos[i], title = fila$artistas[[1]][i])
+      })),
+      div(class = "era-artistas", paste(fila$artistas[[1]], collapse = " · ")),
+      div(class = "era-generos", lapply(seq_len(nrow(fila$generos[[1]])), \(i) {
+        g <- fila$generos[[1]][i, ]
+        div(class = "era-genero",
+            span(g$genero),
+            div(class = "era-barra", div(style = sprintf("width:%s%%;background:%s", round(100 * g$share / 0.4), color))),
+            span(class = "era-pct", pct(g$share)))
+      })))
+}
+
+div(class = "eras-grid",
+    lapply(seq_len(nrow(resumen_eras)), \(i) tarjeta_era(resumen_eras[i, ], colores_era[i])))
+```
+
+#### ¿Por qué son eras?
+
+Cada línea es un género y muestra qué parte de lo que escuché cada mes fue de ese género. Las franjas de color marcan las eras: se nota cómo el doom y el heavy metal dominan al comienzo y el post-punk toma el control después.
+
+```{r}
+#| label: eras-generos
+#| eval: !expr tiene_tags
+#| fig-height: 5
+generos_graf <- names(sort(promedio_gen[names(promedio_gen) != "Otros"], decreasing = TRUE))[1:6]
+franjas <- resumen_eras |> mutate(fin = fin + months(1) - days(1))
+
+p <- as_tibble(X) |>
+  mutate(mes = mezcla$mes) |>
+  select(mes, all_of(generos_graf)) |>
+  pivot_longer(-mes, names_to = "genero", values_to = "share") |>
+  group_by(genero) |>
+  mutate(suave = stats::filter(share, rep(1 / 3, 3), sides = 2)) |>
+  ungroup() |>
+  ggplot() +
+  geom_rect(data = franjas, aes(xmin = inicio, xmax = fin, ymin = -Inf, ymax = Inf, fill = nombre),
+            alpha = 0.12, inherit.aes = FALSE) +
+  geom_line(aes(mes, suave, color = genero, group = genero,
+                text = paste0("<b>", genero, "</b><br>", format(mes, "%m-%Y"), ": ", pct(share))),
+            linewidth = 0.9) +
+  scale_fill_manual(values = colores_era, guide = "none") +
+  scale_color_manual(values = c("#1f1f1f", verde, morado, rosado, "#c98500", "#8a8984"), name = NULL) +
+  scale_y_continuous(labels = pct) +
+  scale_x_date(date_breaks = "1 year", date_labels = "%Y") +
+  labs(title = "Mis 6 géneros principales, mes a mes, sobre el fondo de las eras",
+       subtitle = "Proporción de las escuchas de cada mes (media móvil de 3 meses); el color de fondo es la era",
+       x = NULL, y = NULL)
+interactivo(p)
+```
+
+#### Detalle técnico
+
+::: {.callout-tip appearance="simple" icon="false"}
+**Método.** *Clustering* jerárquico aglomerativo **con restricción de contigüidad** y criterio de **Ward** (Grimm, 1987), el mismo que usan geólogos y paleoecólogos para dividir capas de sedimento en zonas. Cada mes (con al menos 300 escuchas) es un vector con la proporción de los 15 géneros principales. Se parte con cada mes como grupo y en cada paso se fusionan los **dos grupos vecinos** cuya unión aumenta menos la varianza interna. A diferencia de k-means, nunca junta meses separados en el tiempo, así que cada era es un tramo continuo. El número de eras se elige donde el costo de seguir fusionando da el mayor salto (entre 4 y 8 eras).
+:::
+
+```{r}
+#| label: eras-costo
+#| eval: !expr tiene_tags
+#| fig-height: 3.8
+p <- tibble(eras = 2:15, costo = rev(costo_fusion)[1:14]) |>
+  ggplot(aes(eras, costo, text = paste0("Pasar de ", eras, " a ", eras - 1, " eras<br>Costo: ", round(costo, 3)))) +
+  geom_line(color = principal) +
+  geom_point(aes(color = eras == k), size = 3) +
+  scale_color_manual(values = c(`TRUE` = verde, `FALSE` = principal), guide = "none") +
+  scale_x_continuous(breaks = 2:15) +
+  labs(title = "Costo de fusionar eras",
+       subtitle = paste0("Cuánta heterogeneidad se agrega al pasar de n a n-1 eras. En verde, el número elegido (", k, ")"),
+       x = "Número de eras", y = "Costo de la fusión (Ward)")
+interactivo(p)
+```
+
+```{r}
+#| label: eras-tabla
+#| eval: !expr tiene_tags
+tabla_eras <- resumen_eras |>
+  transmute(nombre = as.character(nombre), periodo = paste(fmt_mes(inicio), "a", fmt_mes(fin)),
+            meses, artistas = sapply(artistas, paste, collapse = ", "))
+```
+
+:::
+
+## 🧪 Laboratorio de clasificación
+
+Dos técnicas más para mirar mis gustos desde otro ángulo.
+
+::: {.panel-tabset}
+
+#### El espacio de mis gustos
+
+::: {.callout-tip appearance="simple" icon="false"}
+**Teoría.** Pierre Bourdieu, en *La distinción* (1979), usó el **análisis de correspondencias** para dibujar el "espacio de los gustos" de la sociedad francesa: un mapa donde los gustos cercanos aparecen juntos. Aquí uso la misma técnica para mi propio espacio: géneros y años en un mismo plano. Un año queda cerca de los géneros que escuché más de lo normal ese año, y la línea muestra mi trayectoria.
+:::
+
+```{r}
+#| label: correspondencias
+#| eval: !expr tiene_tags
+#| fig-height: 6.5
+tabla_ca <- escuchas |>
+  filter(genero %in% generos_top) |>
+  count(anio, genero) |>
+  pivot_wider(names_from = genero, values_from = n, values_fill = 0)
+N <- as.matrix(tabla_ca[, -1]); rownames(N) <- tabla_ca$anio
+
+# Análisis de correspondencias simple vía descomposición en valores singulares
+P <- N / sum(N)
+r <- rowSums(P); c <- colSums(P)
+S <- diag(1 / sqrt(r)) %*% (P - r %o% c) %*% diag(1 / sqrt(c))
+dvs <- svd(S)
+inercia <- dvs$d^2 / sum(dvs$d^2)
+filas <- diag(1 / sqrt(r)) %*% dvs$u[, 1:2] %*% diag(dvs$d[1:2])
+columnas <- diag(1 / sqrt(c)) %*% dvs$v[, 1:2] %*% diag(dvs$d[1:2])
+
+puntos_anio <- tibble(etiqueta = rownames(N), d1 = filas[, 1], d2 = filas[, 2])
+puntos_gen  <- tibble(etiqueta = colnames(N), d1 = columnas[, 1], d2 = columnas[, 2])
+
+p <- ggplot() +
+  geom_hline(yintercept = 0, color = "#e3e2de") +
+  geom_vline(xintercept = 0, color = "#e3e2de") +
+  geom_path(data = puntos_anio, aes(d1, d2), color = gris, linewidth = 0.5) +
+  geom_point(data = puntos_gen, aes(d1, d2, text = paste0("<b>", etiqueta, "</b> (género)")),
+             color = morado, size = 2.5, shape = 17) +
+  geom_text(data = puntos_gen, aes(d1, d2, label = etiqueta), color = morado, size = 3.1, nudge_y = 0.04) +
+  geom_point(data = puntos_anio, aes(d1, d2, text = paste0("<b>", etiqueta, "</b> (año)")),
+             color = verde, size = 3) +
+  geom_text(data = puntos_anio, aes(d1, d2, label = etiqueta), color = verde, size = 3.1, nudge_y = -0.04,
+            fontface = "bold") +
+  labs(title = "El espacio de mis gustos",
+       subtitle = paste0("Análisis de correspondencias de géneros (morado) y años (verde). Ejes: ",
+                         pct(inercia[1]), " y ", pct(inercia[2]), " de la inercia"),
+       x = paste0("Dimensión 1 (", pct(inercia[1]), ")"), y = paste0("Dimensión 2 (", pct(inercia[2]), ")"))
+interactivo(p)
+```
+
+#### Playlists ocultas
+
+::: {.callout-tip appearance="simple" icon="false"}
+**Teoría.** El **modelo de tópicos LDA** (*Latent Dirichlet Allocation*, Blei, Ng y Jordan, 2003) se creó para descubrir temas en colecciones de textos: supone que cada documento mezcla varios temas y que cada tema es un conjunto de palabras que aparecen juntas. Aquí cada **semana** es un "documento" y cada **artista** una "palabra". Los "temas" que encuentra son mis **playlists ocultas**: artistas que tiendo a escuchar en las mismas semanas, aunque nunca haya armado esas listas.
+:::
+
+```{r}
+#| label: lda-artistas
+#| fig-height: 5
+library(topicmodels)
+artistas_lda <- escuchas |> count(artista, sort = TRUE) |> slice_head(n = 300) |> pull(artista)
+
+semanas <- escuchas |>
+  filter(artista %in% artistas_lda) |>
+  mutate(semana_id = floor_date(dia, "week", week_start = 1)) |>
+  count(semana_id, artista) |>
+  group_by(semana_id) |>
+  filter(sum(n) >= 50) |>
+  ungroup()
+
+doc_id <- factor(semanas$semana_id)
+term_id <- factor(semanas$artista)
+dtm <- slam::simple_triplet_matrix(as.integer(doc_id), as.integer(term_id), semanas$n,
+                                   dimnames = list(levels(doc_id), levels(term_id)))
+class(dtm) <- c("DocumentTermMatrix", class(dtm))
+attr(dtm, "weighting") <- c("term frequency", "tf")
+
+k_lda <- 6
+modelo_lda <- LDA(dtm, k = k_lda, method = "Gibbs",
+                  control = list(seed = 2026, burnin = 500, iter = 1500))
+
+# Artistas más característicos de cada playlist
+beta <- exp(modelo_lda@beta)
+colnames(beta) <- modelo_lda@terms
+playlists <- tibble(
+  playlist = seq_len(k_lda),
+  artistas = apply(beta, 1, \(b) paste(names(sort(b, decreasing = TRUE))[1:6], collapse = ", "))
+) |>
+  mutate(nombre = paste0("Playlist ", playlist, ": ", sub(",.*", "", artistas)))
+
+# Peso de cada playlist en el tiempo
+gamma <- as_tibble(modelo_lda@gamma, .name_repair = \(x) as.character(seq_along(x))) |>
+  mutate(semana_id = as_date(modelo_lda@documents)) |>
+  pivot_longer(-semana_id, names_to = "playlist", values_to = "peso") |>
+  mutate(playlist = as.integer(playlist), anio = year(semana_id)) |>
+  group_by(anio, playlist) |>
+  summarise(peso = mean(peso), .groups = "drop") |>
+  left_join(playlists, by = "playlist")
+
+colores_pl <- c(verde, morado, rosado, "#c98500", "#6b6b67", "#72a982")
+p <- ggplot(gamma, aes(anio, peso, fill = nombre,
+                       text = paste0("<b>", nombre, "</b><br>", anio, ": ", pct(peso), " del año"))) +
+  geom_col(width = 0.85) +
+  scale_fill_manual(values = colores_pl, name = NULL) +
+  scale_y_continuous(labels = pct) +
+  scale_x_continuous(breaks = unique(gamma$anio)) +
+  labs(title = "Mis playlists ocultas a lo largo de los años",
+       subtitle = "Peso promedio de cada playlist en las semanas de cada año (LDA con 6 tópicos)",
+       x = NULL, y = NULL)
+interactivo(p)
+```
+
+```{r}
+#| label: lda-tabla
+tabla(select(playlists, nombre, artistas), titulo = "Qué hay en cada playlist oculta",
+      subtitulo = "Los 6 artistas más característicos de cada tópico",
+      columnas = list(
+        nombre   = colDef(name = "Playlist", minWidth = 200, style = list(fontWeight = 600)),
+        artistas = colDef(name = "Artistas más característicos", minWidth = 380)
+      ))
+```
+
+:::
+
+## 🧠 Lectura psicológica
+
+::: {.callout-note appearance="simple" icon="false"}
+## Lo que dice la investigación sobre gustos como los míos
+
+*Escrito el 20-10-2026. Es una lectura lúdica: los estudios hablan de tendencias promedio en muchas personas, no de diagnósticos individuales.*
+
+**Apertura, no rabia.** Con 72% de música *intensa*, mi perfil es casi puro "intenso y rebelde". Rentfrow y Gosling (2003) encontraron que quienes prefieren rock, alternativo y metal puntúan más alto en **apertura a la experiencia** (curiosidad, gusto por ideas nuevas), y que esa preferencia **no** se asocia a más neuroticismo ni a menos amabilidad, contra el estereotipo. North (2008) encontró que los fans del metal se parecen mucho a los de la música clásica: creativos, tranquilos consigo mismos y algo introvertidos.
+
+**La oscuridad como refugio.** Todos mis años caen en el cuadrante *tenso/oscuro*: valencia negativa y energía alta. La investigación sobre la "paradoja de la música triste" (Vuoskoski y otros, 2012) muestra que quienes disfrutan la música triste o sombría tienden a puntuar más alto en **empatía** y apertura. Y en música extrema, Sharman y Dingle (2015) vieron que escucharla después de enojarse no aumenta la rabia: ayuda a procesarla y sube las emociones positivas. Mis días más oscuros (doom de Cathedral, Pentagram y Black Sabbath) fueron todos entre 2013 y 2017; los más luminosos, de cumbia con **Chico Trujillo** y **La Floripondio**.
+
+**Bajando las revoluciones.** La energía de lo que escucho cayó de 0,71 en 2013 a 0,41 en 2026, y la valencia subió de −0,43 a cerca de −0,25. Las eras lo muestran: del doom y el death metal (2013–2017), pasé por el heavy y el punk, después por el sludge y el rock argentino, hasta llegar al post-punk, que es mi era más larga (48 meses). Sigo en lo intenso, pero más melódico y menos extremo.
+
+**La música como compañía de la rutina.** Escucho en horario de oficina y durante la pandemia escuché **un tercio menos** (21 escuchas al día, contra 32 antes): la música va pegada a la rutina, a trabajar y moverme, más que al tiempo libre. Después de la pandemia volví con todo, a 56 escuchas al día, y con el **doble de música chilena** (de 15% a 31%).
+
+**Raíces que no se mueven.** En 14 años cambiaron los géneros, pero Tenemos Explosivos estuvo todos los años, y la escena local fue ganando espacio. Hoy exploro poco (7% de artistas nuevos): datos de plataformas como Deezer sugieren que, en promedio, la gente deja de buscar música nueva alrededor de los 30 años y vuelve a lo que la marcó.
+:::
+
+## 🔁 Obsesiones y amores olvidados
+
+::: {.panel-tabset}
+
+#### En loop
+
+::: {.callout-tip appearance="simple" icon="false"}
+**Teoría.** El **efecto de mera exposición** (Zajonc, 1968) dice que algo nos gusta más mientras más lo vemos o escuchamos. Pero Berlyne (1971) mostró que la relación es una **U invertida**: el gusto sube con la repetición hasta un punto y después cae por saturación. Las canciones en loop son ese peak; los "amores olvidados", quizás, la bajada.
+:::
 
 ```{r}
 #| label: obsesiones
-escuchas |>
+loops <- escuchas |>
   count(dia, artista, cancion, name = "veces") |>
   slice_max(veces, n = 10, with_ties = FALSE) |>
-  mutate(dia = fmt_fecha(dia)) |>
-  gt() |>
-  tab_header(title = "Canciones en loop",
-             subtitle = "Las veces que más escuché una misma canción en un solo día") |>
-  cols_label(dia = "Día", artista = "Artista", cancion = "Canción", veces = "Veces") |>
-  data_color(veces, palette = rampa[2:5]) |>
-  tab_options(quarto.disable_processing = TRUE, table.width = pct(1), table.font.size = px(13))
+  mutate(dia = fmt_fecha(dia))
+
+tabla(loops, titulo = "Canciones en loop",
+      subtitulo = "Las veces que más escuché una misma canción en un solo día",
+      columnas = list(
+        dia     = colDef(name = "Día", maxWidth = 100),
+        artista = colDef(name = "Artista", minWidth = 150),
+        cancion = colDef(name = "Canción", minWidth = 180),
+        veces   = col_calor("Veces", c(min(loops$veces), max(loops$veces)), maxWidth = 80)
+      ))
 ```
+
+#### Amores olvidados
 
 ```{r}
 #| label: olvidados
 hace_un_anio <- ultimo_dia - 365
 
-escuchas |>
+olvidados <- escuchas |>
   group_by(artista) |>
   summarise(
     total  = n(),
@@ -798,55 +1555,69 @@ escuchas |>
   filter(ultimo == 0, ultima_vez < ultimo_dia - 2 * 365) |>
   slice_max(total, n = 12, with_ties = FALSE) |>
   select(artista, total, anio_peak, ultima_vez) |>
-  mutate(ultima_vez = fmt_fecha(ultima_vez)) |>
-  gt() |>
-  tab_header(title = "Amores olvidados",
-             subtitle = "Artistas que escuché mucho y que llevo más de dos años sin poner") |>
-  cols_label(artista = "Artista", total = "Escuchas", anio_peak = "Su mejor año",
-             ultima_vez = "Última vez") |>
-  fmt_number(total, decimals = 0, sep_mark = ".") |>
-  tab_options(quarto.disable_processing = TRUE, table.width = pct(1), table.font.size = px(13))
+  mutate(ultima_vez = fmt_fecha(ultima_vez))
+
+tabla(olvidados, titulo = "Amores olvidados",
+      subtitulo = "Artistas que escuché mucho y que llevo más de dos años sin poner",
+      columnas = list(
+        artista    = colDef(name = "Artista", minWidth = 160),
+        total      = col_barra("Escuchas", max(olvidados$total)),
+        anio_peak  = colDef(name = "Su mejor año", maxWidth = 110),
+        ultima_vez = colDef(name = "Última vez", maxWidth = 110)
+      ))
 ```
+
+#### Los de siempre
 
 ```{r}
 #| label: fieles
-escuchas |>
+fieles <- escuchas |>
   group_by(artista) |>
   summarise(total = n(), anios = n_distinct(anio), desde = min(anio)) |>
   filter(total >= 200) |>
   arrange(desc(anios), desc(total)) |>
-  slice_head(n = 10) |>
-  gt() |>
-  tab_header(title = "Los de siempre",
-             subtitle = "Artistas presentes en más años distintos (con al menos 200 escuchas)") |>
-  cols_label(artista = "Artista", total = "Escuchas", anios = "Años con escuchas", desde = "Desde") |>
-  fmt_number(total, decimals = 0, sep_mark = ".") |>
-  tab_options(quarto.disable_processing = TRUE, table.width = pct(1), table.font.size = px(13))
+  slice_head(n = 10)
+
+tabla(fieles, titulo = "Los de siempre",
+      subtitulo = "Artistas presentes en más años distintos (con al menos 200 escuchas)",
+      columnas = list(
+        artista = colDef(name = "Artista", minWidth = 160),
+        total   = col_barra("Escuchas", max(fieles$total)),
+        anios   = colDef(name = "Años con escuchas", maxWidth = 130),
+        desde   = colDef(name = "Desde", maxWidth = 80)
+      ))
 ```
 
-## Hitos
+:::
+
+## 🏁 Hitos
 
 ```{r}
 #| label: hitos
 hitos <- c(1, 1000, 10000, 50000, 1e5, 150000, 2e5, 250000, 3e5)
-escuchas |>
+tabla_hitos <- escuchas |>
   mutate(numero = row_number()) |>
   filter(numero %in% hitos) |>
-  transmute(numero, dia = fmt_fecha(dia), cancion = paste0(cancion, " — ", artista)) |>
-  gt() |>
-  tab_header(title = "Escuchas que marcaron hitos") |>
-  cols_label(numero = "Escucha n.º", dia = "Día", cancion = "Canción") |>
-  fmt_number(numero, decimals = 0, sep_mark = ".") |>
-  tab_options(quarto.disable_processing = TRUE, table.width = pct(1), table.font.size = px(13))
+  transmute(numero, dia = fmt_fecha(dia), cancion, artista)
+
+tabla(tabla_hitos, titulo = "Escuchas que marcaron hitos",
+      columnas = list(
+        numero  = colDef(name = "Escucha n.º", maxWidth = 110,
+                         format = colFormat(separators = TRUE, locales = "es-CL"),
+                         style = list(fontWeight = 700, color = verde)),
+        dia     = colDef(name = "Día", maxWidth = 110),
+        cancion = colDef(name = "Canción", minWidth = 180),
+        artista = colDef(name = "Artista", minWidth = 150)
+      ))
 ```
 
-## Explorador de artistas
+## 🗂️ Explorador de artistas
 
-Tabla con buscador de todos los artistas con al menos 20 escuchas.
+Todos los artistas con al menos 20 escuchas. Se puede buscar y ordenar por cualquier columna.
 
 ```{r}
 #| label: explorador
-tabla <- escuchas |>
+explorador <- escuchas |>
   group_by(artista) |>
   summarise(
     escuchas = n(),
@@ -858,18 +1629,28 @@ tabla <- escuchas |>
   filter(escuchas >= 20) |>
   arrange(desc(escuchas))
 
-reactable(
-  tabla,
-  searchable = TRUE, defaultPageSize = 15, striped = FALSE, highlight = TRUE,
-  language = reactableLang(searchPlaceholder = "Buscar artista…", pageInfo = "{rowStart}–{rowEnd} de {rows}",
-                           pagePrevious = "Anterior", pageNext = "Siguiente"),
-  columns = list(
-    artista   = colDef(name = "Artista", minWidth = 180),
-    escuchas  = colDef(name = "Escuchas", format = colFormat(separators = TRUE, locales = "es-CL")),
-    canciones = colDef(name = "Canciones"),
-    primera   = colDef(name = "Primera vez", format = colFormat(date = TRUE, locales = "es-CL")),
-    ultima    = colDef(name = "Última vez", format = colFormat(date = TRUE, locales = "es-CL")),
-    genero    = colDef(name = "Género", show = tiene_tags)
-  )
-)
+tabla(explorador, filas = 15,
+      columnas = list(
+        artista   = colDef(name = "Artista", minWidth = 180),
+        escuchas  = col_barra("Escuchas", max(explorador$escuchas)),
+        canciones = colDef(name = "Canciones", maxWidth = 100),
+        primera   = colDef(name = "Primera vez", format = colFormat(date = TRUE, locales = "es-CL")),
+        ultima    = colDef(name = "Última vez", format = colFormat(date = TRUE, locales = "es-CL")),
+        genero    = colDef(name = "Género", show = tiene_tags)
+      ))
+```
+
+```{r}
+#| label: guardar-resultados
+#| include: false
+# Resultados clave para redactar los textos del reporte (perfil y lectura psicológica)
+if (tiene_tags) {
+  saveRDS(list(animo_anual = por_anio_animo, cobertura = cobertura, eras = tabla_eras, k_eras = k,
+               playlists = playlists, inercia = inercia[1:2], puntos_anio = puntos_anio,
+               puntos_gen = puntos_gen, omnivoro = omnivoro,
+               music = music, extremos = dias_extremos, pandemia = pandemia, ejes = ejes,
+               animo_hora = escuchas_animo |> group_by(hora) |>
+                 summarise(valencia = mean(valencia), energia = mean(energia))),
+          "data/resultados.rds")
+}
 ```
