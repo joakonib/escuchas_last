@@ -12,6 +12,7 @@ set QUARTO="C:\Program Files\RStudio\resources\app\bin\quarto\bin\quarto.exe"
 echo ==== %date% %time% ==== >> %LOG%
 %RSCRIPT% descargar_escuchas.R >> %LOG% 2>&1
 %RSCRIPT% descargar_tags.R >> %LOG% 2>&1
+%RSCRIPT% descargar_letras.R >> %LOG% 2>&1
 %QUARTO% render analisis_escuchas.qmd >> %LOG% 2>&1
 %RSCRIPT% generar_reporte_mensual.R >> %LOG% 2>&1
 
