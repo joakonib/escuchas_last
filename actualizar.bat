@@ -1,4 +1,5 @@
 @echo off
+chcp 65001 > nul
 rem Ciclo completo: descarga escuchas, tags y letras desde las APIs, genera los
 rem dos reportes y los publica en GitHub Pages (carpeta docs).
 rem Lo ejecuta la tarea "Last.fm escuchas" del Programador de tareas de Windows el
