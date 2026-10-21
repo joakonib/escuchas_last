@@ -44,7 +44,7 @@ tabla <- function(datos, columnas = list(), titulo = NULL, subtitulo = NULL,
     searchable = larga, pagination = larga, defaultPageSize = filas,
     showSortIcon = TRUE, elementId = id, ...
   )
-  boton <- tags$button(
+  boton <- htmltools::tags$button(
     class = "tabla-reset", type = "button",
     onclick = sprintf("Reactable.toggleSortBy('%s', '.orden', false); Reactable.setSearch('%s', '')", id, id),
     "↺ Orden original"
