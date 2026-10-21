@@ -23,6 +23,7 @@ execute:
 ```{r}
 #| label: setup
 library(dplyr)
+library(tidyr)
 library(lubridate)
 library(ggplot2)
 library(forcats)
@@ -238,3 +239,204 @@ p <- mes |>
   labs(title = "Escuchas por día", x = NULL, y = NULL)
 interactivo(p)
 ```
+
+## 🔬 Análisis del mes
+
+Lo que sigue no describe el mes: lo **compara con toda mi historia** desde 2013.
+
+```{r}
+#| label: analisis-preparacion
+source("R/etiquetas.R")
+tiene_tags <- file.exists("data/tags_artistas.parquet")
+if (tiene_tags) {
+  tags <- read_parquet("data/tags_artistas.parquet") |> filter(!is.na(tag), peso > 0)
+  todas <- agregar_genero_pais(todas, tags)
+  animo_art <- animo_por_artista(tags)
+}
+todas <- todas |> mutate(mes_id = floor_date(dia, "month"))
+mes <- filter(todas, dia >= inicio, dia <= fin)
+pct <- label_percent(accuracy = 1, decimal.mark = ",")
+gris <- "#a3a29d"
+morado <- "#6b3fa0"
+
+# Meses históricos comparables (con al menos 300 escuchas)
+meses_ok <- todas |> count(mes_id) |> filter(n >= 300) |> pull(mes_id)
+```
+
+::: {.panel-tabset}
+
+#### 🎲 ¿Mes típico o raro?
+
+```{r}
+#| label: rareza
+#| eval: !expr tiene_tags
+generos_ref <- todas |> filter(!is.na(genero)) |> count(genero, sort = TRUE) |> slice_head(n = 15) |> pull(genero)
+mezcla_mes <- todas |>
+  filter(!is.na(genero), mes_id %in% c(meses_ok, inicio)) |>
+  mutate(genero = ifelse(genero %in% generos_ref, genero, "Otros")) |>
+  count(mes_id, genero) |>
+  group_by(mes_id) |> mutate(share = n / sum(n)) |> ungroup() |>
+  select(-n) |>
+  pivot_wider(names_from = genero, values_from = share, values_fill = 0)
+
+M <- as.matrix(select(mezcla_mes, -mes_id))
+promedio <- colMeans(M[mezcla_mes$mes_id != inicio, , drop = FALSE])
+distancia <- sqrt(rowSums(sweep(M, 2, promedio)^2))
+d_mes <- distancia[mezcla_mes$mes_id == inicio]
+percentil <- mean(distancia[mezcla_mes$mes_id != inicio] < d_mes)
+
+diferencias <- M[mezcla_mes$mes_id == inicio, ] - promedio
+diferencias <- diferencias[names(diferencias) != "Otros"]
+subieron <- names(sort(diferencias, decreasing = TRUE))[1:3]
+bajaron  <- names(sort(diferencias))[1:2]
+
+veredicto <- if (percentil >= 0.8) "🌀 un mes muy fuera de lo común" else
+  if (percentil >= 0.5) "↗️ un mes algo distinto a lo habitual" else "🏠 un mes bastante típico"
+
+div(class = "bienvenida",
+    p(HTML(paste0("Según su mezcla de géneros, <b>", nombre_mes, "</b> fue ", veredicto,
+                  ": más distinto a mi promedio que el <b>", pct(percentil), "</b> de mis meses."))),
+    p(HTML(paste0("Escuché <b>más de lo normal</b>: ", paste(subieron, collapse = ", "),
+                  ". Y <b>menos de lo normal</b>: ", paste(bajaron, collapse = ", "), "."))))
+```
+
+```{r}
+#| label: rareza-grafico
+#| eval: !expr tiene_tags
+#| fig-height: 3.6
+p <- tibble(mes_id = mezcla_mes$mes_id, distancia) |>
+  mutate(este = mes_id == inicio) |>
+  ggplot(aes(distancia, fill = este)) +
+  geom_histogram(bins = 30, color = "#fcfcfb") +
+  geom_vline(xintercept = d_mes, color = verde, linewidth = 1) +
+  scale_fill_manual(values = c(`FALSE` = principal, `TRUE` = verde), guide = "none") +
+  labs(title = "¿Qué tan raro fue este mes?",
+       subtitle = "Distancia de la mezcla de géneros de cada mes a mi promedio histórico (línea verde: este mes)",
+       x = "Rareza (más a la derecha = más distinto a lo habitual)", y = "Meses")
+interactivo(p, tooltip = c("x", "y"))
+```
+
+#### 📈 Subidas y bajadas
+
+```{r}
+#| label: subidas
+#| fig-height: 5
+previos <- filter(todas, dia >= inicio - months(3), dia < inicio)
+if (nrow(previos) < 300) {
+  p("Los tres meses anteriores tienen muy pocos registros para comparar.")
+} else {
+  cambio <- full_join(
+    mes |> count(artista, name = "n_mes") |> mutate(s_mes = n_mes / sum(n_mes)),
+    previos |> count(artista, name = "n_prev") |> mutate(s_prev = n_prev / sum(n_prev)),
+    by = "artista"
+  ) |>
+    mutate(across(c(n_mes, s_mes, n_prev, s_prev), \(x) coalesce(x, 0)), dif = s_mes - s_prev)
+
+  extremos <- bind_rows(slice_max(cambio, dif, n = 7), slice_min(cambio, dif, n = 7)) |>
+    mutate(sentido = ifelse(dif > 0, "Subió", "Bajó"))
+
+  p <- ggplot(extremos, aes(dif, fct_reorder(artista, dif), fill = sentido,
+                            text = paste0("<b>", artista, "</b><br>Este mes: ", pct(s_mes), " (", n_mes, ")",
+                                          "<br>3 meses previos: ", pct(s_prev), " (", n_prev, ")"))) +
+    geom_col(width = 0.7) +
+    geom_vline(xintercept = 0, color = gris) +
+    scale_fill_manual(values = c(Subió = verde, Bajó = morado), name = NULL) +
+    scale_x_continuous(labels = \(x) paste0(ifelse(x > 0, "+", ""), round(x * 100), " pp")) +
+    labs(title = "Quién subió y quién bajó",
+         subtitle = "Cambio en la proporción de mis escuchas respecto de los 3 meses anteriores (puntos porcentuales)",
+         x = NULL, y = NULL)
+  interactivo(p)
+}
+```
+
+#### 🎭 Ánimo del mes
+
+```{r}
+#| label: animo-mes
+#| eval: !expr tiene_tags
+#| fig-height: 4
+animo_meses <- todas |>
+  filter(mes_id %in% c(meses_ok, inicio)) |>
+  inner_join(animo_art, by = "artista") |>
+  group_by(mes_id) |>
+  summarise(valencia = mean(valencia), energia = mean(energia))
+
+este <- filter(animo_meses, mes_id == inicio)
+otros <- filter(animo_meses, mes_id != inicio)
+p_val <- mean(otros$valencia < este$valencia)
+p_ene <- mean(otros$energia < este$energia)
+
+frase_val <- if (p_val <= 0.2) "🌑 de los más oscuros de mi historia" else
+  if (p_val >= 0.8) "☀️ de los más luminosos de mi historia" else "⛅ de ánimo intermedio"
+frase_ene <- if (p_ene >= 0.8) "⚡ muy intenso" else if (p_ene <= 0.2) "🌙 muy calmado" else "de energía media"
+
+texto_animo <- div(class = "bienvenida",
+    p(HTML(paste0("En ánimo fue un mes <b>", frase_val, "</b> (más alegre que el ", pct(p_val),
+                  " de mis meses) y <b>", frase_ene, "</b> (más intenso que el ", pct(p_ene), ")."))),
+    p(HTML("<i>Valencia</i>: qué tan alegre (+1) o triste (−1) es la música. <i>Energía</i>: qué tan intensa (+1) o calmada (−1). Se calculan con las etiquetas de ánimo de Last.fm.")))
+
+p <- animo_meses |>
+  pivot_longer(c(valencia, energia), names_to = "medida", values_to = "valor") |>
+  mutate(medida = ifelse(medida == "valencia", "Valencia", "Energía")) |>
+  ggplot(aes(mes_id, valor, color = medida, group = medida,
+             text = paste0(format(mes_id, "%m-%Y"), "<br>", medida, ": ", round(valor, 2)))) +
+  geom_hline(yintercept = 0, color = gris) +
+  geom_line(alpha = 0.7) +
+  geom_point(data = \(d) filter(d, mes_id == inicio), size = 4) +
+  scale_color_manual(values = c(Valencia = morado, `Energía` = verde), name = NULL) +
+  labs(title = "Este mes frente a toda mi historia",
+       subtitle = "Valencia y energía de cada mes; los puntos grandes son este mes",
+       x = NULL, y = NULL)
+tagList(texto_animo, interactivo(p))
+```
+
+#### 🗺️ ¿En qué era estoy?
+
+```{r}
+#| label: era-mes
+#| eval: !expr tiene_tags && file.exists("data/resultados.rds")
+cent <- readRDS("data/resultados.rds")$eras_centroides
+if (is.null(cent)) {
+  p("Falta renderizar el reporte general para conocer las eras.")
+} else {
+  perfil_mes <- mes |> filter(!is.na(genero)) |> count(genero) |> mutate(share_mes = n / sum(n))
+  dist_era <- cent |>
+    left_join(perfil_mes, by = "genero") |>
+    mutate(share_mes = coalesce(share_mes, 0)) |>
+    group_by(era, nombre) |>
+    summarise(dist = sqrt(sum((share - share_mes)^2)), .groups = "drop") |>
+    arrange(dist) |>
+    mutate(parecido = 1 - dist / max(dist), nombre = as.character(nombre))
+  tagList(
+    div(class = "bienvenida",
+        p(HTML(paste0("Por su mezcla de géneros, este mes se parece más a mi era <b>", dist_era$nombre[1],
+                      "</b>. Las eras salen del análisis de clusters del reporte general.")))),
+    tabla(select(dist_era, nombre, parecido),
+          columnas = list(
+            nombre   = colDef(name = "Era", minWidth = 220),
+            parecido = col_barra("Parecido relativo", 1, pct)
+          )))
+}
+```
+
+#### 🔮 Proyección
+
+```{r}
+#| label: proyeccion
+anio_actual <- year(inicio)
+hasta_ahora <- todas |> filter(year(dia) == anio_actual, dia <= fin)
+dias_pasados <- as.numeric(fin - as_date(paste0(anio_actual, "-01-01"))) + 1
+ritmo <- nrow(hasta_ahora) / dias_pasados
+proyectado <- round(ritmo * (365 + leap_year(anio_actual)))
+anteriores <- todas |> filter(year(dia) < anio_actual) |> count(anio = year(dia))
+mejor <- slice_max(anteriores, n, n = 1)
+puesto <- sum(anteriores$n > proyectado) + 1
+
+div(class = "bienvenida",
+    p(HTML(paste0("🔮 A este ritmo (<b>", round(ritmo), " canciones al día</b> en lo que va de ", anio_actual,
+                  "), cerraría el año con unas <b>", miles(proyectado), " escuchas</b>: sería mi año número <b>",
+                  puesto, "</b> de ", nrow(anteriores) + 1, ". Mi récord sigue siendo ", mejor$anio,
+                  ", con ", miles(mejor$n), " escuchas."))))
+```
+
+:::
