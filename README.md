@@ -41,7 +41,7 @@ Deezer API ──► R/imagenes.R ───────────────�
 | `scripts/` | Scripts que se ejecutan: `descargar_escuchas.R`, `descargar_tags.R`, `descargar_letras.R` y `generar_reporte_mensual.R`. |
 | `R/` | Funciones de apoyo que usan los reportes: `etiquetas.R` (países, ánimo, géneros), `imagenes.R` (Deezer), `letras.R` (texto) y `visual.R` (tablas y gráficos interactivos). |
 | `assets/` | `estilo.css` (diseño de ambos reportes) y `redibujar.html` (arregla los gráficos dentro de pestañas). |
-| `docs/` | Lo que se publica en GitHub Pages: portada (`index.html`) y los dos reportes. |
+| `docs/` | Lo que se publica en GitHub Pages: portada (`index.html`, con «Sobre mí» y la foto de Ciro en `img/`), los dos reportes y la metodología. |
 | `FUENTES.md` | Maestro de fuentes: APIs, papers y decisiones propias. |
 
 No se suben a GitHub (`.gitignore`): `data/` (escuchas, tags, letras, imágenes, log), `reportes/`, `input/`, `.Renviron` (credenciales) y los HTML de la raíz.
@@ -51,13 +51,13 @@ No se suben a GitHub (`.gitignore`): `data/` (escuchas, tags, letras, imágenes,
 | Script | Qué hace |
 |---|---|
 | `descargar_escuchas.R` | Baja las escuchas con `user.getRecentTracks` (200 por página). Incremental: solo pide lo posterior a la última escucha guardada. |
-| `descargar_tags.R` | Para los 500 artistas más escuchados baja hasta 30 etiquetas y sus oyentes globales. Incremental. |
-| `descargar_letras.R` | Baja de LRCLIB las letras de las 1.500 canciones más escuchadas. Incremental, guarda cada 100 canciones. |
+| `descargar_tags.R` | Para los 1.000 artistas más escuchados baja hasta 30 etiquetas y sus oyentes globales. Incremental. |
+| `descargar_letras.R` | Baja de LRCLIB las letras de las 8.000 canciones más escuchadas (meta; se completa de a poco). Incremental, guarda cada 100 canciones. |
 | `generar_reporte_mensual.R` | Renderiza el reporte de un mes (por defecto, el anterior), lo guarda en `reportes/` y lo copia a la raíz. |
 
 ## Qué hay en los reportes
 
-**General:** perfil musical, países con banderas, personalidad de oyente (año a año), popularidad, modelo MUSIC, línea de tiempo, ritmo, artistas y discos, omnivorismo, momentos (madrugada, fin de semana, estaciones, pandemia), ánimo musical (valencia y energía), eras musicales (clustering con restricción temporal), laboratorio (análisis de correspondencias, playlists ocultas con LDA, supervivencia de Kaplan-Meier, árbol de decisión), letras (idioma, palabras y temas con LDA), lectura psicológica, obsesiones, hitos y explorador de artistas.
+**General:** perfil musical, países con banderas, personalidad de oyente (año a año), popularidad, modelo MUSIC, línea de tiempo, ritmo, artistas y discos, omnivorismo, momentos (madrugada, fin de semana, estaciones, pandemia), ánimo musical (valencia y energía), eras musicales (clustering con restricción temporal), laboratorio (análisis de correspondencias, playlists ocultas con LDA, supervivencia de Kaplan-Meier, comparación de técnicas de clasificación: regresión logística, árbol de inferencia condicional, random forest y gradient boosting), letras (idioma, palabras y temas con LDA), lectura psicológica, obsesiones, hitos y explorador de artistas.
 
 **Mensual:** lo mejor del mes (artista, canción y disco), artistas, discos, canciones y descubrimientos, géneros y países del mes, ritmo, día a día, y un análisis que compara el mes con toda mi historia (rareza, subidas y bajadas, ánimo, era más parecida y proyección del año).
 
@@ -75,7 +75,7 @@ Las fuentes y los supuestos de cada análisis están en `FUENTES.md`.
    Rscript scripts/generar_reporte_mensual.R [AAAA-MM]
    ```
 
-Paquetes de R: `httr2`, `dplyr`, `tidyr`, `purrr`, `readr`, `arrow`, `lubridate`, `ggplot2`, `ggrepel`, `forcats`, `stringr`, `scales`, `reactable`, `plotly`, `htmltools`, `topicmodels`, `slam`, `stopwords`, `survival` y `rpart`.
+Paquetes de R: `httr2`, `dplyr`, `tidyr`, `purrr`, `readr`, `arrow`, `lubridate`, `ggplot2`, `ggrepel`, `forcats`, `stringr`, `scales`, `reactable`, `plotly`, `htmltools`, `topicmodels`, `slam`, `stopwords`, `survival`, `partykit`, `nnet`, `ranger` y `xgboost`.
 
 ## Actualización automática
 

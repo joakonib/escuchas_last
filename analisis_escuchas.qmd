@@ -15,6 +15,7 @@ format:
     fig-height: 5
     fig-dpi: 144
     css: assets/estilo.css
+    include-before-body: assets/saltar.html
     include-after-body: assets/redibujar.html
 execute:
   warning: false
@@ -142,6 +143,7 @@ fotos_hero <- imagen_artista(top_hero$artista)
 anios_hist <- year(ultimo_dia) - year(primer_dia)
 
 tagList(
+  navegacion("general"),
   linea_generacion(),
   div(class = "hero",
       div(class = "hero-mosaico",
@@ -159,9 +161,9 @@ tagList(
              "un servicio que registra automáticamente cada canción que escucho en Spotify u otras apps ",
              "(a cada registro se le llama <i>scrobble</i>). Este reporte convierte esos ",
              anios_hist, " años de registros en una radiografía de mis gustos.")),
-      p(HTML("🖱️ <b>Cómo leerlo:</b> pasa el mouse sobre los gráficos para ver los valores, ",
+      p(HTML("🖱️ <b>Cómo leerlo:</b> pasa el mouse (o toca, en el celular) sobre los gráficos para ver los valores, ",
              "cambia de pestaña dentro de cada sección y ordena las tablas haciendo clic en sus columnas. ",
-             "El índice de la izquierda te lleva a cada parte. 📅 También puedes ver ",
+             "El índice (a la izquierda en el computador) te lleva a cada parte. 📅 También puedes ver ",
              "<a href='reporte_mensual.html'>mi reporte del último mes</a> y ",
              "<a href='metodologia.html'>cómo está hecho</a>."))),
   div(class = "tiles",
@@ -182,15 +184,15 @@ tagList(
 ::: {.callout-note appearance="simple" icon="false"}
 ## En pocas palabras
 
-*Escrito el 20-10-2026, con los datos hasta esa fecha.*
+*Escrito el 21-10-2026, con los datos hasta esa fecha.*
 
-**Guitarras, ruido y oscuridad.** Casi tres cuartos de lo que escucho cae en la dimensión *intensa* del modelo MUSIC (ver más abajo). El género que más pesa es el **post-punk** (15%), seguido de una familia completa de metal: heavy, black, death, thrash, doom y sludge. También hay mucho post-hardcore y hardcore.
+**Guitarras, ruido y oscuridad.** Casi tres cuartos de lo que escucho cae en la dimensión *intensa* del modelo MUSIC (ver más abajo). El género que más pesa es el **post-punk** (15%), seguido de una familia completa de metal: heavy, black, sludge, thrash, death, stoner y doom. También hay mucho post-hardcore y asoma el hip-hop.
 
-**Un viaje del metal al post-punk.** En 2013–2015 mandaban el metal y el hardcore (Godflesh, Black Sabbath, Amenra), con el punk de Attaque 77 de por medio. El post-punk pasó de casi nada en 2013 a cerca de un 20% de mis escuchas hoy, de la mano de la ola británica e irlandesa: **IDLES** fue mi artista del año cuatro veces, y le siguen **Fontaines D.C.** y **Black Country, New Road**. En los últimos dos años se abrió hacia lo más melódico, con **La Brígida Orquesta** como artista de 2025.
+**Un viaje del metal al post-punk.** En 2013–2015 mandaban el metal y el hardcore (Godflesh, Black Sabbath, Amenra), con el punk de Attaque 77 de por medio. El post-punk pasó de nada en 2013 a su punto más alto en 2023 (23% de mis escuchas) y hoy ronda el 16%, de la mano de la ola británica e irlandesa: **IDLES** fue mi artista del año cuatro veces, y le siguen **Fontaines D.C.** y **Black Country, New Road**. En los últimos dos años se abrió hacia lo más melódico, con **La Brígida Orquesta** como artista de 2025.
 
-**Muy local.** Una de cada cuatro escuchas de artistas con país identificado es de un artista **chileno**, y si sumo Argentina, más de un tercio es del Cono Sur. Mi artista número uno de todos los tiempos es **Tenemos Explosivos**, presente los 14 años del historial. Lo acompañan Macha y el Bloque Depresivo, Fiskales Ad-Hok, Yajaira, Los Tres y Charly García.
+**Muy local.** Una de cada cuatro escuchas de artistas con país identificado es de un artista **chileno**, y si sumo Argentina, más de un tercio es del Cono Sur. Mi artista número uno de todos los tiempos es **Tenemos Explosivos**, presente los 14 años del historial. Lo acompañan La Brígida Orquesta, Macha y el Bloque Depresivo, Fiskales Ad-Hok, Yajaira y Los Tres.
 
-**Fiel y de nicho.** Hoy soy más de volver a lo conocido que de explorar: solo un 7% de mis escuchas del último año fue a artistas nuevos. El artista típico que escucho tiene unos 300 mil oyentes en Last.fm, lejos de los millones de un artista masivo. Entre las joyas escondidas están La Bestia de Gevaudan, Hielo Negro y Agriculture.
+**Fiel y de nicho.** Hoy soy más de volver a lo conocido que de explorar: solo un 7% de mis escuchas del último año fue a artistas nuevos. El artista típico que escucho tiene unos 300 mil oyentes en Last.fm, lejos de los millones de un artista masivo. Entre las joyas escondidas, con menos de 10 mil oyentes, están Yajaira, Asamblea Internacional del Fuego y Agriculture.
 
 **Música para trabajar.** El patrón es de oficina: escucho sobre todo de lunes a viernes entre las 9 y las 18 horas. Los fines de semana solo suman un 16% de las escuchas.
 :::
@@ -339,6 +341,7 @@ ejes <- periodos[["Últimos 12 meses"]]
 #| label: personalidad-pestanas
 #| output: asis
 #| fig-height: 5
+#| fig-alt: !expr 'paste0("Mi personalidad de oyente (", names(periodos), "): posición en cuatro ejes (familiar o explorador, variado o leal, rotador o repetidor, popular o de nicho). Resultado: ", sapply(periodos, \(e) paste(e$polo, collapse = ", ")))'
 cat("::: {.panel-tabset}\n\n")
 for (nombre in names(periodos)) {
   cat("####", nombre, "\n\n")
@@ -387,7 +390,7 @@ tabla(tabla_evo, titulo = "Mi personalidad de oyente, año a año", filas = 20,
 
 #### Popularidad de mis artistas
 
-Clasifiqué a mis 500 artistas principales en cuatro niveles según cuántos oyentes tienen en Last.fm, la red de más de 60 millones de usuarios donde registro mis escuchas.
+Clasifiqué a mis 1.000 artistas principales en cuatro niveles según cuántos oyentes tienen en Last.fm, la red de más de 60 millones de usuarios donde registro mis escuchas.
 
 ```{r}
 #| label: nicho
@@ -619,7 +622,9 @@ p <- escuchas |>
            fill = list(n = 0)) |>
   mutate(
     anio   = year(dia),
-    sem    = as.integer(format(dia, "%W")),
+    # Semana contada desde el lunes de la semana del 1 de enero: todos los años
+    # van de 0 a 52 (con %W, un año que parte en lunes se corre y suma una semana 53)
+    sem    = (yday(dia) - 1 + wday(floor_date(dia, "year"), week_start = 1) - 1) %/% 7,
     semana = factor(wday(dia, week_start = 1), levels = 7:1,
                     labels = rev(c("lun", "mar", "mié", "jue", "vie", "sáb", "dom")))
   ) |>
@@ -1275,7 +1280,7 @@ tarjeta_era <- function(fila, color) {
                                         " · ", fila$meses, " meses")),
       div(class = "era-fotos", lapply(seq_along(fotos), \(i) {
         if (is.na(fotos[i])) div(class = "era-foto-vacia", substr(fila$artistas[[1]][i], 1, 1))
-        else img(src = fotos[i], title = fila$artistas[[1]][i])
+        else img(src = fotos[i], title = fila$artistas[[1]][i], alt = fila$artistas[[1]][i])
       })),
       div(class = "era-artistas", paste(fila$artistas[[1]], collapse = " · ")),
       div(class = "era-generos", lapply(seq_len(nrow(fila$generos[[1]])), \(i) {
@@ -1327,7 +1332,7 @@ interactivo(p)
 ```
 
 ::: {.callout-note appearance="simple" icon="false"}
-**¿Qué me dice?** Las dos primeras eras son de **metal clásico**: doom, stoner y heavy metal (Godflesh, Black Sabbath, Electric Wizard). Desde fines de 2018 el **post-punk** toma el control y no lo suelta, pero cambia de compañía: primero con rock alternativo y hip-hop (Interpol, Nick Cave), después con post-hardcore (IDLES, Black Country, New Road) y ahora con la nueva escena chilena (La Brígida Orquesta) y algo de *blackgaze*: el "black metal" de la última era es casi todo Deafheaven, que mezcla black metal con shoegaze. Mi gusto no reemplazó una cosa por otra: **fue sumando capas**.
+**¿Qué me dice?** Las dos primeras eras son de **metal clásico**: doom, death, stoner y heavy metal (Saint Vitus, Godflesh, Black Sabbath, Electric Wizard), con Tom Waits y Amenra de compañía en la segunda. Desde mayo de 2018 el **post-punk** toma el control y no lo suelta, pero cambia de compañía: primero con heavy metal, hip-hop y sludge (IDLES, Interpol, Nick Cave), después con post-hardcore y black metal (Black Country, New Road, Deafheaven y la vuelta fuerte de Tenemos Explosivos) y ahora con la nueva escena chilena (La Brígida Orquesta) y un black metal experimental: Deafheaven, que lo mezcla con shoegaze, Agriculture y Mamaleek suman casi nueve de cada diez escuchas de black metal de esta era. Mi gusto no reemplazó una cosa por otra: **fue sumando capas**.
 :::
 
 #### Detalle técnico
@@ -1371,12 +1376,14 @@ Cuatro técnicas de estadística y aprendizaje automático para mirar mis gustos
 #### 🧭 El espacio de mis gustos
 
 ::: {.callout-tip appearance="simple" icon="false"}
-**Teoría.** Pierre Bourdieu, en *La distinción* (1979), usó el **análisis de correspondencias** para dibujar el "espacio de los gustos" de la sociedad francesa: un mapa donde los gustos que suelen ir juntos quedan cerca. Aquí uso la misma técnica con mis propios datos: géneros (en morado) y años (en verde) en un mismo plano. Un año queda cerca de los géneros que escuché **más de lo normal** ese año, y las flechas muestran mi recorrido.
+**Teoría.** Pierre Bourdieu, en *La distinción* (1979), usó el **análisis de correspondencias** para dibujar el "espacio de los gustos" de la sociedad francesa: un mapa donde los gustos que suelen ir juntos quedan cerca. Aquí uso la misma técnica con mis propios datos: géneros (en morado) y años (en verde) en un mismo plano. Un año queda cerca de los géneros que escuché **más de lo normal** ese año, y los años van cambiando de color de claro a oscuro.
 :::
 
 ```{r}
 #| label: correspondencias
 #| eval: !expr tiene_tags
+#| classes: grafico-ancho
+#| fig-alt: "Mapa del análisis de correspondencias: géneros en morado y años en verde en un mismo plano; los primeros años quedan a la izquierda junto al metal y los recientes a la derecha junto al post-punk"
 #| fig-height: 7.5
 #| fig-width: 9.5
 library(ggrepel)
@@ -1405,6 +1412,14 @@ puntos_gen  <- tibble(etiqueta = colnames(N), d1 = signo * columnas[, 1], d2 = c
 extremo <- \(eje, lado) paste(head(puntos_gen$etiqueta[order(lado * puntos_gen[[eje]])], 3), collapse = ", ")
 rx <- range(c(puntos_anio$d1, puntos_gen$d1)); ry <- range(c(puntos_anio$d2, puntos_gen$d2))
 
+# Título y subtítulo como texto HTML (no dentro de la imagen), para que se ajusten al
+# ancho de la pantalla en vez de cortarse
+div(class = "grafico",
+    div(class = "tabla-titulo", "El espacio de mis gustos"),
+    div(class = "tabla-subtitulo",
+        paste0("Análisis de correspondencias de géneros (morado) y años (verde, de claro a oscuro). ",
+               "Los dos ejes resumen el ", pct(sum(inercia[1:2])), " de las diferencias")))
+
 ggplot() +
   geom_point(data = puntos_anio, aes(d1, d2, color = anio), size = 3.2) +
   geom_text_repel(data = puntos_anio, aes(d1, d2, label = etiqueta, color = anio),
@@ -1417,10 +1432,7 @@ ggplot() +
   annotate("text", x = rx[2], y = ry[1] - 0.12, hjust = 1, size = 3.3, color = tinta_2,
            label = paste0(extremo("d1", -1), " →")) +
   scale_color_gradient(low = "#a7cbb0", high = "#163f25", guide = "none") +
-  labs(title = "El espacio de mis gustos",
-       subtitle = paste0("Análisis de correspondencias de géneros (morado) y años (verde, de claro a oscuro). ",
-                         "Los dos ejes resumen el ", pct(sum(inercia[1:2])), " de las diferencias"),
-       x = paste0("Dimensión 1 (", pct(inercia[1]), " de las diferencias)"),
+  labs(x = paste0("Dimensión 1 (", pct(inercia[1]), " de las diferencias)"),
        y = paste0("Dimensión 2 (", pct(inercia[2]), ")")) +
   theme(panel.grid = element_blank())
 ```
@@ -1562,15 +1574,15 @@ interactivo(p)
 #### 🤖 ¿Puede una máquina adivinar cuándo escucho?
 
 ::: {.callout-tip appearance="simple" icon="false"}
-**Teoría.** Un **árbol de decisión** (Breiman y otros, 1984) es un modelo de clasificación que aprende reglas del tipo "si la música es muy intensa y del 2019 en adelante, entonces es horario laboral". Se entrena con una parte de los datos y se evalúa con otra que no vio. Aquí le pido que adivine **en qué momento** escuché cada canción (horario laboral, noche o fin de semana) sabiendo solo cómo es la música: ánimo, género, popularidad del artista y año.
+**Teoría.** Le pido a varias técnicas de clasificación que adivinen **en qué momento** escuché cada canción (horario laboral, noche o fin de semana) sabiendo solo cómo es la música: ánimo, género, popularidad del artista y año. Cada una aprende con una parte de los datos y se evalúa con otra que no vio: aquí, con **artistas que nunca vio**, para que no pueda hacer trampa memorizándolos. Pruebo cinco: una **línea base** que siempre adivina el momento más común; una **regresión logística multinomial**, que mide cuánto empuja cada característica hacia cada momento; un **árbol de inferencia condicional** (Hothorn, Hornik y Zeileis, 2006), que aprende reglas legibles y solo corta cuando la diferencia es estadísticamente significativa; un **random forest** (Breiman, 2001), que combina cientos de árboles independientes, y un **gradient boosting** (Friedman, 2001; Chen y Guestrin, 2016), que suma árboles chicos donde cada uno corrige los errores de los anteriores: estos dos últimos suelen ser los que más aciertan, pero no se pueden leer. Aquí muestro solo la que mejor adivina; la comparación completa está en la [metodología](metodologia.html#modelos).
 :::
 
 ```{r}
-#| label: arbol
+#| label: modelos
 #| eval: !expr tiene_tags && file.exists("data/info_artistas.parquet")
-library(rpart)
+library(partykit)
 set.seed(2026)
-datos_arbol <- escuchas_animo |>
+datos_modelo <- escuchas_animo |>
   left_join(info, by = "artista") |>
   filter(!is.na(oyentes), !is.na(genero)) |>
   mutate(
@@ -1579,73 +1591,228 @@ datos_arbol <- escuchas_animo |>
       hora >= 9 & hora < 18       ~ "Horario laboral",
       TRUE                        ~ "Noche o madrugada"
     ),
-    momento = factor(momento),
-    genero = factor(ifelse(genero %in% head(generos_top, 10), genero, "Otro")),
+    momento = relevel(factor(momento), ref = "Horario laboral"),
+    genero = relevel(factor(ifelse(genero %in% head(generos_top, 10), genero, "Otro")), ref = "Otro"),
     popularidad = log10(oyentes)
   ) |>
-  select(momento, valencia, energia, genero, popularidad, anio) |>
+  select(artista, momento, valencia, energia, genero, popularidad, anio) |>
   slice_sample(n = 40000)
 
-entrena <- sample(nrow(datos_arbol), 0.7 * nrow(datos_arbol))
-arbol <- rpart(momento ~ ., data = datos_arbol[entrena, ], method = "class",
-               control = rpart.control(cp = 0.002, maxdepth = 4, minbucket = 300))
-prediccion <- predict(arbol, datos_arbol[-entrena, ], type = "class")
-acierto <- mean(prediccion == datos_arbol$momento[-entrena])
-base <- max(prop.table(table(datos_arbol$momento[-entrena])))
+# Entrenamiento y prueba separados por artista: cada artista queda entero en uno de los
+# dos grupos, hasta juntar cerca del 70% de las escuchas para entrenar. Si se separara por
+# escucha, el mismo artista (y sus etiquetas) estaría en ambos y el acierto se inflaría.
+orden_artistas <- datos_modelo |> count(artista) |> slice_sample(prop = 1) |>
+  mutate(acumulado = cumsum(n) / sum(n))
+entrena <- which(datos_modelo$artista %in% orden_artistas$artista[orden_artistas$acumulado <= 0.7])
+datos_modelo <- select(datos_modelo, -artista)
+prueba <- datos_modelo[-entrena, ]
 
-importancia <- tibble(variable = names(arbol$variable.importance),
-                      importancia = arbol$variable.importance / sum(arbol$variable.importance)) |>
-  mutate(variable = recode(variable, valencia = "Valencia (alegre/triste)", energia = "Energía (intensa/calma)",
-                           genero = "Género", popularidad = "Popularidad del artista", anio = "Año"))
+# Indicadores: acierto; acierto balanceado (promedio del acierto en cada momento, así no
+# gana quien solo adivina el momento más común) y F1 promedio (equilibra precisión y
+# exhaustividad en cada momento)
+medir <- function(pred) {
+  pred <- factor(as.character(pred), levels = levels(prueba$momento))
+  real <- prueba$momento
+  f1 <- sapply(levels(real), \(m) {
+    precision <- if (any(pred == m)) mean(real[pred == m] == m) else 0
+    exhaustividad <- mean(pred[real == m] == m)
+    if (precision + exhaustividad == 0) 0 else 2 * precision * exhaustividad / (precision + exhaustividad)
+  })
+  c(acierto = mean(pred == real), balanceado = mean(tapply(pred == real, real, mean)), f1 = mean(f1))
+}
+mas_comun <- names(which.max(table(datos_modelo$momento[entrena])))
 
-p <- ggplot(importancia, aes(importancia, fct_reorder(variable, importancia),
-                             text = paste0(variable, ": ", pct(importancia)))) +
-  geom_col(fill = verde, width = 0.6) +
-  scale_x_continuous(labels = pct) +
-  labs(title = "¿En qué se fija la máquina?",
-       subtitle = "Importancia de cada característica en el árbol de decisión", x = NULL, y = NULL)
-interactivo(p)
+# Regresión logística multinomial; las variables continuas van en desviaciones estándar
+# (calculadas con los datos de entrenamiento) para comparar sus efectos entre sí
+continuas <- c("valencia", "energia", "popularidad", "anio")
+medias <- sapply(datos_modelo[entrena, continuas], mean)
+desv   <- sapply(datos_modelo[entrena, continuas], sd)
+estandarizar <- \(d) mutate(d, across(all_of(continuas), \(x) (x - medias[[cur_column()]]) / desv[[cur_column()]]))
+logit <- nnet::multinom(momento ~ ., data = estandarizar(datos_modelo[entrena, ]), trace = FALSE, maxit = 300)
+
+arbol <- ctree(momento ~ ., data = datos_modelo[entrena, ],
+               control = ctree_control(alpha = 0.01, maxdepth = 4, minbucket = 300))
+bosque <- ranger::ranger(momento ~ ., data = datos_modelo[entrena, ], num.trees = 300,
+                         importance = "permutation", seed = 2026)
+
+# Gradient boosting (xgboost): árboles chicos que se suman uno a uno, cada uno corrigiendo
+# los errores de los anteriores. Necesita las variables como números (género en columnas 0/1)
+matriz <- \(d) model.matrix(momento ~ . - 1, d)
+boost <- xgboost::xgb.train(
+  params = list(objective = "multi:softprob", num_class = nlevels(datos_modelo$momento), eta = 0.05,
+                max_depth = 4, subsample = 0.8, colsample_bytree = 0.8, nthread = 2, seed = 2026),
+  data = xgboost::xgb.DMatrix(matriz(datos_modelo[entrena, ]), label = as.integer(datos_modelo$momento[entrena]) - 1),
+  nrounds = 300, verbose = 0)
+prob_boost <- predict(boost, xgboost::xgb.DMatrix(matriz(prueba)))
+if (is.null(dim(prob_boost))) prob_boost <- matrix(prob_boost, ncol = nlevels(datos_modelo$momento), byrow = TRUE)
+pred_boost <- levels(datos_modelo$momento)[max.col(prob_boost)]
+
+comparacion <- tibble(
+  tipo    = c("base", "logit", "arbol", "bosque", "boost"),
+  modelo  = c("Línea base (siempre el momento más común)", "Regresión logística multinomial",
+              "Árbol de inferencia condicional", "Random forest (300 árboles)",
+              "Gradient boosting (xgboost, 300 rondas)"),
+  legible = c("—", "Sí: efecto de cada variable", "Sí: reglas", "No", "No")
+) |>
+  bind_cols(as_tibble(do.call(rbind, list(
+    medir(rep(mas_comun, nrow(prueba))),
+    medir(predict(logit, estandarizar(prueba))),
+    medir(predict(arbol, prueba)),
+    medir(predict(bosque, prueba)$predictions),
+    medir(pred_boost)
+  ))))
+# El mejor modelo se elige por acierto balanceado
+mejor <- comparacion[-1, ] |> slice_max(balanceado, n = 1, with_ties = FALSE)
+mejor_tipo <- mejor$tipo
+
+# La tabla con los indicadores de todas las técnicas se muestra en la metodología
+saveRDS(list(comparacion = comparacion, mejor = mejor$modelo, n_entrena = length(entrena), n_prueba = nrow(prueba)),
+        "data/modelos.rds")
 ```
 
 ```{r}
-#| label: arbol-reglas
-#| eval: !expr tiene_tags && file.exists("data/info_artistas.parquet")
-# Reglas de las hojas más grandes del árbol, traducidas
-traducir <- function(cond) {
-  cond |>
-    str_replace("^valencia", "valencia") |>
-    str_replace("^energia", "energía") |>
-    str_replace("^popularidad< ?([0-9.]+)", \(m) paste0("artista con menos de ", miles(round(10^as.numeric(str_extract(m, "[0-9.]+")), -3)), " oyentes")) |>
-    str_replace("^popularidad>=([0-9.]+)", \(m) paste0("artista con más de ", miles(round(10^as.numeric(str_extract(m, "[0-9.]+")), -3)), " oyentes")) |>
-    str_replace("^anio< ?([0-9.]+)", \(m) paste0("antes de ", ceiling(as.numeric(str_extract(m, "[0-9.]+"))))) |>
-    str_replace("^anio>=([0-9.]+)", \(m) paste0("desde ", ceiling(as.numeric(str_extract(m, "[0-9.]+"))))) |>
-    str_replace("^genero=", "género: ") |>
-    str_replace_all(",", ", ")
+#| label: modelos-logit
+#| eval: !expr exists("mejor_tipo") && mejor_tipo == "logit"
+#| fig-height: 5.5
+# El mejor es la regresión logística: razón de probabilidades frente al horario laboral
+s <- summary(logit)
+efectos <- map_dfr(rownames(s$coefficients), \(m) tibble(
+  momento = m, termino = colnames(s$coefficients),
+  coef = s$coefficients[m, ], se = s$standard.errors[m, ]
+)) |>
+  filter(termino != "(Intercept)") |>
+  mutate(
+    razon = exp(coef),
+    p = 2 * pnorm(-abs(coef / se)),
+    termino = case_when(
+      termino == "valencia"    ~ "Valencia (+1 desv. est.)",
+      termino == "energia"     ~ "Energía (+1 desv. est.)",
+      termino == "popularidad" ~ "Popularidad (+1 desv. est.)",
+      termino == "anio"        ~ "Año (+1 desv. est.)",
+      TRUE ~ paste0("Género: ", str_remove(termino, "^genero"))
+    )
+  )
+coma <- \(x) format(round(x, 2), nsmall = 2, decimal.mark = ",")
+p <- ggplot(efectos, aes(razon, fct_reorder(termino, razon), color = momento,
+                         text = paste0("<b>", termino, "</b><br>", momento, " vs. horario laboral: ×", coma(razon),
+                                       ifelse(p < 0.05, "", " (no significativo)")))) +
+  geom_vline(xintercept = 1, color = gris) +
+  geom_point(size = 3) +
+  scale_x_log10() +
+  scale_color_manual(values = c(`Noche o madrugada` = morado, `Fin de semana` = verde), name = NULL) +
+  labs(title = "¿Qué empuja una canción hacia la noche o el fin de semana?",
+       subtitle = "Regresión logística: cuánto se multiplica la probabilidad frente al horario laboral. Más de 1 = más probable en ese momento",
+       x = "Razón de probabilidades (escala logarítmica)", y = NULL)
+interactivo(p)
+efecto_top <- efectos |> filter(p < 0.05) |> slice_max(abs(log(razon)), n = 1)
+detalle_modelo <- if (nrow(efecto_top) == 1) paste0(
+  " Lo que más mueve las probabilidades es **", tolower(efecto_top$termino), "**: multiplica por ",
+  coma(efecto_top$razon), " la probabilidad de que la escucha sea en **", tolower(efecto_top$momento),
+  "** en vez de horario laboral.") else ""
+```
+
+```{r}
+#| label: modelos-arbol
+#| eval: !expr exists("mejor_tipo") && mejor_tipo == "arbol"
+# El mejor es el árbol: reglas de las hojas más grandes, traducidas
+coma <- \(x) format(round(x, 2), nsmall = 2, decimal.mark = ",")
+num <- \(m) as.numeric(str_extract(m, "-?[0-9.]+$"))
+traducir <- function(regla) {
+  if (regla == "") return("(todas las escuchas)")
+  str_split(regla, " & ")[[1]] |>
+    str_replace("^popularidad <= .*", \(m) paste0("artista con hasta ", miles(round(10^num(m), -3)), " oyentes")) |>
+    str_replace("^popularidad > .*", \(m) paste0("artista con más de ", miles(round(10^num(m), -3)), " oyentes")) |>
+    str_replace("^anio <= .*", \(m) paste0("hasta ", floor(num(m)))) |>
+    str_replace("^anio > .*", \(m) paste0("desde ", floor(num(m)) + 1)) |>
+    str_replace("^valencia <= .*", \(m) paste0("valencia hasta ", coma(num(m)))) |>
+    str_replace("^valencia > .*", \(m) paste0("valencia sobre ", coma(num(m)))) |>
+    str_replace("^energia <= .*", \(m) paste0("energía hasta ", coma(num(m)))) |>
+    str_replace("^energia > .*", \(m) paste0("energía sobre ", coma(num(m)))) |>
+    str_replace("^genero %in% .*", \(m) paste0("género: ", str_replace_all(str_remove_all(str_match(m, "c\\((.*)\\)")[, 2], '"'), ",\\s*", ", "))) |>
+    paste(collapse = " y ")
 }
-hojas <- as.integer(rownames(arbol$frame)[arbol$frame$var == "<leaf>"])
-reglas <- tibble(
-  nodo = hojas,
-  regla = sapply(path.rpart(arbol, nodes = hojas, print.it = FALSE),
-                 \(x) paste(sapply(x[-1], traducir), collapse = " y ")),
-  prediccion = attr(arbol, "ylevels")[arbol$frame$yval[arbol$frame$var == "<leaf>"]],
-  escuchas = arbol$frame$n[arbol$frame$var == "<leaf>"],
-  acierto = apply(arbol$frame$yval2[arbol$frame$var == "<leaf>", , drop = FALSE], 1,
-                  \(f) max(f[(length(attr(arbol, "ylevels")) + 2):(2 * length(attr(arbol, "ylevels")) + 1)]))
-) |>
+reglas_txt <- partykit:::.list.rules.party(arbol)
+nodos <- tibble(nodo = predict(arbol, newdata = datos_modelo[entrena, ], type = "node"),
+                momento = datos_modelo$momento[entrena]) |>
+  count(nodo, momento) |>
+  group_by(nodo) |>
+  summarise(escuchas = sum(n), prediccion = as.character(momento[which.max(n)]), acierto = max(n) / sum(n))
+reglas <- tibble(nodo = as.integer(names(reglas_txt)), regla = map_chr(reglas_txt, traducir)) |>
+  left_join(nodos, by = "nodo") |>
   slice_max(escuchas, n = 6) |>
   select(regla, prediccion, acierto)
-
-tabla(reglas, titulo = "Las reglas que aprendió",
+tabla(reglas, titulo = "Las reglas que aprendió el árbol",
       subtitulo = "Las 6 reglas que cubren más escuchas. 'Acierto' = % de las escuchas de esa regla que sí ocurrieron en ese momento",
+      clase = "tabla-texto",
       columnas = list(
         regla      = colDef(name = "Si la música es…", minWidth = 320),
         prediccion = colDef(name = "…adivina", minWidth = 130, style = list(fontWeight = 600, color = verde)),
         acierto    = col_calor("Acierto", c(0.4, 0.8), pct, maxWidth = 90)
       ))
+detalle_modelo <- paste0(" La regla que cubre más escuchas dice: si la música es ", reglas$regla[1], ", adivina **",
+                         tolower(reglas$prediccion[1]), "**.")
+```
+
+```{r}
+#| label: modelos-bosque
+#| eval: !expr exists("mejor_tipo") && mejor_tipo == "bosque"
+# El mejor es el random forest: importancia por permutación (cuánto cae el acierto si se
+# desordena cada característica)
+importancia <- tibble(variable = names(bosque$variable.importance), importancia = bosque$variable.importance) |>
+  mutate(importancia = pmax(importancia, 0) / sum(pmax(importancia, 0)),
+         variable = recode(variable, valencia = "Valencia (alegre/triste)", energia = "Energía (intensa/calma)",
+                           genero = "Género", popularidad = "Popularidad del artista", anio = "Año"))
+p <- ggplot(importancia, aes(importancia, fct_reorder(variable, importancia),
+                             text = paste0(variable, ": ", pct(importancia)))) +
+  geom_col(fill = verde, width = 0.6) +
+  scale_x_continuous(labels = pct) +
+  labs(title = "¿En qué se fija el random forest?",
+       subtitle = "Importancia por permutación: cuánto empeora si se desordena cada característica", x = NULL, y = NULL)
+interactivo(p)
+detalle_modelo <- paste0(" La característica en la que más se fija es **", tolower(importancia$variable[which.max(importancia$importancia)]), "**.")
+```
+
+```{r}
+#| label: modelos-boost
+#| eval: !expr exists("mejor_tipo") && mejor_tipo == "boost"
+# El mejor es gradient boosting: importancia por ganancia (cuánto mejora el modelo cada vez
+# que usa una característica); las columnas de género se suman en una sola
+importancia <- xgboost::xgb.importance(model = boost) |>
+  as_tibble() |>
+  mutate(variable = ifelse(str_starts(Feature, "genero"), "genero", Feature)) |>
+  group_by(variable) |>
+  summarise(importancia = sum(Gain)) |>
+  mutate(importancia = importancia / sum(importancia),
+         variable = recode(variable, valencia = "Valencia (alegre/triste)", energia = "Energía (intensa/calma)",
+                           genero = "Género", popularidad = "Popularidad del artista", anio = "Año"))
+p <- ggplot(importancia, aes(importancia, fct_reorder(variable, importancia),
+                             text = paste0(variable, ": ", pct(importancia)))) +
+  geom_col(fill = verde, width = 0.6) +
+  scale_x_continuous(labels = pct) +
+  labs(title = "¿En qué se fija el gradient boosting?",
+       subtitle = "Importancia por ganancia: cuánto mejora el modelo cada vez que usa una característica", x = NULL, y = NULL)
+interactivo(p)
+detalle_modelo <- paste0(" La característica en la que más se fija es **", tolower(importancia$variable[which.max(importancia$importancia)]), "**.")
+```
+
+```{r}
+#| label: modelos-texto
+#| eval: !expr exists("mejor_tipo")
+# Lectura de los resultados
+mejora <- mejor$balanceado - comparacion$balanceado[1]
+texto_modelos <- paste0(
+  "Probé cinco técnicas ([comparación en la metodología](metodologia.html#modelos)) y la que mejor adivina es el **", tolower(mejor$modelo), "**: acierta el ", pct(mejor$acierto),
+  " de las veces (", pct(mejor$balanceado), " balanceado, F1 de ", pct(mejor$f1), "), contra un ", pct(comparacion$acierto[1]),
+  " de la línea base (", pct(comparacion$balanceado[1]), " balanceado). ",
+  if (mejora < 0.05) "Es decir, **casi no se puede adivinar**: la música que escucho es muy parecida a cualquier hora y en cualquier día. No tengo una \"música de oficina\" y otra de fin de semana: mi gusto me acompaña igual en todos lados."
+  else if (mejora < 0.12) "Es decir, **algo se puede adivinar**: hay diferencias según el momento, pero son suaves."
+  else "Es decir, **la música sí cambia según el momento**, y los modelos lo captan.",
+  if (exists("detalle_modelo")) detalle_modelo else ""
+)
 ```
 
 ::: {.callout-note appearance="simple" icon="false"}
-**¿Qué me dice?** El árbol acierta el `r if (tiene_tags) pct(acierto) else "—"` de las veces en datos que no vio, contra un `r if (tiene_tags) pct(base) else "—"` si siempre adivinara el momento más común. `r if (tiene_tags && acierto - base < 0.05) "Es decir, **casi no puede adivinar**: la música que escucho es muy parecida a cualquier hora y en cualquier día. No tengo una \"música de oficina\" y otra de fin de semana: mi gusto me acompaña igual en todos lados." else "Es decir, **algo puede adivinar**: la música que escucho cambia según el momento, y las reglas muestran cómo."` La variable en la que más se fija es **`r if (tiene_tags) importancia$variable[1] else ""`**.
+**¿Qué me dice?** `r if (exists("texto_modelos")) texto_modelos else "—"`
 :::
 
 :::
@@ -1785,25 +1952,34 @@ peso_temas <- escuchas |>
   left_join(temas, by = "tema")
 
 # Canción más representativa de cada tema (entre las que escuché al menos 10 veces)
+# Canción de ejemplo de cada tema: entre las que tratan claramente de ese tema (al menos
+# 50% de su letra) y escuché 10 veces o más, la que más escuché. Si ninguna llega al 50%,
+# la de mayor peso. Elegir solo por peso favorece letras cortas o raras.
 ejemplo_tema <- tema_cancion |>
   inner_join(escuchas_cancion, by = c("artista", "cancion")) |>
   filter(veces >= 10) |>
   group_by(tema) |>
-  slice_max(peso, n = 1, with_ties = FALSE) |>
-  transmute(tema, ejemplo = cancion_id)
+  arrange(desc(peso >= 0.5), desc(if_else(peso >= 0.5, veces, 0L)), desc(peso), .by_group = TRUE) |>
+  slice_head(n = 1) |>
+  ungroup() |>
+  transmute(tema, ejemplo = str_remove(cancion_id, regex(" - (\\d{4} )?remaster(ed)?.*$", ignore_case = TRUE)))
 
 peso_temas <- left_join(peso_temas, ejemplo_tema, by = "tema") |> arrange(desc(share))
 
-tabla(select(peso_temas, nombre, descripcion, share, palabras, ejemplo),
-      titulo = "Los temas de las canciones que escucho",
-      subtitulo = "Peso de cada tema en mis escuchas, de qué trata, sus palabras clave y la canción que mejor lo representa",
-      columnas = list(
-        nombre      = colDef(name = "Tema", minWidth = 160, style = list(fontWeight = 600)),
-        descripcion = colDef(name = "De qué trata", minWidth = 230),
-        share       = col_barra("Peso", max(peso_temas$share), pct),
-        palabras    = colDef(name = "Palabras clave", minWidth = 200),
-        ejemplo     = colDef(name = "Canción representativa", minWidth = 190)
-      ))
+# Tarjetas en vez de tabla: el contenido es casi todo texto y una tabla de cinco
+# columnas obliga a deslizar de lado en el celular
+div(class = "grafico",
+    div(class = "tabla-titulo", "Los temas de las canciones que escucho"),
+    div(class = "tabla-subtitulo", "Peso de cada tema en mis escuchas, de qué trata, sus palabras clave y la canción que mejor lo representa"),
+    div(class = "temas-grid", lapply(seq_len(nrow(peso_temas)), \(i) {
+      t <- peso_temas[i, ]
+      div(class = "tema-card",
+          div(class = "tema-cabeza", span(class = "tema-nombre", t$nombre), span(class = "tema-peso", pct(t$share))),
+          div(class = "tema-barra", div(style = sprintf("width:%.0f%%", 100 * t$share / max(peso_temas$share)))),
+          p(class = "tema-desc", t$descripcion),
+          p(class = "tema-palabras", t$palabras),
+          if (!is.na(t$ejemplo)) p(class = "tema-ejemplo", "🎵 ", t$ejemplo))
+    })))
 ```
 
 ```{r}
@@ -1833,7 +2009,7 @@ interactivo(p)
 ```
 
 ::: {.callout-note appearance="simple" icon="false"}
-**¿Qué me dice?** *Escrito el 20-10-2026, con 1.319 letras.* Aunque escucho música intensa y oscura, las letras no hablan solo de muerte, pero es su tema más presente: el modelo lo encontró **dos veces**, una con *sangre, oscuridad, muerte* y otra con *morir, matar, mente*. Es el imaginario del metal y del post-punk más sombrío. Le siguen el **amor y el desamor** en inglés (*tiempo, perdido, frío, caer, sueño*), la **rabia** con groserías y despedidas, y la vida que pasa (*días, noches, esperar*). En español, los temas tienen un tono más cercano y físico: el **amor y el deseo**, con *vos* y *acá* que delatan bandas argentinas y chilenas, y **el cuerpo y lo cotidiano** (*vida, casa, cielo, cuerpo, ojos, manos*). Los temas tienden a separarse por idioma porque las palabras de cada idioma casi nunca se mezclan en una misma canción.
+**¿Qué me dice?** *Escrito el 21-10-2026, con 4.344 letras.* Con más del triple de letras que antes, los ocho temas quedan casi parejos (entre 11% y 16% cada uno): ninguno domina. El más presente es **el amor y la vida en español**, con el voseo del rock chileno y argentino (*amor, vida, vos, corazón, mundo*) y Tenemos Explosivos como ejemplo. A su lado aparece otra forma de hablar de amor en castellano, más de **deseo y noche**, la del lenguaje urbano y tropical (*noche, gusta, mami, casa*), con La Brígida Orquesta. En inglés están el **amor y las despedidas** (*love, time, feel, leave*) y los **días, noches y recuerdos** (*day, night, remember, dance*): dos maneras de cantar lo cotidiano. El lado oscuro se reparte en dos, **la muerte, la sangre y lo sagrado** del metal (*die, blood, dead, death, soul*) y **la pérdida y el miedo** (*lost, dark, kill, fear*), con un contrapeso luminoso de **luz, cielo y manos** (*light, sun, sky, eyes, hands*). Cierra **la rabia, la calle y el dinero** del hip-hop y el hardcore (*fuck, money, bad*). Los temas se separan primero por idioma, porque las palabras de cada idioma casi nunca se mezclan en una misma canción, y luego por escena: cada género tiene su propio vocabulario, y por eso un mismo gran tema, como el amor o la oscuridad, aparece partido en varios.
 :::
 
 :::
@@ -1843,15 +2019,15 @@ interactivo(p)
 ::: {.callout-note appearance="simple" icon="false"}
 ## Lo que dice la investigación sobre gustos como los míos
 
-*Escrito el 20-10-2026. Es una lectura lúdica: los estudios hablan de tendencias promedio en muchas personas, no de diagnósticos individuales.*
+*Escrito el 21-10-2026. Es una lectura lúdica: los estudios hablan de tendencias promedio en muchas personas, no de diagnósticos individuales.*
 
-**Apertura, no rabia.** Con 72% de música *intensa*, mi perfil es casi puro "intenso y rebelde". Rentfrow y Gosling (2003) encontraron que quienes prefieren rock, alternativo y metal puntúan más alto en **apertura a la experiencia** (curiosidad, gusto por ideas nuevas), y que esa preferencia **no** se asocia a más neuroticismo ni a menos amabilidad, contra el estereotipo. North (2008) encontró que los fans del metal se parecen mucho a los de la música clásica: creativos, tranquilos consigo mismos y algo introvertidos.
+**Apertura, no rabia.** Con 71% de música *intensa*, mi perfil es casi puro "intenso y rebelde". Rentfrow y Gosling (2003) encontraron que quienes prefieren rock, alternativo y metal puntúan más alto en **apertura a la experiencia** (curiosidad, gusto por ideas nuevas), y que esa preferencia **no** se asocia a más neuroticismo ni a menos amabilidad, contra el estereotipo. North (2008) encontró que los fans del metal se parecen mucho a los de la música clásica: creativos, tranquilos consigo mismos y algo introvertidos.
 
-**La oscuridad como refugio.** Todos mis años caen en el cuadrante *tenso/oscuro*: valencia negativa y energía alta. La investigación sobre la "paradoja de la música triste" (Vuoskoski y otros, 2012) muestra que quienes disfrutan la música triste o sombría tienden a puntuar más alto en **empatía** y apertura. Y en música extrema, Sharman y Dingle (2015) vieron que escucharla después de enojarse no aumenta la rabia: ayuda a procesarla y sube las emociones positivas. Mis días más oscuros (doom de Cathedral, Pentagram y Black Sabbath) fueron todos entre 2013 y 2017; los más luminosos, de cumbia con **Chico Trujillo** y **La Floripondio**.
+**La oscuridad como refugio.** Todos mis años caen en el cuadrante *tenso/oscuro*: valencia negativa y energía alta. La investigación sobre la "paradoja de la música triste" (Vuoskoski y otros, 2012) muestra que quienes disfrutan la música triste o sombría tienden a puntuar más alto en **empatía** y apertura. Y en música extrema, Sharman y Dingle (2015) vieron que escucharla después de enojarse no aumenta la rabia: ayuda a procesarla y sube las emociones positivas. Mis días más oscuros (doom de Cathedral, Black Sabbath y Witchfinder General) fueron todos entre 2013 y 2017; los más luminosos, de cumbia con **Chico Trujillo** y **La Floripondio**.
 
-**Bajando las revoluciones.** La energía de lo que escucho cayó de 0,71 en 2013 a 0,41 en 2026, y la valencia subió de −0,43 a cerca de −0,25. Las eras lo muestran: empecé con el doom de Saint Vitus y Godflesh (2013–2014), seguí con el heavy metal de Black Sabbath, mezclado con Tom Waits y Amenra (2014–2018) y desde fines de 2018 encadeno tres eras de post-punk: la de Interpol, la de IDLES y la actual de Fontaines D.C. Sigo en lo intenso, pero más melódico y menos extremo.
+**Bajando las revoluciones.** La energía de lo que escucho cayó de 0,71 en 2013 a 0,41 en 2026, y la valencia subió de −0,43 a cerca de −0,25. Las eras lo muestran: empecé con el doom de Saint Vitus y Godflesh (2013–2014), seguí con el heavy metal de Black Sabbath, mezclado con Tom Waits y Amenra (2015–2018) y desde mediados de 2018 encadeno tres eras de post-punk: la de IDLES, la de Black Country, New Road y la actual de Fontaines D.C. Sigo en lo intenso, pero más melódico y menos extremo.
 
-**La música como compañía de la rutina.** Escucho en horario de oficina y durante la pandemia escuché **un tercio menos** (21 escuchas al día, contra 32 antes): la música va pegada a la rutina, a trabajar y moverme, más que al tiempo libre. Después de la pandemia volví con todo, a 56 escuchas al día, y con el **doble de música chilena** (de 15% a 31%).
+**La música como compañía de la rutina.** Escucho en horario de oficina y durante la pandemia escuché **un tercio menos** (21 escuchas al día, contra 32 antes): la música va pegada a la rutina, a trabajar y moverme, más que al tiempo libre. Después de la pandemia volví con todo, a 56 escuchas al día, y con el **doble de música chilena** (de 16% a 32%).
 
 **Raíces que no se mueven.** En 14 años cambiaron los géneros, pero Tenemos Explosivos estuvo todos los años, y la escena local fue ganando espacio. Hoy exploro poco (7% de artistas nuevos): datos de plataformas como Deezer sugieren que, en promedio, la gente deja de buscar música nueva alrededor de los 30 años y vuelve a lo que la marcó.
 :::
@@ -1996,7 +2172,11 @@ if (tiene_tags) {
                eras_centroides = genero_era |> left_join(distinct(eras, era, nombre), by = "era"),
                music = music, extremos = dias_extremos, pandemia = pandemia, ejes = ejes,
                animo_hora = escuchas_animo |> group_by(hora) |>
-                 summarise(valencia = mean(valencia), energia = mean(energia))),
+                 summarise(valencia = mean(valencia), energia = mean(energia)),
+               letras = if (exists("peso_temas"))
+                 list(n = nrow(letras), revisadas = revisadas, cobertura = cobertura_letras,
+                      total_es = total_es, idioma_anual = idioma_anual, temas = peso_temas,
+                      temas_anio = temas_anio, palabras = palabras_top)),
           "data/resultados.rds")
 }
 ```

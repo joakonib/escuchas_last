@@ -1,0 +1,216 @@
+FLUJO DE TRABAJO - escuchas_last
+================================
+Documento vivo: cada vez que aparece un paso nuevo se agrega aquí Y en el flujo
+que se ejecuta (actualizar.bat para el mensual automático; el script nocturno
+para las corridas completas con Claude). Si un paso está aquí y no en el flujo
+efectivo, o al revés, hay que corregirlo.
+
+Última actualización: 21-10-2026
+
+
+HAY DOS FLUJOS
+--------------
+A. Mensual automático (actualizar.bat, tarea programada el día 1 a las 10:00).
+   Sin intervención: descarga incremental, render, copia a docs/, commit y push.
+   Reintenta 4 veces las descargas, pull y push, y 2 los renders; si un
+   render falla, no publica. Todo queda con hora en data/actualizacion.log.
+   No tiene análisis ni revisión de textos (eso requiere a Claude).
+
+B. Corrida completa con Claude (como la del 20/21-10-2026).
+   Todo lo de A, más descarga desde cero, ampliación de la base, análisis de los
+   datos y actualización de los textos antes del render. Se ejecuta con
+   scripts/flujo_nocturno.sh [--mes AAAA-MM] [--desde-cero] [--apagar],
+   que reintenta cada paso y deja log en data/noche.log.
+
+
+FLUJO B, PASO A PASO
+--------------------
+Reglas generales
+  - Reintentos: hasta 4 para lo que falla por la red (descargas, pull, push)
+    y 2 para los renders (un error de código no se arregla reintentando),
+    con 1 minuto entre intentos. Los scripts son incrementales: reintentar
+    retoma donde quedó, sin duplicar.
+  - Si una descarga falla todos sus intentos, se registra y se sigue. Si un
+    RENDER falla, NO se publica (para no subir HTML viejo como nuevo).
+  - Todo queda con hora en data/noche.log.
+  - Para detener un flujo: matar también sus procesos hijos (bash y R) y
+    confirmar con la lista de procesos que no quede ninguno. Nunca dejar dos
+    descargas escribiendo el mismo archivo: lo dañan (pasó el 21-10-2026 con
+    letras.parquet; se recuperó dejando terminar un guardado completo).
+  - Avisos de avance SIEMPRE: en qué paso del flujo va, la hora de cada paso
+    y la hora estimada de término, recalculada a medida que avanza
+    (terminal y app de Claude; notificaciones activadas en la configuración).
+  - Base de herramientas: GUIA_HERRAMIENTAS.html (raíz, solo local, fuera de
+    git porque describe el negocio Blikk y el repo es público). De ahí salen
+    las herramientas del flujo de render: /dataviz (gráficos: forma, paleta
+    validada, marcas, accesibilidad), /code-review y /simplify (código),
+    /run (verlo funcionando) y la revisión de accesibilidad y contraste.
+
+FASE 0. Preparación
+  0.1 Revisar git status y que no haya cambios ajenos sin subir.
+  0.2 Respaldar data/escuchas.parquet antes de cualquier descarga desde cero.
+
+FASE 1. Descargas
+  1.1 Escuchas de Last.fm (scripts/descargar_escuchas.R).
+      - Incremental por defecto. Para bajar todo desde cero: respaldar y quitar
+        data/escuchas.parquet antes de correrlo.
+      - Verificar contra el respaldo: total de escuchas no menor, rango de
+        fechas, meses con huecos, duplicados. Si queda incompleta: restaurar
+        el respaldo y completar en modo incremental.
+  1.2 Etiquetas y oyentes de artistas (scripts/descargar_tags.R).
+      - Cobertura actual: 1.000 artistas (cerca del 98 % de las escuchas).
+      - Usa la misma API que 1.1: no correrlos en paralelo (límite de consultas).
+  1.3 Letras de LRCLIB (scripts/descargar_letras.R).
+      - Meta: 8.000 canciones (cerca del 78 % de las escuchas; al 21-10-2026
+        van 5.000 revisadas, 4.344 con letra = 61 % de las escuchas;
+        todas las canciones con 5 o más escuchas).
+      - Unas 30 canciones por minuto: 1.000 canciones nuevas toman ~35 min.
+      - Puede correr en paralelo con 1.1 (otra API).
+
+FASE 2. Análisis antes del render (el flujo se pausa hasta que termine)
+  2.1 Chequeo de letras: filas, % encontradas, instrumentales, duplicadas,
+      vacías y % de escuchas con letra.
+  2.2 Render de prueba del reporte general: deja los resultados clave en
+      data/resultados.rds (perfil, ánimo, eras, MUSIC, pandemia, letras).
+  2.3 Recalcular cada cifra escrita a mano en los textos y compararla:
+      - Resumen (perfil): géneros principales, % de artistas chilenos, % de
+        artistas nuevos del último año, oyentes del artista típico, % de fin
+        de semana.
+      - Eras musicales y su descripción.
+      - Letras: % en español y los temas del modelo (reinterpretarlos si
+        cambió la base).
+      - Lectura psicológica: % de música intensa, energía y valencia del
+        primer al último año, pandemia, años de historia.
+  2.4 Corregir los textos que cambiaron y actualizar "Escrito el <fecha>, con
+      <n> letras".
+  2.5 Revisar README, metodología y FUENTES.md si cambió la cobertura o las
+      fuentes.
+  2.6 Dar luz verde (archivo analisis_ok). Si no llega en 60 min, el flujo
+      sigue igual.
+
+FASE 3. Reportes
+  3.1 quarto render analisis_escuchas.qmd
+  3.2 Rscript scripts/generar_reporte_mensual.R <AAAA-MM>
+      (mes en curso si el anterior tiene pocos datos).
+  3.3 quarto render metodologia.qmd
+  3.4 Copiar los tres HTML a docs/.
+  3.5 Revisión WCAG 2.2 AA en las dos versiones: computador (~1280 px) y
+      celular (marco de 380 px dentro de una página, porque Chrome sin ventana
+      no baja de ~500 px). Contraste, alt de imágenes, sin deslizar de lado,
+      foco visible.
+  3.6 Revisar en tamaño celular. Ojo: Chrome sin ventana no baja de ~500 px,
+      así que una captura a 390 px se ve cortada sin que sea error del diseño.
+
+FASE 4. Publicación
+  4.0 Antes del pull: revisar todos los archivos (versionados, no versionados
+      e ignorados) y borrar los innecesarios. Criterio: se queda lo que usa el
+      flujo o se publica; se borran temporales y restos (.Rhistory, *_files/,
+      archivos de prueba). Nunca borrar data/, reportes/, input/, .Renviron
+      ni GUIA_HERRAMIENTAS.html. Ante la duda, preguntar antes de borrar.
+  4.1 git add de lo versionado (docs, R, assets, scripts, qmd, README,
+      FUENTES, este archivo). Nunca data/, input/ ni .Renviron.
+  4.2 Commit con mensaje descriptivo, pull --rebase y push (4 reintentos).
+  4.3 Apagar el PC si se pidió: shutdown /s /t 120 (cancelar: shutdown /a).
+
+
+CRITERIOS DE DISEÑO (se aplican en cada cambio)
+-----------------------------------------------
+  - Estándar: WCAG 2.2 nivel AA (norma ISO/IEC 40500:2025), en las DOS
+    versiones, computador y celular. Mínimos: contraste de texto 4,5:1 y de
+    bordes de controles 3:1; texto alternativo en toda imagen o gráfico
+    estático (fig-alt); sin deslizar de lado a 320 px; enlace "Saltar al
+    contenido"; foco visible y no tapado por elementos fijos; controles
+    táctiles de al menos 24×24 px; lang="es". Verde de TEXTO: #27613a (el
+    #2f7d4a solo para rellenos y bordes); gris de texto mínimo #6b6b67.
+  - Sin azul: verdes y grises; evitar el look "hecho por IA".
+  - Paleta validada para daltonismo (separación OKLab >= 8 en pares vecinos)
+    y contraste; borde blanco entre barras.
+  - Un solo eje Y por gráfico (nunca doble eje).
+  - Celular: márgenes de 16 px, tablas compactas con primera columna fija,
+    gráficos sin arrastre ni zoom. Si una tabla es casi todo texto (varias
+    columnas de frases), mostrarla como tarjetas que se apilan, no como tabla
+    (ej.: los temas de las letras).
+  - Portada pública: sin teléfono ni correo; solo LinkedIn.
+  - Navegación: barra arriba de cada reporte (Portada, General, Del mes,
+    Metodología) y botón flotante "Reporte general" en el mensual y la
+    metodología. Cada página nueva se suma a la barra (navegacion() en R/visual.R).
+  - El reporte principal muestra solo lo esencial; los detalles técnicos
+    (indicadores de modelos, comparaciones) van en la metodología, enlazados.
+  - Metodología: contenido por etapas en pestañas, no en cuadros apretados.
+  - Gráficos estáticos (PNG): título y subtítulo como texto HTML encima, nunca
+    dentro de la imagen (se cortan y en el celular quedan diminutos).
+  - Mapas en 2D (p. ej. correspondencias): en el celular, a 640 px y
+    deslizables de lado (clase grafico-ancho); sin líneas que unan puntos.
+  - Textos de ayuda válidos en las dos versiones ("pasa el mouse o toca").
+  - Cifras destacadas en filas parejas (3 por fila en computador, 2 en
+    celular); tarjetas con imagen grande, compactas en el celular (imagen
+    chica a la izquierda y texto a la derecha).
+  - Antes de publicar: revisión visual con capturas de computador y celular
+    de cada reporte; lo que el texto dice debe verse en el gráfico.
+
+
+CRITERIOS DE ANÁLISIS (modelos y técnicas)
+------------------------------------------
+  - Validar siempre con datos realmente no vistos. Si las variables son del
+    artista (ánimo, género, popularidad), separar entrenamiento y prueba POR
+    ARTISTA, nunca al azar por escucha (fuga de información: el modelo acierta
+    memorizando artistas). Si el objetivo es predecir el futuro, separar por
+    tiempo (entrenar con años anteriores, probar con los recientes).
+  - Clasificación: probar varias técnicas con la misma división y compararlas
+    con la misma tabla de indicadores (acierto, acierto balanceado y F1
+    promedio). Hoy: línea base (clase más común), regresión logística
+    multinomial, árbol de inferencia condicional (partykit::ctree, mejor que
+    CART), random forest (ranger) y gradient boosting (xgboost). Elegir el
+    mejor por acierto balanceado y mostrar en detalle SOLO ese (reglas,
+    efectos o importancia); de los demás, decir que se probaron y sus
+    indicadores. Hiperparámetros estándar, sin ajustarlos al grupo de prueba.
+  - Con muchas observaciones no independientes (escuchas repetidas), los
+    valores p son optimistas: leer tamaños de efecto y desempeño fuera de
+    la muestra, no solo significancia.
+  - Semilla fija para que los resultados sean reproducibles.
+  - Cada decisión de diseño (división, parámetros, umbrales) queda explicada
+    en metodologia.qmd.
+
+
+PENDIENTES / PRÓXIMOS PASOS
+---------------------------
+  - Spotify: cuando llegue el ZIP del historial ampliado a input/, cruzarlo
+    con Last.fm (reproducciones de 30 s o más; ventana de tiempo; columna
+    fuente) en data/escuchas_consolidadas.parquet, y que todo el flujo
+    (etiquetas, letras, reportes, actualizar.bat) parta de esa base.
+  - Llevar la verificación de 1.1 y el chequeo de letras de 2.1 también a
+    actualizar.bat (flujo A). Los reintentos ya están (21-10-2026).
+  - actualizar.bat debe quedar SOLO en ASCII (sin tildes ni eñes): cmd.exe
+    con chcp 65001 lee mal los saltos goto/call si hay caracteres UTF-8.
+  - Portada: complementar "Sobre mí".
+  - Mascota: tres Ciros (rapero estilo Kneecap, black metal, tomando café).
+    Prompt en input/prompt_ciro.md y fotos en input/ciro_referencias/.
+    Cuando estén las imágenes: optimizarlas y ponerlas en la portada y en
+    el saludo de cada reporte.
+  - Letras: segunda pasada para las no encontradas en LRCLIB, con el título
+    limpio (sin "Remastered", "Live", "feat.", paréntesis ni corchetes) y el
+    artista principal. LRCLIB sigue siendo la fuente: Genius no entrega
+    letras por API, Musixmatch gratis solo el 30% y el resto exige raspar.
+
+
+HISTORIAL DE CAMBIOS DEL FLUJO
+------------------------------
+  21-10-2026  Primera versión. Se agregan: descarga desde cero con respaldo y
+              verificación, ampliación a 1.000 artistas y 8.000 letras,
+              reintentos (4), log con hora, pausa de análisis antes del render
+              y apagado al final. Luego, el mismo día: revisión de archivos
+              antes del pull (4.0), GUIA_HERRAMIENTAS.html como base del flujo
+              de render y avisos de avance con hora estimada de término.
+              Se agregan los criterios de análisis (validación por artista)
+              tras corregir la división del árbol de decisión.
+              Además: comparación de 5 técnicas (se muestra solo la mejor;
+              indicadores en la metodología), estándar WCAG 2.2 AA en
+              computador y celular, navegación entre reportes, reintentos en
+              actualizar.bat (solo ASCII), portada con foto de Joaquín y Ciro.
+              Tras la revisión de código: renders con 2 intentos y sin
+              publicar si fallan; script nocturno genérico (sin esperas a
+              procesos ajenos, respaldo siempre al inicio, mes por parámetro).
+              Cierre: descarga de letras cortada a pedido en 5.000 revisadas
+              (4.344 con letra); temas de letras con nombres únicos y canción
+              de ejemplo = la más escuchada entre las claramente del tema;
+              mascotas de Ciro descartadas (queda el prompt en input/).

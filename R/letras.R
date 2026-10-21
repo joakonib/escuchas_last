@@ -39,42 +39,60 @@ tokenizar_letras <- function(letras) {
 
 # Temas conocidos para nombrar y describir los tópicos de LDA. Cada tópico recibe
 # el tema cuyas palabras clave coinciden más con sus 15 palabras principales
-# (las primeras pesan más). Así la descripción sigue sirviendo si cambian los datos.
+# (las primeras pesan más), y cada tema se usa una sola vez. Hay subtemas
+# específicos (p. ej. dos formas de hablar de amor en español) y temas generales
+# de respaldo, para que el nombre siga sirviendo si cambian los datos.
 temas_conocidos <- tibble::tribble(
   ~tema_nombre, ~descripcion, ~claves,
-  "Muerte y oscuridad", "Muerte, sangre, noche y oscuridad: el imaginario del metal y del post-punk más sombrío.",
-  c("death", "die", "dead", "blood", "dark", "darkness", "night", "kill", "grave", "eyes", "light", "pain", "sangre", "muerte", "morir", "oscuridad"),
-  "Amor y desamor", "Amor, deseo, besos y despedidas: canciones de pareja, de las que empiezan y de las que terminan.",
-  c("love", "heart", "baby", "kiss", "tonight", "leave", "miss", "girl", "boy", "friends", "cold", "falling"),
-  "Amor y deseo en español", "Querer, el corazón y las ganas, en español: el lado romántico de mis canciones en castellano.",
-  c("amor", "quiero", "querer", "corazón", "besos", "quieres", "ganas", "beso", "gusta", "noche", "sol"),
-  "El cuerpo y lo cotidiano", "Lo físico y lo de todos los días: manos, cuerpo, casa, mar y cielo.",
-  c("manos", "cuerpo", "casa", "mar", "piel", "ojos", "calle", "vida", "vivir", "cielo"),
-  "La vida y el paso del tiempo", "Reflexiones sobre la vida, los días que pasan y las ganas de cambiar.",
-  c("life", "live", "time", "days", "change", "left", "mother", "day", "tiempo", "años"),
+  "El amor y la vida, en rock chileno y argentino", "Amor, vida, mundo y corazón, con el voseo rioplatense: el lado romántico del rock en castellano.",
+  c("amor", "vida", "vos", "mundo", "corazón", "sol", "querer", "tiempo", "cielo", "sueño", "vas", "sos"),
+  "Deseo y noche, urbano y tropical", "Ganas, noche, fiesta y coqueteo: el lenguaje del trap, el reggaetón y la cumbia.",
+  c("noche", "gusta", "mami", "quieres", "casa", "dame", "bailar", "fiesta", "ganas", "beso", "besos", "perreo", "acá", "dale"),
+  "Luz y oscuridad", "Día y noche, luz y sombra, cielo y sol: un imaginario contemplativo y melancólico.",
+  c("day", "night", "light", "black", "sun", "sky", "dark", "darkness", "mind", "hear", "moon", "cold", "rain"),
+  "Muerte, sangre y lo sagrado", "Sangre, muerte, almas y dioses: el imaginario del metal extremo.",
+  c("blood", "god", "death", "soul", "kill", "dead", "burn", "burning", "die", "grave", "hell", "pain", "sangre", "muerte"),
+  "Amor y despedidas", "Amar, sentir, quedarse o irse: canciones de pareja, de las que empiezan y de las que terminan.",
+  c("love", "heart", "feel", "leave", "stay", "hold", "miss", "kiss", "time", "people", "falling", "friends"),
+  "Noches, peleas y quiebres", "Una noche, una chica, un corte, una pelea: la tensión y el quiebre del post-punk.",
+  c("baby", "tonight", "girl", "cut", "break", "fight", "sleep", "stand", "run", "broken"),
+  "Días, noches y recuerdos", "Días y noches que pasan, recuerdos, salir a bailar y andar: la vida que se mueve.",
+  c("day", "night", "days", "remember", "dance", "ride", "living", "tonight", "girl", "summer"),
+  "Luz, cielo y lo sagrado", "Luz, sol, cielo, ojos y manos, y a veces Dios: un imaginario luminoso y espiritual.",
+  c("light", "god", "sun", "sky", "eyes", "hands", "hand", "hold", "heaven", "pray"),
+  "Pérdida, miedo y oscuridad", "Lo perdido, el miedo, la oscuridad y el cuerpo: el lado más sombrío e inquieto.",
+  c("lost", "fear", "dark", "darkness", "left", "kill", "body", "hear", "alone", "afraid"),
+  "La vida y el paso del tiempo", "Reflexiones sobre la vida, la pérdida, los días que pasan y las ganas de cambiar.",
+  c("life", "live", "living", "lost", "left", "eyes", "days", "change", "mother", "hand", "tiempo", "años"),
+  "Rabia, calle y dinero", "Enojo, violencia, plata y calle: el lado del hardcore y el hip-hop.",
+  c("fuck", "shit", "money", "bring", "bad", "nigga", "boy", "war", "hate", "police", "guerra", "rabia"),
   "La cabeza: mente, sueño y ansiedad", "La mente, el insomnio, los sueños y las sensaciones: canciones hacia adentro.",
-  c("mind", "sleep", "dream", "feel", "feeling", "head", "think", "care", "lost", "smile", "sueño", "cabeza"),
+  c("mind", "sleep", "dream", "feeling", "head", "think", "care", "smile", "sueño", "cabeza"),
   "Fe y lo sagrado", "Dios, el cielo, el alma y la redención, a veces con fe y a veces con ironía.",
-  c("god", "heaven", "pray", "soul", "hold", "hands", "dios", "alma", "jesus", "lord"),
-  "Rabia y crítica social", "Enojo, violencia y crítica a la sociedad: el lado punk.",
-  c("fuck", "shit", "war", "fight", "hate", "burn", "guerra", "fuego", "police", "rabia", "bad"),
+  c("god", "heaven", "pray", "soul", "hands", "dios", "alma", "jesus", "lord"),
+  "El cuerpo y lo cotidiano", "Lo físico y lo de todos los días: manos, cuerpo, casa, mar y cielo.",
+  c("manos", "cuerpo", "casa", "mar", "piel", "ojos", "calle", "vivir", "cielo"),
   "Miedo y deseo, en chileno", "Lenguaje coloquial chileno mezclado con miedo, deseo y mirada: acá, dale, frente, ojos.",
-  c("acá", "dale", "miedo", "frente", "mirar", "atrás", "veo", "quieres", "corazón")
+  c("acá", "dale", "miedo", "frente", "mirar", "atrás", "veo", "corazón")
 )
 
 describir_temas <- function(terminos) {
   # terminos: matriz de palabras (filas = rango, columnas = tópicos), como la de topicmodels::terms()
-  puntajes <- sapply(seq_len(ncol(terminos)), \(j) {
-    pesos <- rev(seq_len(nrow(terminos)))
-    sapply(temas_conocidos$claves, \(cl) sum(pesos[terminos[, j] %in% cl]))
-  })
-  mejor <- apply(puntajes, 2, \(s) if (max(s) == 0) NA else which.max(s))
-  nombre <- ifelse(is.na(mejor), "Tema mixto", temas_conocidos$tema_nombre[mejor])
-  # Si dos tópicos reciben el mismo tema, se numeran
-  nombre <- ave(nombre, nombre, FUN = \(x) if (length(x) > 1) paste0(x, " (", seq_along(x), ")") else x)
+  pesos <- rev(seq_len(nrow(terminos)))
+  puntajes <- sapply(seq_len(ncol(terminos)), \(j)
+    sapply(temas_conocidos$claves, \(cl) sum(pesos[terminos[, j] %in% cl])))
+  # Asignación única: primero el par tema-tópico que mejor calza, luego el siguiente
+  mejor <- rep(NA_integer_, ncol(terminos))
+  p <- puntajes
+  while (any(is.na(mejor)) && max(p) > 0) {
+    ij <- which(p == max(p), arr.ind = TRUE)[1, ]
+    mejor[ij[2]] <- ij[1]
+    p[ij[1], ] <- 0; p[, ij[2]] <- 0
+  }
+  principales <- apply(terminos[1:3, , drop = FALSE], 2, paste, collapse = ", ")
   tibble::tibble(
     tema = seq_len(ncol(terminos)),
-    tema_nombre = nombre,
+    tema_nombre = ifelse(is.na(mejor), paste0("Tema mixto: ", principales), temas_conocidos$tema_nombre[mejor]),
     descripcion = ifelse(is.na(mejor), "Mezcla de palabras sin un tema claro.", temas_conocidos$descripcion[mejor])
   )
 }

@@ -11,7 +11,7 @@ library(dplyr)
 library(purrr)
 library(arrow)
 
-n_canciones <- 1500
+n_canciones <- 8000
 archivo <- "data/letras.parquet"
 
 leer_parquet <- function(f) read_parquet(readBin(f, "raw", file.size(f)))

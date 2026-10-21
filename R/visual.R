@@ -32,8 +32,11 @@ idioma_tabla <- reactableLang(
 
 # Tabla con título, subtítulo, orden por columnas y, si es larga, buscador y páginas
 tabla <- function(datos, columnas = list(), titulo = NULL, subtitulo = NULL,
-                  filas = 12, ...) {
+                  filas = 12, clase = NULL, ...) {
   larga <- nrow(datos) > filas
+  # Tablas con columnas de texto anchas: en el celular se ajustan al ancho y el texto
+  # baja de línea, en vez de obligar a deslizar de lado
+  if (any(vapply(columnas, \(col) isTRUE(col$minWidth >= 180), logical(1)))) clase <- c(clase, "tabla-texto")
   # Columna oculta con el orden original, para poder volver a él con un botón
   id <- paste0("tabla-", paste(sample(c(letters, 0:9), 10, replace = TRUE), collapse = ""))
   datos$.orden <- seq_len(nrow(datos))
@@ -49,7 +52,7 @@ tabla <- function(datos, columnas = list(), titulo = NULL, subtitulo = NULL,
     onclick = sprintf("Reactable.toggleSortBy('%s', '.orden', false); Reactable.setSearch('%s', '')", id, id),
     "↺ Orden original"
   )
-  div(class = "tabla",
+  div(class = paste(c("tabla", unique(clase)), collapse = " "),
       if (!is.null(titulo)) div(class = "tabla-titulo", titulo),
       if (!is.null(subtitulo)) div(class = "tabla-subtitulo", subtitulo),
       div(class = "tabla-ayuda", "↕ Haz clic en el nombre de una columna para ordenar", boton),
@@ -105,12 +108,41 @@ interactivo <- function(p, tooltip = "text") {
   for (eje in grep("^[xy]axis", names(g$x$layout), value = TRUE)) {
     g$x$layout[[eje]]$fixedrange <- TRUE
   }
+  # Borde blanco entre barras y segmentos apilados: separa los tonos claros entre sí y del fondo
+  for (i in seq_along(g$x$data)) {
+    if (identical(g$x$data[[i]]$type, "bar")) {
+      g$x$data[[i]]$marker$line <- list(color = "#ffffff", width = 1.5)
+    }
+  }
   # Ancho adaptable: si no, hereda el ancho fijo de la figura y se sale en el celular
   g$width <- "100%"
   div(class = "grafico",
       if (!is.null(titulo)) div(class = "tabla-titulo", titulo),
       if (!is.null(subtitulo)) div(class = "tabla-subtitulo", subtitulo),
       g)
+}
+
+# Barra de navegación entre las páginas, con la actual marcada
+navegacion <- function(actual = c("general", "mensual", "metodologia")) {
+  actual <- match.arg(actual)
+  paginas <- list(
+    portada     = c("index.html", "🏠 Portada"),
+    general     = c("analisis_escuchas.html", "📈 General"),
+    mensual     = c("reporte_mensual.html", "📆 Del mes"),
+    metodologia = c("metodologia.html", "🔧 Metodología")
+  )
+  htmltools::tags$nav(class = "nav-reportes", `aria-label` = "Reportes",
+           lapply(names(paginas), \(id) {
+             if (id == actual) htmltools::tags$span(class = "nav-actual", `aria-current` = "page", paginas[[id]][2])
+             else htmltools::tags$a(href = paginas[[id]][1], paginas[[id]][2])
+           }))
+}
+
+# Botón flotante para volver al reporte general (y a la portada) desde las otras páginas
+boton_volver <- function() {
+  div(class = "volver",
+      htmltools::tags$a(class = "volver-principal", href = "analisis_escuchas.html", "← Reporte general"),
+      htmltools::tags$a(class = "volver-portada", href = "index.html", title = "Portada", `aria-label` = "Portada", "🏠"))
 }
 
 # Línea con la fecha y hora en que se generó el reporte

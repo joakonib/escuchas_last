@@ -13,7 +13,8 @@ h2 {
 
 .tiles {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  /* 3 por fila: las 6 cifras quedan en dos filas parejas (en el celular, 2 por fila) */
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
   margin: 1.5rem 0 2rem;
 }
@@ -40,7 +41,7 @@ h2 {
 
 .tile-detalle {
   font-size: 0.75rem;
-  color: #8a8984;
+  color: #6b6b67;
   margin-top: 2px;
 }
 
@@ -52,7 +53,7 @@ h2 {
 a, a:hover,
 #TOC .nav-link.active,
 .sidebar nav[role="doc-toc"] ul > li > a.active {
-  color: #2f7d4a;
+  color: #27613a;
 }
 #TOC .nav-link.active,
 .sidebar nav[role="doc-toc"] ul > li > a.active {
@@ -64,15 +65,15 @@ a, a:hover,
 
 /* Refuerzo: Bootstrap define el azul con variables y alta especificidad */
 :root {
-  --bs-link-color: #2f7d4a;
-  --bs-link-color-rgb: 47, 125, 74;
+  --bs-link-color: #27613a;
+  --bs-link-color-rgb: 39, 97, 58;
   --bs-link-hover-color: #27613a;
   --bs-primary: #3a3a3a;
   --bs-primary-rgb: 58, 58, 58;
 }
 #TOC a.nav-link.active,
 nav#TOC .nav-link.active {
-  color: #2f7d4a !important;
+  color: #27613a !important;
   border-left-color: #2f7d4a !important;
 }
 div.callout-note.callout,
@@ -141,7 +142,7 @@ div.callout-note.callout,
 /* Pestañas: el tema las pinta azul */
 .nav-tabs .nav-link,
 .panel-tabset .nav-link {
-  color: #2f7d4a !important;
+  color: #27613a !important;
 }
 .nav-tabs .nav-link.active,
 .panel-tabset .nav-link.active {
@@ -224,6 +225,92 @@ div.callout-note.callout,
   gap: 16px;
   margin: 1rem 0 1.5rem;
 }
+/* Accesibilidad (WCAG 2.2 AA) */
+/* 2.4.1: enlace para saltar al contenido, visible solo al llegar con el teclado */
+.saltar {
+  position: absolute;
+  left: 16px;
+  top: -60px;
+  z-index: 2000;
+  padding: 8px 14px;
+  border-radius: 6px;
+  background: #2f2f2f;
+  color: #ffffff !important;
+  font-weight: 600;
+  text-decoration: none !important;
+}
+.saltar:focus { top: 12px; outline: 2px solid #2f7d4a; outline-offset: 2px; }
+/* 2.4.11: que el botón flotante no tape el elemento con foco al desplazarse */
+html { scroll-padding-bottom: 80px; }
+
+/* Barra de navegación entre reportes */
+.nav-reportes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 14px;
+}
+.nav-reportes a, .nav-reportes .nav-actual {
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px solid #8a8984;
+  font-size: 0.85rem;
+  text-decoration: none !important;
+  color: #1f1f1f !important;
+  background: #ffffff;
+}
+.nav-reportes a:hover { border-color: #2f7d4a; background: #e6f0e8; }
+.nav-reportes .nav-actual { background: #2f2f2f; border-color: #2f2f2f; color: #ffffff !important; font-weight: 600; }
+
+/* Botón flotante para volver al reporte general (reporte mensual y metodología) */
+.volver {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 1000;
+  display: flex;
+  gap: 6px;
+}
+.volver a {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: #2f2f2f;
+  color: #ffffff !important;
+  font-size: 0.88rem;
+  font-weight: 600;
+  text-decoration: none !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+}
+.volver a:hover { background: #2f7d4a; }
+.volver a:focus-visible { outline: 2px solid #2f7d4a; outline-offset: 2px; }
+.volver-portada { padding: 8px 11px !important; }
+@media print { .volver { display: none; } }
+
+/* Temas de las letras: tarjetas que se apilan en el celular */
+.temas-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+  margin: 0.5rem 0 1.5rem;
+}
+.tema-card {
+  background: #ffffff;
+  border: 1px solid #ecebe7;
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+.tema-cabeza { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.tema-nombre { font-weight: 700; font-size: 1rem; line-height: 1.25; }
+.tema-peso { font-weight: 700; color: #27613a; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tema-barra { background: #eef3ef; border-radius: 3px; height: 8px; margin: 6px 0 10px; }
+.tema-barra > div { background: #2f7d4a; height: 8px; border-radius: 3px; }
+.tema-card p { margin: 0 0 6px; font-size: 0.9rem; line-height: 1.4; }
+.tema-desc { color: #1f1f1f; }
+.tema-palabras { color: #6b6b67; font-size: 0.84rem !important; }
+.tema-ejemplo { color: #3a3a3a; font-size: 0.84rem !important; margin-bottom: 0 !important; }
+
 .era-card {
   background: #ffffff;
   border: 1px solid #ecebe7;
@@ -347,7 +434,7 @@ div.callout-note.callout,
 
 .tabla-ayuda {
   font-size: 0.75rem;
-  color: #8a8984;
+  color: #6b6b67;
   margin-bottom: 4px;
 }
 
@@ -390,7 +477,7 @@ div.callout-note.callout,
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: #2f7d4a;
+  color: #27613a;
 }
 .podio-titulo {
   font-size: 1.1rem;
@@ -411,10 +498,10 @@ div.callout-note.callout,
 .tabla-reset {
   border: 1px solid #d4e5d8;
   background: #f1f5f1;
-  color: #2f7d4a;
+  color: #27613a;
   border-radius: 999px;
   font-size: 0.75rem;
-  padding: 2px 10px;
+  padding: 5px 10px;
   cursor: pointer;
 }
 .tabla-reset:hover {
@@ -483,6 +570,80 @@ div.callout-note.callout,
   .bienvenida { padding: 12px 14px; }
   .callout { font-size: 0.95rem; }
   .generado { font-size: 0.75rem; }
+
+  /* Márgenes laterales de 16px: la grilla de Quarto deja ~55px a la izquierda; se
+     colapsa a una sola columna para que el contenido use todo el ancho */
+  body .page-columns {
+    grid-template-columns: [screen-start screen-start-inset page-start page-start-inset body-start-outset body-start body-content-start] minmax(0, 1fr) [body-content-end body-end body-end-outset page-end-inset page-end screen-end-inset screen-end] !important;
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+  #quarto-content main.content { padding-left: 0 !important; padding-right: 0 !important; }
+  h3 { font-size: 1.12rem; }
+}
+
+/* Celulares: tablas compactas, primera columna fija al deslizar */
+@media (max-width: 480px) {
+  .tabla .rt-th, .tabla .rt-td { padding: 6px 7px !important; }
+  .tabla .rt-th { font-size: 11.5px; }
+  .tabla .reactable { font-size: 12px; }
+  .tabla .rt-tr > .rt-td:first-child,
+  .tabla .rt-tr > .rt-th:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    box-shadow: 1px 0 0 #ecebe7;
+  }
+  .tabla .rt-tr > .rt-th:first-child { background: #2f2f2f; }
+  .tabla .rt-tbody .rt-tr > .rt-td:first-child { background: #ffffff; }
+  .tabla .rt-tbody .rt-tr-striped > .rt-td:first-child { background: #f7f9f7; }
+  .tabla .rt-search { font-size: 16px; } /* evita el zoom automático de iOS al escribir */
+  /* Mapas en dos dimensiones (p. ej. correspondencias): a un ancho legible y deslizables
+     de lado; WCAG 1.4.10 exceptúa el contenido que necesita disposición en 2D */
+  .grafico-ancho .cell-output-display { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .grafico-ancho .cell-output-display img { width: 640px !important; min-width: 640px; max-width: none !important; height: auto !important; }
+  /* Lo mejor del mes: imagen chica a la izquierda y texto a la derecha, para no
+     ocupar una pantalla por tarjeta */
+  .podio-card {
+    display: grid;
+    grid-template-columns: 84px minmax(0, 1fr);
+    column-gap: 12px;
+    align-items: center;
+    text-align: left;
+    padding: 10px 12px;
+  }
+  .podio-card img, .podio-card .galeria-vacia {
+    grid-column: 1; grid-row: 1 / span 3;
+    width: 84px !important; margin: 0;
+  }
+  .podio-card > .podio-etiqueta, .podio-card > .podio-titulo, .podio-card > .podio-detalle { grid-column: 2; }
+  .podio-titulo { font-size: 1rem; }
+  .tabla-titulo { font-size: 1rem; line-height: 1.3; }
+  .tabla-subtitulo { font-size: 0.82rem; }
+  .tiles { gap: 6px; }
+  .tile-valor { font-size: 1.15rem; }
+  .galeria { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .callout { margin-left: 0; margin-right: 0; }
+  .panel-tabset .tab-content { padding: 10px 0 0 !important; }
+
+  /* Tablas de texto: las columnas se ajustan al ancho de la pantalla y el texto baja
+     de línea (sin deslizar de lado ni columna fija) */
+  .tabla-texto .rt-table, .tabla-texto .rt-thead, .tabla-texto .rt-tbody,
+  .tabla-texto .rt-tr-group, .tabla-texto .rt-tr { min-width: 0 !important; width: 100% !important; }
+  .tabla-texto .rt-tr { display: flex !important; }
+  .tabla-texto .rt-th, .tabla-texto .rt-td {
+    min-width: 0 !important;
+    width: auto !important;
+    flex: 1 1 0 !important;
+    white-space: normal !important;
+    overflow-wrap: break-word;
+  }
+  /* Columnas numéricas angostas (las que tienen ancho máximo): fijas, sin partir el número */
+  .tabla-texto .rt-th[style*="max-width"], .tabla-texto .rt-td[style*="max-width"] {
+    flex: 0 0 64px !important;
+  }
+  .tabla-texto .rt-tr > .rt-td:first-child,
+  .tabla-texto .rt-tr > .rt-th:first-child { position: static; box-shadow: none; }
 }
 
 /* Que ningún widget sea más ancho que la pantalla */

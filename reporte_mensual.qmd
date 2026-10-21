@@ -16,6 +16,7 @@ format:
     fig-height: 4.5
     fig-dpi: 144
     css: assets/estilo.css
+    include-before-body: assets/saltar.html
     include-after-body: assets/redibujar.html
 execute:
   warning: false
@@ -140,7 +141,9 @@ aviso <- if (dias_con_registro < 10) {
 }
 
 tagList(
+  navegacion("mensual"),
   linea_generacion(),
+  boton_volver(),
   div(class = "hero",
       div(class = "hero-mosaico",
           lapply(seq_along(fotos_hero), \(i) {
@@ -157,7 +160,7 @@ tagList(
                     "(cada registro es un <i>scrobble</i>). Si quieres la historia completa, mira ",
                     "<a href='analisis_escuchas.html'>mi reporte general</a>, y cómo se calcula cada cosa en ",
                     "<a href='metodologia.html'>cómo está hecho</a>."))),
-      p(HTML("🖱️ <b>Cómo leerlo:</b> pasa el mouse sobre los gráficos, cambia de pestaña en cada sección y ordena las tablas haciendo clic en sus columnas."))),
+      p(HTML("🖱️ <b>Cómo leerlo:</b> pasa el mouse (o toca, en el celular) sobre los gráficos, cambia de pestaña en cada sección y ordena las tablas haciendo clic en sus columnas."))),
   aviso,
   div(class = "tiles",
     tile("🎵", miles(nrow(mes)), "canciones escuchadas", variacion),

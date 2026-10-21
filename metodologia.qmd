@@ -12,6 +12,7 @@ format:
     embed-resources: true
     html-math-method: katex
     css: assets/estilo.css
+    include-before-body: assets/saltar.html
     include-after-body: assets/redibujar.html
 execute:
   echo: false
@@ -23,7 +24,7 @@ execute:
 #| label: setup
 library(htmltools)
 source("R/visual.R")
-linea_generacion()
+tagList(navegacion("metodologia"), linea_generacion(), boton_volver())
 ```
 
 ::: {.bienvenida}
@@ -32,22 +33,38 @@ linea_generacion()
 
 ## 🗺️ El recorrido de los datos
 
-::: {.pasos}
-::: {.paso}
-**1. Escuchas**<br>Last.fm registra cada canción que pongo (un *scrobble*). Su API entrega el historial completo: fecha, artista, canción y álbum.
-:::
-::: {.paso}
-**2. Etiquetas**<br>Para los 500 artistas más escuchados se bajan hasta 30 etiquetas (géneros, países, ánimo) y su número de oyentes.
-:::
-::: {.paso}
-**3. Letras e imágenes**<br>Letras de las 1.500 canciones más escuchadas (LRCLIB) y fotos y portadas (Deezer).
-:::
-::: {.paso}
-**4. Análisis**<br>R procesa todo y Quarto arma los reportes HTML interactivos.
-:::
-::: {.paso}
-**5. Publicación**<br>Cada día 1, una tarea de Windows repite el ciclo y publica los reportes en GitHub Pages.
-:::
+Los datos pasan por cinco etapas. Cada pestaña explica una.
+
+::: {.panel-tabset}
+
+### 1. Escuchas
+
+Last.fm registra cada canción que pongo (un *scrobble*). Su API (`user.getRecentTracks`, 200 escuchas por página) entrega el historial completo: fecha, artista, canción, álbum y sus identificadores de MusicBrainz.
+
+- **Script:** `scripts/descargar_escuchas.R` → `data/escuchas.parquet`.
+- **Cada mes** se pide solo lo posterior a la última escucha guardada. Cuando se quiere revisar todo, se baja **desde cero** y se compara con un respaldo: mismo total, mismas escuchas y mismos meses.
+- **Huecos conocidos:** agosto a octubre de 2018 y agosto–septiembre de 2026, cuando el *scrobbler* estuvo desconectado. Se llenarán al cruzar con el historial de Spotify.
+
+### 2. Etiquetas
+
+Para los **1.000 artistas más escuchados** (cerca del 98% de mis escuchas) se bajan hasta 30 etiquetas que pone la comunidad (géneros, países, ánimo) y su número de oyentes en Last.fm.
+
+- **Script:** `scripts/descargar_tags.R` → `data/tags_artistas.parquet` y `data/info_artistas.parquet`.
+- De ahí salen el género, el país, el ánimo (valencia y energía) y la popularidad de cada artista.
+
+### 3. Letras e imágenes
+
+- **Letras:** la meta son las **8.000 canciones más escuchadas** (todas las que escuché 5 veces o más, cerca del 78% de mis escuchas). Al 21-10-2026 van 5.000 revisadas y 4.344 con letra (61% de mis escuchas); el resto se completa en las actualizaciones mensuales. Vienen de [LRCLIB](https://lrclib.net). Script `scripts/descargar_letras.R` → `data/letras.parquet`. Se usan solo para análisis: el reporte muestra palabras y temas agregados, nunca letras completas.
+- **Imágenes:** fotos de artistas y portadas de discos desde la API de Deezer (`R/imagenes.R`), guardadas en `data/imagenes/`.
+
+### 4. Análisis
+
+R procesa todo (`dplyr`, `tidyr`) y Quarto arma los reportes HTML interactivos (`plotly` para gráficos, `reactable` para tablas). Antes de cada versión completa se revisan los datos y se recalculan las cifras escritas en los textos, para que digan lo mismo que los gráficos.
+
+### 5. Publicación
+
+Cada día 1, una tarea programada de Windows corre `actualizar.bat`: descarga lo nuevo, regenera los reportes, los copia a `docs/` y los publica en GitHub Pages. Cada paso que puede fallar (APIs, render, git) se reintenta, y todo queda registrado en un log con la hora. El detalle del flujo está en `FLUJO_DE_TRABAJO.txt` del repositorio.
+
 :::
 
 Los datos se guardan en formato **Parquet**, que conserva los tipos (fechas, números), ocupa varias veces menos que un CSV y se lee mucho más rápido. Todas las descargas son **incrementales**: cada mes solo se pide lo nuevo.
@@ -114,7 +131,7 @@ Se usa en ecología para medir biodiversidad. La interpretación sociológica vi
 
 Rentfrow, Goldberg y Levitin (2011) mostraron que las preferencias musicales se resumen en cinco dimensiones: **M**ellow (suave), **U**npretentious (de raíz), **S**ophisticated (sofisticada), **I**ntense (intensa) y **C**ontemporary (contemporánea). Asigné cada etiqueta de género a una dimensión; cada artista reparte su peso entre las dimensiones según sus etiquetas, y el perfil final pondera por mis escuchas. Es una **aproximación**: el modelo original se mide con encuestas sobre fragmentos musicales, no con etiquetas.
 
-## 🔬 Técnicas de clasificación
+## 🔬 Técnicas de análisis
 
 ::: {.panel-tabset}
 
@@ -162,7 +179,7 @@ y las coordenadas principales son $F = D_r^{-1/2} U \Sigma$ (años) y $G = D_c^{
 | Playlists ocultas | Una semana (≥ 50 escuchas) | Un artista (top 300) | 6 |
 | Temas de las letras | Una canción | Una palabra (que aparece en ≥ 5 letras) | 8 |
 
-El peso de un tema en mi vida combina la mezcla de temas de cada canción con las veces que la escuché. Los temas de las letras se nombran automáticamente comparando sus palabras clave con un diccionario de temas conocidos (muerte y oscuridad, amor, el cuerpo, la mente…).
+El peso de un tema en mi vida combina la mezcla de temas de cada canción con las veces que la escuché. Los temas de las letras se nombran automáticamente comparando sus palabras clave con un diccionario de temas conocidos, con subtemas específicos (por ejemplo, el amor del rock en castellano y el deseo del lenguaje urbano) y temas generales de respaldo. **Cada tema del diccionario se asigna a un solo tópico**: primero el par que mejor calza, luego el siguiente, para que dos tópicos distintos no queden con el mismo nombre. La canción de ejemplo de cada tema es, entre las que tratan claramente de él (al menos 50% de su letra) y escuché 10 veces o más, la que más escuché; elegir solo por peso favorecía letras cortas o raras.
 
 **Limitaciones.** $K$ es una decisión propia. Los temas pueden cambiar levemente cuando entran datos nuevos. En las letras los temas tienden a separarse por idioma.
 
@@ -176,14 +193,68 @@ El peso de un tema en mi vida combina la mezcla de temas de cada canción con la
 $$\hat S(t) = \prod_{t_i \le t}\left(1 - \frac{d_i}{n_i}\right),$$
 donde $d_i$ son los abandonos en el tiempo $t_i$ y $n_i$ los artistas todavía "vivos". Chilenos y extranjeros se comparan con la **prueba log-rank**.
 
-#### 🤖 Árbol de decisión
-
-::: {.callout-note appearance="simple" icon="false"}
-**En simple.** Una máquina intenta adivinar en qué momento escuché cada canción (horario laboral, noche o fin de semana) sabiendo solo cómo es la música.
 :::
 
-**En detalle.** Árbol de clasificación CART (Breiman y otros, 1984) con el paquete `rpart`, sobre una muestra de 40.000 escuchas. Las variables son valencia, energía, género (10 principales y "otro"), popularidad (logaritmo de los oyentes) y año. Se entrena con el 70% y se evalúa con el 30% restante. El acierto se compara con una **línea base**: adivinar siempre el momento más común. Las reglas que se muestran son las de las hojas que cubren más escuchas.
+## 🤖 ¿Puede una máquina adivinar cuándo escucho? {#modelos}
 
+::: {.callout-note appearance="simple" icon="false"}
+**En simple.** Cinco técnicas intentan adivinar en qué momento escuché cada canción sabiendo solo cómo es la música. Se ponen a prueba con artistas que nunca vieron y el reporte muestra solo la que mejor adivina.
+:::
+
+### Qué se adivina y con qué
+
+- **Lo que se adivina:** el momento de cada escucha, en tres clases. *Horario laboral* (lunes a viernes, de 9 a 18 h), *noche o madrugada* (lunes a viernes, fuera de ese horario) y *fin de semana*.
+- **Con qué:** valencia y energía (ánimo), género (los 10 principales y "otro"), popularidad del artista (logaritmo de sus oyentes) y año.
+- **Muestra:** 40.000 escuchas al azar, con semilla fija para que el resultado se pueda repetir.
+
+### Cómo se armó la prueba
+
+Los modelos aprenden con un grupo de escuchas y se evalúan con otro. La división se hace **por artista**: los artistas se ordenan al azar y cada uno queda entero en un grupo, hasta juntar cerca del 70% de las escuchas para entrenar. El 30% restante, de artistas que los modelos nunca vieron, sirve para evaluarlos.
+
+¿Por qué por artista? Ánimo, género y popularidad son características del artista, y escucho muchas veces a los mismos. Si se separara al azar por escucha, un mismo artista quedaría en los dos grupos y el modelo podría acertar **memorizándolo** (fuga de información), lo que inflaría el acierto.
+
+### Las técnicas
+
+| Técnica | Qué hace | Configuración |
+|---|---|---|
+| **Línea base** | Adivina siempre el momento más común | — |
+| **Regresión logística multinomial** | Mide cuánto empuja cada característica hacia cada momento (razón de probabilidades) | Referencia: horario laboral; variables continuas en desviaciones estándar. Paquete `nnet` |
+| **Árbol de inferencia condicional** (Hothorn, Hornik y Zeileis, 2006) | Aprende reglas legibles. A diferencia del árbol clásico (CART), elige cada corte con pruebas estadísticas, sin favorecer variables con muchos cortes posibles, y no corta si la diferencia no es significativa | α = 0,01; máximo 4 niveles; hojas de 300 escuchas o más. Paquete `partykit` |
+| **Random forest** (Breiman, 2001) | Promedia cientos de árboles independientes | 300 árboles; importancia por permutación. Paquete `ranger` |
+| **Gradient boosting** (Friedman, 2001; Chen y Guestrin, 2016) | Suma árboles chicos, cada uno corrigiendo los errores de los anteriores | 300 rondas; tasa 0,05; profundidad 4; submuestreo de 80%. Paquete `xgboost` |
+
+Los parámetros son valores estándar y no se ajustaron mirando el grupo de prueba, para no sobreajustar.
+
+### Cómo se comparan
+
+- **Acierto:** porcentaje de escuchas bien adivinadas.
+- **Acierto balanceado:** promedio del acierto dentro de cada momento. Adivinar al azar da 33%, y no premia a quien solo adivina el momento más común. **Con este indicador se elige el mejor.**
+- **F1 promedio:** combina precisión (cuando dice "noche", ¿acierta?) y exhaustividad (de todas las noches, ¿cuántas encuentra?), promediado entre los tres momentos.
+
+```{r}
+#| label: modelos-indicadores
+#| eval: !expr file.exists("data/modelos.rds")
+m <- readRDS("data/modelos.rds")
+tabla(
+  dplyr::mutate(m$comparacion[, c("modelo", "acierto", "balanceado", "f1")],
+                modelo = ifelse(modelo == m$mejor, paste("🏆", modelo), modelo)),
+  titulo = "Resultados de las cinco técnicas",
+  subtitulo = paste0("En escuchas de artistas que los modelos nunca vieron (", format(m$n_entrena, big.mark = "."),
+                     " para entrenar y ", format(m$n_prueba, big.mark = "."),
+                     " para probar). 🏆 = la que se muestra en el reporte"),
+  clase = "tabla-texto",
+  columnas = list(
+    modelo     = colDef(name = "Técnica", minWidth = 220, style = list(fontWeight = 600)),
+    acierto    = colDef(name = "Acierto", format = colFormat(percent = TRUE, digits = 0), maxWidth = 90),
+    balanceado = colDef(name = "Balanceado", format = colFormat(percent = TRUE, digits = 0), maxWidth = 100),
+    f1         = colDef(name = "F1", format = colFormat(percent = TRUE, digits = 0), maxWidth = 80)
+  ))
+```
+
+El reporte muestra en detalle solo la ganadora: las reglas si es el árbol, los efectos si es la regresión, o la importancia de cada característica si es el random forest o el gradient boosting.
+
+::: {.callout-warning appearance="simple" icon="false"}
+**Advertencia.** Las escuchas no son independientes (una misma canción o sesión se repite), así que los valores p de la regresión son optimistas: con decenas de miles de casos casi todo resulta "significativo". Por eso la lectura se centra en el tamaño de los efectos y en el desempeño con artistas nuevos, no en la significancia.
 :::
 
 ## 📆 Análisis del reporte mensual
@@ -200,9 +271,9 @@ donde $d_i$ son los abandonos en el tiempo $t_i$ y $n_i$ los artistas todavía "
 
 - **Last.fm no es todo lo que escucho**: hay meses en que el registro se cortó (agosto y septiembre de 2026), y la música fuera de las apps conectadas no queda registrada.
 - **Las etiquetas son de la comunidad**: géneros, países y ánimo dependen de lo que los usuarios de Last.fm ponen a cada artista, con sus sesgos (por ejemplo, "female vocalists" se usa mucho más que "male vocalists").
-- **Solo los artistas y canciones principales** tienen etiquetas (500 artistas) y letras (1.500 canciones). Cubren la mayor parte de las escuchas, pero no todas.
+- **Solo los artistas y canciones principales** tienen etiquetas (1.000 artistas, cerca del 98 % de las escuchas) y letras (meta de 8.000 canciones; hoy 4.344 con letra, el 61% de las escuchas). Cubren la mayor parte de las escuchas, pero no todas.
 - **Las interpretaciones psicológicas son lúdicas**: la investigación habla de tendencias promedio en muchas personas, no de diagnósticos individuales.
 
 ## 🛠️ Herramientas
 
-**R** (`dplyr`, `tidyr`, `arrow`, `httr2`, `ggplot2`, `plotly`, `reactable`, `topicmodels`, `survival`, `rpart`, `ggrepel`, `stopwords`), **Quarto** para los reportes, **Parquet** para los datos, **GitHub Pages** para publicar y el **Programador de tareas de Windows** para la actualización mensual.
+**R** (`dplyr`, `tidyr`, `arrow`, `httr2`, `ggplot2`, `plotly`, `reactable`, `topicmodels`, `survival`, `partykit`, `nnet`, `ranger`, `xgboost`, `ggrepel`, `stopwords`), **Quarto** para los reportes, **Parquet** para los datos, **GitHub Pages** para publicar y el **Programador de tareas de Windows** para la actualización mensual.

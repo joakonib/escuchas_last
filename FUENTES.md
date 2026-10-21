@@ -36,6 +36,10 @@ Se actualiza cada vez que se agrega una fuente nueva.
 | Grimm (1987), *CONISS: a FORTRAN 77 program for stratigraphically constrained cluster analysis*, Computers & Geosciences | Clustering jerárquico con restricción de contigüidad (Ward) | Sección "Mis eras musicales" |
 | Blei, Ng y Jordan (2003), *Latent Dirichlet Allocation*, Journal of Machine Learning Research | Modelo de tópicos | Laboratorio: "Playlists ocultas" y tópicos de las letras |
 | Shannon (1948); número efectivo de categorías (exponencial de la entropía) | Medida de diversidad de géneros | Pestaña "¿Soy omnívoro?" |
+| Hothorn, Hornik y Zeileis (2006), *Unbiased Recursive Partitioning: A Conditional Inference Framework*, Journal of Computational and Graphical Statistics (`partykit`) | Árbol de inferencia condicional | Laboratorio: "¿Puede una máquina adivinar cuándo escucho?" |
+| Venables y Ripley (2002), *Modern Applied Statistics with S* (`nnet`) | Regresión logística multinomial | Laboratorio: "¿Puede una máquina adivinar cuándo escucho?" |
+| Breiman (2001), *Random Forests*, Machine Learning; Wright y Ziegler (2017), *ranger*, Journal of Statistical Software | Random forest | Laboratorio: "¿Puede una máquina adivinar cuándo escucho?" |
+| Friedman (2001), *Greedy Function Approximation: A Gradient Boosting Machine*, Annals of Statistics; Chen y Guestrin (2016), *XGBoost* | Gradient boosting | Laboratorio: "¿Puede una máquina adivinar cuándo escucho?" |
 | [LRCLIB](https://lrclib.net) | Letras de las canciones más escuchadas (solo análisis local; el reporte muestra palabras y tópicos agregados) | `descargar_letras.R` → `data/letras.parquet` |
 
 ## Contexto
@@ -50,3 +54,18 @@ Se actualiza cada vez que se agrega una fuente nueva.
 - Diccionarios que asignan etiquetas a países, a dimensiones MUSIC y a valencia/energía.
 - Duración promedio de 3,5 minutos por canción para estimar horas.
 - Número de eras (k = 5) en el análisis de clusters.
+
+## Portada (`docs/index.html`)
+
+| Fuente | Qué se toma | Dónde se usa |
+|---|---|---|
+| `proyecto_cv/datos/cv.yml` (mi CV) | Perfil breve y enlace a LinkedIn (sin teléfono ni correo, porque la página es pública) | Sección «Sobre mí» |
+| Foto propia de Ciro (`ciro_tatu1.jpg`) | Imagen de la portada | `docs/img/ciro.jpg` |
+| Skill de visualización de datos (dataviz) de Claude Code | Validación de la paleta para daltonismo y contraste; separación blanca de 1,5 px entre barras | `R/visual.R` (`interactivo()`) |
+
+## Diseño y accesibilidad
+
+| Fuente | Qué se toma | Dónde se usa |
+|---|---|---|
+| W3C, [WCAG 2.2](https://www.w3.org/TR/WCAG22/), aprobada como norma [ISO/IEC 40500:2025](https://www.w3.org/WAI/news/2025-10-21/wcag22-iso) | Nivel AA: contraste de texto 4,5:1 y de controles 3:1 (1.4.3, 1.4.11), texto alternativo en imágenes (1.1.1), reflujo sin deslizar de lado a 320 px (1.4.10), saltar al contenido (2.4.1), foco no tapado (2.4.11), controles de al menos 24×24 px (2.5.8), idioma de la página (3.1.1) | `assets/estilo.css`, `assets/saltar.html`, `R/visual.R`, portada y los tres reportes |
+| Guía de herramientas (`GUIA_HERRAMIENTAS.html`, local) | Herramientas y criterios del flujo de render: /dataviz, verificación de cifras antes de publicar, revisión de código, revisar en el navegador | Todo el flujo (ver `FLUJO_DE_TRABAJO.txt`) |
