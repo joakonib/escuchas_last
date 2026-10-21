@@ -1646,6 +1646,190 @@ tabla(reglas, titulo = "Las reglas que aprendió",
 
 :::
 
+## 📝 Lo que dicen mis canciones
+
+Bajé las letras de mis canciones más escuchadas desde [LRCLIB](https://lrclib.net), una base abierta de letras, para ver **de qué hablan**. Por derechos de autor aquí solo muestro palabras y temas agregados, nunca letras completas.
+
+```{r}
+#| label: letras-preparacion
+tiene_letras <- file.exists("data/letras.parquet")
+if (tiene_letras) {
+  source("R/letras.R")
+  letras <- read_parquet(readBin("data/letras.parquet", "raw", file.size("data/letras.parquet")))
+  revisadas <- nrow(letras)
+  letras <- filter(letras, !is.na(letra))
+  letras$idioma <- detectar_idioma(letras$letra)
+
+  escuchas_cancion <- escuchas |> count(artista, cancion, name = "veces")
+  letras <- letras |> left_join(escuchas_cancion, by = c("artista", "cancion"))
+  cobertura_letras <- sum(letras$veces, na.rm = TRUE) / nrow(escuchas)
+  tokens <- tokenizar_letras(letras) |>
+    left_join(select(letras, artista, cancion, veces), by = c("artista", "cancion"))
+}
+```
+
+`r if (tiene_letras) paste0("Por ahora tengo **", nrow(letras), " letras** de las ", revisadas, " canciones revisadas, que suman el **", pct(cobertura_letras), "** de todas mis escuchas. La descarga sigue y este análisis se actualiza solo.") else "Todavía no hay letras descargadas: corre <code>Rscript descargar_letras.R</code>."`
+
+::: {.panel-tabset}
+
+#### 🌎 ¿En qué idioma?
+
+```{r}
+#| label: letras-idioma
+#| eval: !expr tiene_letras
+#| fig-height: 4
+idioma_anual <- escuchas |>
+  inner_join(select(filter(letras, !is.na(idioma)), artista, cancion, idioma), by = c("artista", "cancion")) |>
+  count(anio, idioma) |>
+  group_by(anio) |>
+  mutate(share = n / sum(n)) |>
+  ungroup()
+
+total_es <- sum(idioma_anual$n[idioma_anual$idioma == "Español"]) / sum(idioma_anual$n)
+
+p <- ggplot(idioma_anual, aes(factor(anio_corto(anio)), share, fill = idioma,
+                              text = paste0("<b>", anio, "</b><br>", idioma, ": ", pct(share)))) +
+  geom_col(width = 0.75) +
+  geom_hline(yintercept = 0.5, color = "white", linetype = "dashed") +
+  scale_fill_manual(values = c(Español = verde, Inglés = morado), name = NULL) +
+  scale_y_continuous(labels = pct, expand = c(0, 0)) +
+  labs(title = "¿Canto en español o en inglés?",
+       subtitle = "Idioma de las canciones escuchadas cada año (solo canciones con letra descargada)",
+       x = NULL, y = NULL) +
+  theme(panel.grid = element_blank())
+interactivo(p)
+```
+
+::: {.callout-note appearance="simple" icon="false"}
+**¿Qué me dice?** En total, el `r if (tiene_letras) pct(total_es) else "—"` de lo que escucho (entre las canciones con letra) está en **español**. La evolución sigue a las eras: en los años del metal y del post-punk británico manda el inglés, y la subida del español coincide con la vuelta a la escena chilena después de la pandemia.
+:::
+
+#### 🔤 Palabras más cantadas
+
+```{r}
+#| label: letras-palabras
+#| eval: !expr tiene_letras
+#| fig-height: 5.5
+palabras_top <- tokens |>
+  filter(!is.na(idioma), !is.na(veces)) |>
+  group_by(idioma, palabra) |>
+  summarise(peso = sum(veces), canciones = n_distinct(cancion_id), .groups = "drop") |>
+  filter(canciones >= 3) |>
+  group_by(idioma) |>
+  slice_max(peso, n = 15, with_ties = FALSE) |>
+  ungroup()
+
+graf_palabras <- function(id, color) {
+  palabras_top |>
+    filter(idioma == id) |>
+    ggplot(aes(peso, fct_reorder(palabra, peso),
+               text = paste0("<b>", palabra, "</b><br>", miles(peso), " veces cantada<br>en ", canciones, " canciones"))) +
+    geom_col(fill = color, width = 0.7) +
+    scale_x_continuous(labels = miles, expand = expansion(mult = c(0, 0.05))) +
+    labs(title = paste("En", tolower(id)),
+         subtitle = "Veces que escuché cada palabra (aparición en la letra × veces que escuché la canción)",
+         x = NULL, y = NULL)
+}
+tagList(interactivo(graf_palabras("Español", verde)), interactivo(graf_palabras("Inglés", morado)))
+```
+
+#### 🧩 Los temas de mis canciones
+
+::: {.callout-tip appearance="simple" icon="false"}
+**Teoría.** Es el mismo **modelo de tópicos LDA** de las playlists ocultas, ahora en su uso original: textos. Cada **letra** es un documento y el modelo encuentra grupos de palabras que suelen aparecer juntas en una misma canción. Cada grupo es un **tema**. Una canción puede mezclar varios temas, y el peso de un tema en mi vida depende de cuántas veces escuché las canciones que hablan de él.
+:::
+
+```{r}
+#| label: letras-topicos
+#| eval: !expr tiene_letras
+#| fig-height: 4.8
+conteo_letras <- tokens |> count(cancion_id, palabra)
+vocab_letras <- conteo_letras |> count(palabra) |> filter(n >= 5) |> pull(palabra)
+conteo_letras <- filter(conteo_letras, palabra %in% vocab_letras)
+
+d <- factor(conteo_letras$cancion_id); t <- factor(conteo_letras$palabra)
+dtm_letras <- slam::simple_triplet_matrix(as.integer(d), as.integer(t), conteo_letras$n,
+                                          dimnames = list(levels(d), levels(t)))
+class(dtm_letras) <- c("DocumentTermMatrix", class(dtm_letras))
+attr(dtm_letras, "weighting") <- c("term frequency", "tf")
+
+k_letras <- 8
+modelo_letras <- LDA(dtm_letras, k = k_letras, method = "Gibbs",
+                     control = list(seed = 2026, burnin = 300, iter = 1000))
+
+temas <- tibble(tema = seq_len(k_letras),
+                palabras = apply(terms(modelo_letras, 8), 2, paste, collapse = ", ")) |>
+  mutate(nombre = paste0("Tema ", tema, ": ", sapply(strsplit(palabras, ", "), \(x) paste(x[1:3], collapse = ", "))))
+
+# Peso de cada tema en mis escuchas: tema de cada canción × veces que la escuché
+gamma_letras <- as_tibble(modelo_letras@gamma, .name_repair = \(x) as.character(seq_along(x))) |>
+  mutate(cancion_id = modelo_letras@documents) |>
+  pivot_longer(-cancion_id, names_to = "tema", values_to = "peso") |>
+  mutate(tema = as.integer(tema))
+
+tema_cancion <- letras |>
+  transmute(cancion_id = paste(artista, cancion, sep = " — "), artista, cancion) |>
+  inner_join(gamma_letras, by = "cancion_id")
+
+peso_temas <- escuchas |>
+  inner_join(tema_cancion, by = c("artista", "cancion"), relationship = "many-to-many") |>
+  group_by(tema) |>
+  summarise(peso = sum(peso)) |>
+  mutate(share = peso / sum(peso)) |>
+  left_join(temas, by = "tema")
+
+# Canción más representativa de cada tema (entre las que escuché al menos 10 veces)
+ejemplo_tema <- tema_cancion |>
+  inner_join(escuchas_cancion, by = c("artista", "cancion")) |>
+  filter(veces >= 10) |>
+  group_by(tema) |>
+  slice_max(peso, n = 1, with_ties = FALSE) |>
+  transmute(tema, ejemplo = cancion_id)
+
+peso_temas <- left_join(peso_temas, ejemplo_tema, by = "tema") |> arrange(desc(share))
+
+tabla(select(peso_temas, nombre, share, palabras, ejemplo), titulo = "Los temas de las canciones que escucho",
+      subtitulo = "Peso de cada tema en mis escuchas, sus palabras clave y la canción que mejor lo representa",
+      columnas = list(
+        nombre   = colDef(name = "Tema", minWidth = 170, style = list(fontWeight = 600)),
+        share    = col_barra("Peso", max(peso_temas$share), pct),
+        palabras = colDef(name = "Palabras clave", minWidth = 220),
+        ejemplo  = colDef(name = "Canción representativa", minWidth = 200)
+      ))
+```
+
+```{r}
+#| label: letras-temas-anio
+#| eval: !expr tiene_letras
+#| fig-height: 4.6
+temas_anio <- escuchas |>
+  inner_join(tema_cancion, by = c("artista", "cancion"), relationship = "many-to-many") |>
+  group_by(anio, tema) |>
+  summarise(peso = sum(peso), .groups = "drop") |>
+  group_by(anio) |>
+  mutate(share = peso / sum(peso)) |>
+  ungroup() |>
+  left_join(temas, by = "tema") |>
+  mutate(nombre = factor(nombre, levels = peso_temas$nombre))
+
+colores_temas <- c("#163f25", verde, "#a7cbb0", morado, "#c3a9e0", rosado, "#e8a3c2", "#8a8984")
+p <- ggplot(temas_anio, aes(factor(anio_corto(anio)), share, fill = nombre,
+                            text = paste0("<b>", anio, "</b><br>", nombre, ": ", pct(share)))) +
+  geom_col(width = 0.8) +
+  scale_fill_manual(values = colores_temas, name = NULL) +
+  scale_y_continuous(labels = pct, expand = c(0, 0)) +
+  labs(title = "De qué hablan mis canciones, año a año",
+       subtitle = "Peso de cada tema en las escuchas de cada año", x = NULL, y = NULL) +
+  theme(panel.grid = element_blank())
+interactivo(p)
+```
+
+::: {.callout-note appearance="simple" icon="false"}
+**¿Qué me dice?** *Escrito el 20-10-2026, con unas 500 letras.* Aunque escucho música intensa y oscura, las letras no hablan solo de muerte: hay un tema claro de **sangre, muerte y noche** (el del metal y el post-punk más sombrío), pero también varios de **amor, deseo y corazón**, en inglés y en español. Los temas en español tienen un tono más cotidiano y físico (*manos, cuerpo, casa, mar, cielo*) y uno muy chileno, con *acá* y *dale* entre sus palabras clave. Los temas tienden a separarse por idioma, porque el modelo aprende de las palabras y las de cada idioma casi nunca se mezclan en una misma canción.
+:::
+
+:::
+
 ## 🧠 Lectura psicológica
 
 ::: {.callout-note appearance="simple" icon="false"}
