@@ -5,7 +5,13 @@ Descarga mi historial de escuchas de [Last.fm](https://www.last.fm/user/jgaldame
 - **Reporte general** (`analisis_escuchas.html`): toda la historia desde 2013.
 - **Reporte mensual** (`reporte_mensual.html`, con historial en `reportes/reporte_AAAA-MM.html`): solo lo escuchado en un mes, comparado con mi historia.
 
-Ambos se publican en **GitHub Pages**: https://joakonib.github.io/escuchas_last/
+## 🌐 Ver los reportes
+
+Ambos se publican en GitHub Pages:
+
+- 🏠 **Portada:** https://joakonib.github.io/escuchas_last/
+- 📈 **Reporte general:** https://joakonib.github.io/escuchas_last/analisis_escuchas.html
+- 📆 **Reporte del mes:** https://joakonib.github.io/escuchas_last/reporte_mensual.html
 
 Todo se actualiza solo el día 1 de cada mes.
 
