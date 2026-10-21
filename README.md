@@ -9,9 +9,9 @@ Descarga mi historial de escuchas de [Last.fm](https://www.last.fm/user/jgaldame
 
 Ambos se publican en GitHub Pages:
 
-- 🏠 **Portada:** https://joakonib.github.io/escuchas_last/
-- 📈 **Reporte general:** https://joakonib.github.io/escuchas_last/analisis_escuchas.html
-- 📆 **Reporte del mes:** https://joakonib.github.io/escuchas_last/reporte_mensual.html
+- 🏠 **Portada:** https://joakonib.github.io/escuchas_last/docs/
+- 📈 **Reporte general:** https://joakonib.github.io/escuchas_last/docs/analisis_escuchas.html
+- 📆 **Reporte del mes:** https://joakonib.github.io/escuchas_last/docs/reporte_mensual.html
 
 Todo se actualiza solo el día 1 de cada mes.
 
