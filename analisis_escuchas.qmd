@@ -1704,7 +1704,7 @@ interactivo(p)
 ```
 
 ::: {.callout-note appearance="simple" icon="false"}
-**¿Qué me dice?** En total, el `r if (tiene_letras) pct(total_es) else "—"` de lo que escucho (entre las canciones con letra) está en **español**. La evolución sigue a las eras: en los años del metal y del post-punk británico manda el inglés, y la subida del español coincide con la vuelta a la escena chilena después de la pandemia.
+**¿Qué me dice?** En total, el `r if (tiene_letras) pct(total_es) else "—"` de lo que escucho (entre las canciones con letra) está en **español**. La evolución sigue a las eras: en 2014, en plena era del metal, el español era apenas un 6%; desde entonces fue subiendo hasta rondar el 40% en los últimos años, de la mano de la escena chilena y argentina.
 :::
 
 #### 🔤 Palabras más cantadas
@@ -1832,7 +1832,7 @@ interactivo(p)
 ```
 
 ::: {.callout-note appearance="simple" icon="false"}
-**¿Qué me dice?** *Escrito el 20-10-2026, con unas 500 letras.* Aunque escucho música intensa y oscura, las letras no hablan solo de muerte: hay un tema claro de **sangre, muerte y noche** (el del metal y el post-punk más sombrío), pero también varios de **amor, deseo y corazón**, en inglés y en español. Los temas en español tienen un tono más cotidiano y físico (*manos, cuerpo, casa, mar, cielo*) y uno muy chileno, con *acá* y *dale* entre sus palabras clave. Los temas tienden a separarse por idioma, porque el modelo aprende de las palabras y las de cada idioma casi nunca se mezclan en una misma canción.
+**¿Qué me dice?** *Escrito el 20-10-2026, con 1.319 letras.* Aunque escucho música intensa y oscura, las letras no hablan solo de muerte, pero es su tema más presente: el modelo lo encontró **dos veces**, una con *sangre, oscuridad, muerte* y otra con *morir, matar, mente*. Es el imaginario del metal y del post-punk más sombrío. Le siguen el **amor y el desamor** en inglés (*tiempo, perdido, frío, caer, sueño*), la **rabia** con groserías y despedidas, y la vida que pasa (*días, noches, esperar*). En español, los temas tienen un tono más cercano y físico: el **amor y el deseo**, con *vos* y *acá* que delatan bandas argentinas y chilenas, y **el cuerpo y lo cotidiano** (*vida, casa, cielo, cuerpo, ojos, manos*). Los temas tienden a separarse por idioma porque las palabras de cada idioma casi nunca se mezclan en una misma canción.
 :::
 
 :::
