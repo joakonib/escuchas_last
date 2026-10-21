@@ -344,3 +344,15 @@ div.callout-note.callout,
 .reactable {
   max-width: 100%;
 }
+
+.tabla-ayuda {
+  font-size: 0.75rem;
+  color: #8a8984;
+  margin-bottom: 4px;
+}
+
+.generado {
+  color: #6b6b67;
+  font-size: 0.85rem;
+  margin: -0.5rem 0 1rem;
+}

@@ -1,8 +1,6 @@
 ---
 title: "🎧 Mi vida en canciones"
 subtitle: "Más de una década de música, contada con datos"
-date: today
-date-format: "D [de] MMMM, YYYY"
 lang: es
 format:
   html:
@@ -144,6 +142,7 @@ fotos_hero <- imagen_artista(top_hero$artista)
 anios_hist <- year(ultimo_dia) - year(primer_dia)
 
 tagList(
+  linea_generacion(),
   div(class = "hero",
       div(class = "hero-mosaico",
           lapply(seq_along(fotos_hero), \(i) {
@@ -162,7 +161,8 @@ tagList(
              anios_hist, " años de registros en una radiografía de mis gustos.")),
       p(HTML("🖱️ <b>Cómo leerlo:</b> pasa el mouse sobre los gráficos para ver los valores, ",
              "cambia de pestaña dentro de cada sección y ordena las tablas haciendo clic en sus columnas. ",
-             "El índice de la izquierda te lleva a cada parte."))),
+             "El índice de la izquierda te lleva a cada parte. 📅 También puedes ver ",
+             "<a href='reporte_mensual.html'>mi reporte del último mes</a>."))),
   div(class = "tiles",
     tile("🎵", miles(total), "canciones escuchadas", paste("desde el", fmt_fecha(primer_dia))),
     tile("⏱️", miles(round(horas)), "horas de música", paste0("≈ ", round(horas / 24), " días sin parar")),
@@ -1076,7 +1076,8 @@ p <- por_anio_animo |>
   scale_color_manual(values = c(`Valencia (triste ← → alegre)` = morado, `Energía (calma ← → intensa)` = verde),
                      name = NULL) +
   scale_x_continuous(breaks = por_anio_animo$anio, labels = anio_corto) +
-  scale_y_continuous(limits = c(-0.6, 0.8), breaks = seq(-0.6, 0.8, 0.2)) +
+  scale_y_continuous(limits = c(-0.6, 0.8), breaks = seq(-0.6, 0.8, 0.2),
+                     labels = \(x) format(round(x, 1), decimal.mark = ",")) +
   labs(title = "Mi ánimo musical, año a año",
        subtitle = "Sobre cero: más alegre / más intensa. Bajo cero: más triste / más calma (escala de -1 a 1)",
        x = NULL, y = NULL)
@@ -1212,19 +1213,24 @@ genero_era <- as_tibble(X) |>
   pivot_longer(-era, names_to = "genero", values_to = "share") |>
   filter(genero != "Otros")
 
-# Nombre de cada era: su género dominante y su artista emblema (el más escuchado)
+# Nombre de cada era: su género dominante y su artista emblema, que es el más
+# escuchado *dentro* de ese género (para que el nombre sea coherente)
+genero_dominante <- genero_era |>
+  group_by(era) |>
+  slice_max(share, n = 1, with_ties = FALSE) |>
+  select(era, genero)
+
 artista_emblema <- escuchas |>
   inner_join(eras, by = "mes") |>
+  inner_join(genero_dominante, by = c("era", "genero")) |>
   count(era, artista) |>
   group_by(era) |>
   slice_max(n, n = 1, with_ties = FALSE) |>
   select(era, artista)
 
-nombres_era <- genero_era |>
-  group_by(era) |>
-  slice_max(share, n = 1, with_ties = FALSE) |>
+nombres_era <- genero_dominante |>
   left_join(artista_emblema, by = "era") |>
-  summarise(nombre = paste0(genero, " · ", artista))
+  transmute(era, nombre = paste0(genero, " · ", artista))
 
 eras <- eras |>
   left_join(nombres_era, by = "era") |>
@@ -1398,16 +1404,12 @@ extremo <- \(eje, lado) paste(head(puntos_gen$etiqueta[order(lado * puntos_gen[[
 rx <- range(c(puntos_anio$d1, puntos_gen$d1)); ry <- range(c(puntos_anio$d2, puntos_gen$d2))
 
 ggplot() +
-  geom_hline(yintercept = 0, color = "#e3e2de", linewidth = 0.6) +
-  geom_vline(xintercept = 0, color = "#e3e2de", linewidth = 0.6) +
-  geom_path(data = puntos_anio, aes(d1, d2, color = anio), linewidth = 0.9,
-            arrow = arrow(length = unit(2.2, "mm"), type = "closed")) +
   geom_point(data = puntos_anio, aes(d1, d2, color = anio), size = 3.2) +
   geom_text_repel(data = puntos_anio, aes(d1, d2, label = etiqueta, color = anio),
-                  size = 3.6, fontface = "bold", seed = 1, max.overlaps = 30, min.segment.length = 0.3) +
+                  size = 3.6, fontface = "bold", seed = 1, max.overlaps = 30, min.segment.length = Inf) +
   geom_point(data = puntos_gen, aes(d1, d2), color = morado, shape = 18, size = 3) +
   geom_label_repel(data = puntos_gen, aes(d1, d2, label = etiqueta), color = morado, fill = "#f6f2fb",
-                   label.size = 0, size = 3.4, seed = 2, max.overlaps = 30, min.segment.length = 0.3) +
+                   label.size = 0, size = 3.4, seed = 2, max.overlaps = 30, min.segment.length = Inf) +
   annotate("text", x = rx[1], y = ry[1] - 0.12, hjust = 0, size = 3.3, color = tinta_2,
            label = paste0("← ", extremo("d1", 1))) +
   annotate("text", x = rx[2], y = ry[1] - 0.12, hjust = 1, size = 3.3, color = tinta_2,
@@ -1757,9 +1759,11 @@ k_letras <- 8
 modelo_letras <- LDA(dtm_letras, k = k_letras, method = "Gibbs",
                      control = list(seed = 2026, burnin = 300, iter = 1000))
 
+# Nombre y descripción de cada tema según sus palabras clave (diccionario en R/letras.R)
 temas <- tibble(tema = seq_len(k_letras),
                 palabras = apply(terms(modelo_letras, 8), 2, paste, collapse = ", ")) |>
-  mutate(nombre = paste0("Tema ", tema, ": ", sapply(strsplit(palabras, ", "), \(x) paste(x[1:3], collapse = ", "))))
+  left_join(describir_temas(terms(modelo_letras, 15)), by = "tema") |>
+  mutate(nombre = tema_nombre)
 
 # Peso de cada tema en mis escuchas: tema de cada canción × veces que la escuché
 gamma_letras <- as_tibble(modelo_letras@gamma, .name_repair = \(x) as.character(seq_along(x))) |>
@@ -1788,13 +1792,15 @@ ejemplo_tema <- tema_cancion |>
 
 peso_temas <- left_join(peso_temas, ejemplo_tema, by = "tema") |> arrange(desc(share))
 
-tabla(select(peso_temas, nombre, share, palabras, ejemplo), titulo = "Los temas de las canciones que escucho",
-      subtitulo = "Peso de cada tema en mis escuchas, sus palabras clave y la canción que mejor lo representa",
+tabla(select(peso_temas, nombre, descripcion, share, palabras, ejemplo),
+      titulo = "Los temas de las canciones que escucho",
+      subtitulo = "Peso de cada tema en mis escuchas, de qué trata, sus palabras clave y la canción que mejor lo representa",
       columnas = list(
-        nombre   = colDef(name = "Tema", minWidth = 170, style = list(fontWeight = 600)),
-        share    = col_barra("Peso", max(peso_temas$share), pct),
-        palabras = colDef(name = "Palabras clave", minWidth = 220),
-        ejemplo  = colDef(name = "Canción representativa", minWidth = 200)
+        nombre      = colDef(name = "Tema", minWidth = 160, style = list(fontWeight = 600)),
+        descripcion = colDef(name = "De qué trata", minWidth = 230),
+        share       = col_barra("Peso", max(peso_temas$share), pct),
+        palabras    = colDef(name = "Palabras clave", minWidth = 200),
+        ejemplo     = colDef(name = "Canción representativa", minWidth = 190)
       ))
 ```
 
@@ -1841,7 +1847,7 @@ interactivo(p)
 
 **La oscuridad como refugio.** Todos mis años caen en el cuadrante *tenso/oscuro*: valencia negativa y energía alta. La investigación sobre la "paradoja de la música triste" (Vuoskoski y otros, 2012) muestra que quienes disfrutan la música triste o sombría tienden a puntuar más alto en **empatía** y apertura. Y en música extrema, Sharman y Dingle (2015) vieron que escucharla después de enojarse no aumenta la rabia: ayuda a procesarla y sube las emociones positivas. Mis días más oscuros (doom de Cathedral, Pentagram y Black Sabbath) fueron todos entre 2013 y 2017; los más luminosos, de cumbia con **Chico Trujillo** y **La Floripondio**.
 
-**Bajando las revoluciones.** La energía de lo que escucho cayó de 0,71 en 2013 a 0,41 en 2026, y la valencia subió de −0,43 a cerca de −0,25. Las eras lo muestran: empecé con el doom de Godflesh (2013–2014), seguí con un heavy metal mezclado con Tom Waits y Amenra (2014–2018) y desde fines de 2018 encadeno tres eras de post-punk: la de Interpol, la de Tenemos Explosivos y la actual de Fontaines D.C. Sigo en lo intenso, pero más melódico y menos extremo.
+**Bajando las revoluciones.** La energía de lo que escucho cayó de 0,71 en 2013 a 0,41 en 2026, y la valencia subió de −0,43 a cerca de −0,25. Las eras lo muestran: empecé con el doom de Saint Vitus y Godflesh (2013–2014), seguí con el heavy metal de Black Sabbath, mezclado con Tom Waits y Amenra (2014–2018) y desde fines de 2018 encadeno tres eras de post-punk: la de Interpol, la de IDLES y la actual de Fontaines D.C. Sigo en lo intenso, pero más melódico y menos extremo.
 
 **La música como compañía de la rutina.** Escucho en horario de oficina y durante la pandemia escuché **un tercio menos** (21 escuchas al día, contra 32 antes): la música va pegada a la rutina, a trabajar y moverme, más que al tiempo libre. Después de la pandemia volví con todo, a 56 escuchas al día, y con el **doble de música chilena** (de 15% a 31%).
 

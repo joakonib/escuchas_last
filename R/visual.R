@@ -43,6 +43,7 @@ tabla <- function(datos, columnas = list(), titulo = NULL, subtitulo = NULL,
   div(class = "tabla",
       if (!is.null(titulo)) div(class = "tabla-titulo", titulo),
       if (!is.null(subtitulo)) div(class = "tabla-subtitulo", subtitulo),
+      div(class = "tabla-ayuda", "↕ Haz clic en el nombre de una columna para ordenar"),
       t)
 }
 
@@ -91,4 +92,10 @@ interactivo <- function(p, tooltip = "text") {
       if (!is.null(titulo)) div(class = "tabla-titulo", titulo),
       if (!is.null(subtitulo)) div(class = "tabla-subtitulo", subtitulo),
       g)
+}
+
+# Línea con la fecha y hora en que se generó el reporte
+linea_generacion <- function(zona = "America/Santiago") {
+  ahora <- format(lubridate::with_tz(Sys.time(), zona), "%d-%m-%Y, %H:%M")
+  div(class = "generado", paste0("🕒 Fecha y hora de generación: ", ahora, " (hora de Chile)"))
 }

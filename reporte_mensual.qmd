@@ -87,7 +87,7 @@ theme_set(
 ## 📆 `r paste0(toupper(substr(nombre_mes, 1, 1)), substr(nombre_mes, 2, nchar(nombre_mes)))`
 
 ::: {.bienvenida}
-👋 Este es el resumen de lo que escuché en `r nombre_mes`, según [Last.fm](https://www.last.fm/user/jgaldamesh), que registra cada canción que pongo (cada registro es un *scrobble*). 🖱️ Pasa el mouse sobre los gráficos para ver los valores y ordena las tablas haciendo clic en sus columnas.
+👋 Este es el resumen de lo que escuché en `r nombre_mes` ([ver mi reporte general](analisis_escuchas.html)), según [Last.fm](https://www.last.fm/user/jgaldamesh), que registra cada canción que pongo (cada registro es un *scrobble*). 🖱️ Pasa el mouse sobre los gráficos para ver los valores y ordena las tablas haciendo clic en sus columnas.
 :::
 
 ```{r}
@@ -117,7 +117,7 @@ aviso <- if (dias_con_registro < 10) {
         "Puede que el scrobbler haya estado desconectado, así que las cifras subestiman lo escuchado."))
 }
 
-tagList(aviso, div(class = "tiles",
+tagList(linea_generacion(), aviso, div(class = "tiles",
   tile("🎵", miles(nrow(mes)), "canciones escuchadas", variacion),
   tile("⏱️", miles(round(nrow(mes) * minutos_por_cancion / 60)), "horas de música"),
   tile("🎤", miles(n_distinct(mes$artista)), "artistas"),
