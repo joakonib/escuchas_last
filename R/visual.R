@@ -34,16 +34,25 @@ idioma_tabla <- reactableLang(
 tabla <- function(datos, columnas = list(), titulo = NULL, subtitulo = NULL,
                   filas = 12, ...) {
   larga <- nrow(datos) > filas
+  # Columna oculta con el orden original, para poder volver a él con un botón
+  id <- paste0("tabla-", paste(sample(c(letters, 0:9), 10, replace = TRUE), collapse = ""))
+  datos$.orden <- seq_len(nrow(datos))
+  columnas$.orden <- colDef(show = FALSE)
   t <- reactable(
     datos, columns = columnas, theme = tema_tabla, language = idioma_tabla,
     striped = TRUE, highlight = TRUE, sortable = TRUE, compact = TRUE,
     searchable = larga, pagination = larga, defaultPageSize = filas,
-    showSortIcon = TRUE, ...
+    showSortIcon = TRUE, elementId = id, ...
+  )
+  boton <- tags$button(
+    class = "tabla-reset", type = "button",
+    onclick = sprintf("Reactable.toggleSortBy('%s', '.orden', false); Reactable.setSearch('%s', '')", id, id),
+    "↺ Orden original"
   )
   div(class = "tabla",
       if (!is.null(titulo)) div(class = "tabla-titulo", titulo),
       if (!is.null(subtitulo)) div(class = "tabla-subtitulo", subtitulo),
-      div(class = "tabla-ayuda", "↕ Haz clic en el nombre de una columna para ordenar"),
+      div(class = "tabla-ayuda", "↕ Haz clic en el nombre de una columna para ordenar", boton),
       t)
 }
 

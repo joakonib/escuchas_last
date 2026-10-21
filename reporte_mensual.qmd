@@ -6,14 +6,17 @@ params:
 format:
   html:
     theme: cosmo
+    toc: true
+    toc-location: left
+    toc-title: "Contenido"
     code-fold: true
     code-summary: "Ver código"
     embed-resources: true
     fig-width: 8
     fig-height: 4.5
     fig-dpi: 144
-    css: estilo.css
-    include-after-body: redibujar.html
+    css: assets/estilo.css
+    include-after-body: assets/redibujar.html
 execute:
   warning: false
   message: false
@@ -28,11 +31,11 @@ library(lubridate)
 library(ggplot2)
 library(forcats)
 library(scales)
-
 library(htmltools)
 library(arrow)
 source("R/imagenes.R")
 source("R/visual.R")
+source("R/etiquetas.R")
 
 zona <- "America/Santiago"
 minutos_por_cancion <- 3.5
@@ -47,10 +50,20 @@ inicio <- if (params$mes == "") {
 }
 fin <- inicio + months(1) - days(1)
 nombre_mes <- paste(meses[month(inicio)], year(inicio))
+Nombre_mes <- paste0(toupper(substr(nombre_mes, 1, 1)), substr(nombre_mes, 2, nchar(nombre_mes)))
 
 todas <- read_parquet("data/escuchas.parquet") |>
   filter(uts >= as.numeric(as.POSIXct("2002-01-01", tz = "UTC"))) |>
-  mutate(fecha = with_tz(as_datetime(uts), zona), dia = as_date(fecha))
+  mutate(fecha = with_tz(as_datetime(uts), zona), dia = as_date(fecha), hora = hour(fecha),
+         semana = factor(wday(fecha, week_start = 1), levels = 1:7,
+                         labels = c("lun", "mar", "mié", "jue", "vie", "sáb", "dom")))
+
+# Géneros y países de cada artista (etiquetas de Last.fm)
+tiene_tags <- file.exists("data/tags_artistas.parquet")
+if (tiene_tags) {
+  tags <- read_parquet("data/tags_artistas.parquet") |> filter(!is.na(tag), peso > 0)
+  todas <- agregar_genero_pais(todas, tags)
+}
 
 mes <- filter(todas, dia >= inicio, dia <= fin)
 anterior <- filter(todas, dia >= inicio - months(1), dia < inicio)
@@ -67,9 +80,13 @@ nuevos <- mes |>
 
 principal <- "#3a3a3a"
 verde     <- "#2f7d4a"
+morado    <- "#6b3fa0"
+rosado    <- "#b0306a"
+gris      <- "#a3a29d"
 tinta_2   <- "#52514e"
 rampa     <- c("#f1f5f1", "#d4e5d8", "#a7cbb0", "#72a982", "#428556", "#27613a", "#163f25")
 miles <- label_number(big.mark = ".", decimal.mark = ",")
+pct   <- label_percent(accuracy = 1, decimal.mark = ",")
 
 theme_set(
   theme_minimal(base_size = 12) +
@@ -79,27 +96,28 @@ theme_set(
       axis.text = element_text(color = tinta_2),
       panel.grid.major = element_line(color = "#ecebe7", linewidth = 0.4),
       panel.grid.minor = element_blank(),
-      plot.background = element_rect(fill = "#fcfcfb", color = NA)
+      legend.position = "top",
+      legend.justification = "left",
+      plot.background = element_rect(fill = "#fcfcfb", color = NA),
+      panel.background = element_rect(fill = "#fcfcfb", color = NA)
     )
 )
+
+top_art <- mes |> count(artista, sort = TRUE)
+top_disc <- mes |> filter(!is.na(album), album != "") |> count(artista, album, sort = TRUE)
+top_can <- mes |> count(artista, cancion, sort = TRUE)
 ```
 
-## 📆 `r paste0(toupper(substr(nombre_mes, 1, 1)), substr(nombre_mes, 2, nchar(nombre_mes)))`
-
-::: {.bienvenida}
-👋 Este es el resumen de lo que escuché en `r nombre_mes` ([ver mi reporte general](analisis_escuchas.html)), según [Last.fm](https://www.last.fm/user/jgaldamesh), que registra cada canción que pongo (cada registro es un *scrobble*). 🖱️ Pasa el mouse sobre los gráficos para ver los valores y ordena las tablas haciendo clic en sus columnas.
-:::
-
 ```{r}
-#| label: cifras
-# La comparación solo tiene sentido si el mes anterior tiene registros suficientes
+#| label: portada
 variacion <- if (n_distinct(anterior$dia) < 10) {
   "mes anterior con pocos registros"
 } else {
   v <- nrow(mes) / nrow(anterior) - 1
-  paste0(ifelse(v >= 0, "+", ""), label_percent(accuracy = 1, decimal.mark = ",")(v), " vs. mes anterior")
+  paste0(ifelse(v >= 0, "+", ""), pct(v), " vs. mes anterior")
 }
 dia_top <- mes |> count(dia) |> slice_max(n, n = 1, with_ties = FALSE)
+dias_con_registro <- n_distinct(mes$dia)
 
 tile <- function(icono, valor, etiqueta, detalle = NULL) {
   div(class = "tile",
@@ -109,94 +127,140 @@ tile <- function(icono, valor, etiqueta, detalle = NULL) {
       if (!is.null(detalle)) div(class = "tile-detalle", detalle))
 }
 
-dias_con_registro <- n_distinct(mes$dia)
+fotos_hero <- imagen_artista(head(top_art$artista, 12))
+genero_mes <- if (tiene_tags) {
+  mes |> filter(!is.na(genero)) |> count(genero, sort = TRUE) |> slice_head(n = 2) |> pull(genero)
+} else character(0)
+
 aviso <- if (dias_con_registro < 10) {
-  div(class = "callout callout-style-simple callout-note",
-      p(strong("Ojo: "), "Last.fm registró escuchas solo en ", dias_con_registro,
-        ifelse(dias_con_registro == 1, " día", " días"), " de este mes. ",
-        "Puede que el scrobbler haya estado desconectado, así que las cifras subestiman lo escuchado."))
+  div(class = "bienvenida",
+      p(HTML(paste0("⚠️ <b>Ojo:</b> Last.fm registró escuchas solo en ", dias_con_registro,
+                    ifelse(dias_con_registro == 1, " día", " días"), " de este mes. Puede que el ",
+                    "<i>scrobbler</i> haya estado desconectado, así que las cifras subestiman lo escuchado."))))
 }
 
-tagList(linea_generacion(), aviso, div(class = "tiles",
-  tile("🎵", miles(nrow(mes)), "canciones escuchadas", variacion),
-  tile("⏱️", miles(round(nrow(mes) * minutos_por_cancion / 60)), "horas de música"),
-  tile("🎤", miles(n_distinct(mes$artista)), "artistas"),
-  tile("💿", miles(n_distinct(paste(mes$artista, mes$cancion))), "canciones distintas"),
-  tile("✨", nrow(nuevos), ifelse(nrow(nuevos) == 1, "artista nuevo", "artistas nuevos"),
-       "escuchados por primera vez"),
-  tile("🔥", miles(dia_top$n), "canciones en mi mejor día", format(dia_top$dia, "%d-%m"))
-))
+tagList(
+  linea_generacion(),
+  div(class = "hero",
+      div(class = "hero-mosaico",
+          lapply(seq_along(fotos_hero), \(i) {
+            if (is.na(fotos_hero[i])) div(style = "background:#3a3a3a")
+            else img(src = fotos_hero[i], alt = top_art$artista[i])
+          })),
+      div(class = "hero-texto",
+          div(class = "hero-titulo", paste(Nombre_mes, "en canciones")),
+          div(class = "hero-sub", paste0(miles(nrow(mes)), " canciones · ", nrow(top_art), " artistas",
+                                         if (length(genero_mes)) paste0(" · ", tolower(paste(genero_mes, collapse = " y "))))))),
+  div(class = "bienvenida",
+      p(HTML(paste0("👋 Este es el resumen de lo que escuché en <b>", nombre_mes, "</b>, según ",
+                    "<a href='https://www.last.fm/user/jgaldamesh'>Last.fm</a>, que registra cada canción que pongo ",
+                    "(cada registro es un <i>scrobble</i>). Si quieres la historia completa, mira ",
+                    "<a href='analisis_escuchas.html'>mi reporte general</a>."))),
+      p(HTML("🖱️ <b>Cómo leerlo:</b> pasa el mouse sobre los gráficos, cambia de pestaña en cada sección y ordena las tablas haciendo clic en sus columnas."))),
+  aviso,
+  div(class = "tiles",
+    tile("🎵", miles(nrow(mes)), "canciones escuchadas", variacion),
+    tile("⏱️", miles(round(nrow(mes) * minutos_por_cancion / 60)), "horas de música"),
+    tile("🎤", miles(n_distinct(mes$artista)), "artistas"),
+    tile("💿", miles(n_distinct(paste(mes$artista, mes$cancion))), "canciones distintas"),
+    tile("✨", nrow(nuevos), ifelse(nrow(nuevos) == 1, "artista nuevo", "artistas nuevos"),
+         "escuchados por primera vez"),
+    tile("🔥", miles(dia_top$n), "canciones en mi mejor día", format(dia_top$dia, "%d-%m"))
+  )
+)
 ```
 
-## 🌟 Artistas del mes
+## 🏆 Lo mejor del mes
+
+```{r}
+#| label: podio
+cancion1 <- top_can[1, ]
+album_cancion <- mes |> filter(artista == cancion1$artista, cancion == cancion1$cancion, album != "") |>
+  count(album, sort = TRUE) |> slice_head(n = 1) |> pull(album)
+img_cancion <- if (length(album_cancion)) imagen_disco(cancion1$artista, album_cancion) else NA
+img_artista <- imagen_artista(top_art$artista[1])
+img_disco <- if (nrow(top_disc)) imagen_disco(top_disc$artista[1], top_disc$album[1]) else NA
+
+tarjeta_podio <- function(medalla, etiqueta, imagen, titulo, detalle) {
+  div(class = "podio-card",
+      div(class = "podio-etiqueta", paste(medalla, etiqueta)),
+      if (is.na(imagen)) div(class = "galeria-vacia", substr(titulo, 1, 1)) else img(src = imagen, alt = titulo),
+      div(class = "podio-titulo", titulo),
+      div(class = "podio-detalle", detalle))
+}
+
+div(class = "podio",
+    tarjeta_podio("🎤", "Artista del mes", img_artista, top_art$artista[1],
+                  paste0(top_art$n[1], " escuchas · ", pct(top_art$n[1] / nrow(mes)), " del mes")),
+    tarjeta_podio("🎵", "Canción del mes", img_cancion, cancion1$cancion,
+                  paste0(cancion1$artista, " · ", cancion1$n, " veces")),
+    if (nrow(top_disc)) tarjeta_podio("💿", "Disco del mes", img_disco, top_disc$album[1],
+                                      paste0(top_disc$artista[1], " · ", top_disc$n[1], " escuchas")))
+```
+
+## 🌟 Artistas, discos y canciones
+
+::: {.panel-tabset}
+
+#### Artistas
 
 ```{r}
 #| label: galeria-mes
-top5 <- mes |> count(artista, sort = TRUE) |> slice_head(n = 5)
+top5 <- slice_head(top_art, n = 5)
 galeria(imagen_artista(top5$artista), top5$artista, paste(top5$n, "escuchas"))
-```
-
-```{r}
-#| label: galeria-discos-mes
-discos5 <- mes |>
-  filter(!is.na(album), album != "") |>
-  count(artista, album, sort = TRUE) |>
-  slice_head(n = 5)
-galeria(imagen_disco(discos5$artista, discos5$album), discos5$album,
-        paste0(discos5$artista, " · ", discos5$n))
 ```
 
 ```{r}
 #| label: top-artistas
 #| fig-height: 5
-p <- mes |>
-  count(artista, sort = TRUE) |>
+p <- top_art |>
   slice_head(n = 15) |>
   ggplot(aes(n, fct_reorder(artista, n), text = paste0("<b>", artista, "</b><br>", n, " escuchas"))) +
-  geom_col(fill = principal, width = 0.7) +
+  geom_col(aes(fill = artista == top_art$artista[1]), width = 0.7) +
+  scale_fill_manual(values = c(`TRUE` = verde, `FALSE` = principal), guide = "none") +
   scale_x_continuous(expand = expansion(mult = c(0, 0.05))) +
   labs(title = "Los 15 artistas que más escuché", x = NULL, y = NULL)
 interactivo(p)
+
+conc5 <- sum(head(top_art$n, 5)) / nrow(mes)
 ```
 
-## 🎶 Canciones, álbumes y descubrimientos
+::: {.callout-note appearance="simple" icon="false"}
+**¿Qué me dice?** **`r top_art$artista[1]`** fue el artista del mes, con el `r pct(top_art$n[1] / nrow(mes))` de mis escuchas. Entre los cinco primeros suman el `r pct(conc5)`: `r if (conc5 > 0.5) "un mes **concentrado** en pocos artistas" else if (conc5 > 0.3) "un mes con favoritos claros, pero repartido" else "un mes **variado**, sin un artista que domine"`.
+:::
 
-::: {.panel-tabset}
+#### Discos
+
+```{r}
+#| label: galeria-discos-mes
+discos5 <- slice_head(top_disc, n = 5)
+galeria(imagen_disco(discos5$artista, discos5$album), discos5$album,
+        paste0(discos5$artista, " · ", discos5$n))
+```
+
+```{r}
+#| label: top-albumes
+albumes <- top_disc |> slice_head(n = 10) |> mutate(pos = row_number(), .before = 1)
+tabla(albumes, titulo = "Álbumes más escuchados",
+      columnas = list(
+        pos     = colDef(name = "", maxWidth = 45, style = list(fontWeight = 700, color = verde)),
+        artista = colDef(name = "Artista", minWidth = 150),
+        album   = colDef(name = "Álbum", minWidth = 200),
+        n       = col_barra("Escuchas", max(albumes$n))
+      ))
+```
 
 #### Canciones
 
 ```{r}
 #| label: top-canciones
-canciones <- mes |>
-  count(cancion, artista, sort = TRUE, name = "veces") |>
-  slice_head(n = 15) |>
-  mutate(pos = row_number(), .before = 1)
-
+canciones <- top_can |> slice_head(n = 15) |> mutate(pos = row_number(), .before = 1)
 tabla(canciones, titulo = "Canciones más escuchadas", filas = 15,
       columnas = list(
         pos     = colDef(name = "", maxWidth = 45, style = list(fontWeight = 700, color = verde)),
-        cancion = colDef(name = "Canción", minWidth = 200),
         artista = colDef(name = "Artista", minWidth = 150),
-        veces   = col_barra("Veces", max(canciones$veces))
-      ))
-```
-
-#### Álbumes
-
-```{r}
-#| label: top-albumes
-albumes <- mes |>
-  filter(!is.na(album), album != "") |>
-  count(album, artista, sort = TRUE, name = "escuchas") |>
-  slice_head(n = 10) |>
-  mutate(pos = row_number(), .before = 1)
-
-tabla(albumes, titulo = "Álbumes más escuchados",
-      columnas = list(
-        pos      = colDef(name = "", maxWidth = 45, style = list(fontWeight = 700, color = verde)),
-        album    = colDef(name = "Álbum", minWidth = 200),
-        artista  = colDef(name = "Artista", minWidth = 150),
-        escuchas = col_barra("Escuchas", max(albumes$escuchas))
+        cancion = colDef(name = "Canción", minWidth = 200),
+        n       = col_barra("Veces", max(canciones$n))
       ))
 ```
 
@@ -207,22 +271,110 @@ tabla(albumes, titulo = "Álbumes más escuchados",
 if (nrow(nuevos) == 0) {
   p("Este mes no escuché artistas nuevos.")
 } else {
-  descubiertos <- nuevos |>
-    slice_head(n = 10) |>
-    mutate(debut = format(debut, "%d-%m"))
-  tabla(descubiertos, titulo = "Artistas que escuché por primera vez",
-        subtitulo = paste(nrow(nuevos), ifelse(nrow(nuevos) == 1, "artista nuevo en total", "artistas nuevos en total")),
-        columnas = list(
-          artista  = colDef(name = "Artista", minWidth = 180),
-          escuchas = col_barra("Escuchas", max(descubiertos$escuchas)),
-          debut    = colDef(name = "Primera escucha", maxWidth = 130)
-        ))
+  descubiertos <- nuevos |> slice_head(n = 10) |> mutate(debut = format(debut, "%d-%m"))
+  tagList(
+    galeria(imagen_artista(head(descubiertos$artista, 5)), head(descubiertos$artista, 5),
+            paste(head(descubiertos$escuchas, 5), "escuchas")),
+    tabla(descubiertos, titulo = "Artistas que escuché por primera vez",
+          subtitulo = paste(nrow(nuevos), ifelse(nrow(nuevos) == 1, "artista nuevo en total", "artistas nuevos en total")),
+          columnas = list(
+            artista  = colDef(name = "Artista", minWidth = 180),
+            escuchas = col_barra("Escuchas", max(descubiertos$escuchas)),
+            debut    = colDef(name = "Primera escucha", maxWidth = 130)
+          )))
 }
 ```
 
 :::
 
-## 📊 Día a día
+## 🎸 El sonido del mes
+
+::: {.panel-tabset}
+
+#### Géneros
+
+```{r}
+#| label: generos-mes
+#| eval: !expr tiene_tags
+#| fig-height: 4.5
+gen_mes <- mes |> filter(!is.na(genero)) |> count(genero, sort = TRUE) |> mutate(share = n / sum(n))
+gen_hist <- todas |> filter(!is.na(genero), dia < inicio) |> count(genero) |>
+  mutate(share_hist = n / sum(n)) |> select(genero, share_hist)
+gen_mes <- gen_mes |> left_join(gen_hist, by = "genero") |> mutate(share_hist = coalesce(share_hist, 0))
+
+p <- gen_mes |>
+  slice_head(n = 10) |>
+  ggplot(aes(share, fct_reorder(genero, share),
+             text = paste0("<b>", genero, "</b><br>Este mes: ", pct(share), "<br>Mi promedio: ", pct(share_hist)))) +
+  geom_col(fill = verde, width = 0.65) +
+  geom_point(aes(x = share_hist), color = morado, size = 3, shape = 18) +
+  scale_x_continuous(labels = pct, expand = expansion(mult = c(0, 0.05))) +
+  labs(title = "Los géneros del mes",
+       subtitle = "Barras: proporción de este mes. Rombos morados: mi promedio histórico",
+       x = NULL, y = NULL)
+interactivo(p)
+
+g1 <- gen_mes[1, ]
+mas_que_normal <- gen_mes |> filter(n >= 10) |> mutate(dif = share - share_hist) |> slice_max(dif, n = 1)
+```
+
+::: {.callout-note appearance="simple" icon="false"}
+**¿Qué me dice?** `r if (tiene_tags) paste0("El género del mes fue **", g1$genero, "** (", pct(g1$share), " de lo que escuché, contra un ", pct(g1$share_hist), " en mi historia). El que más subió respecto de lo normal fue **", mas_que_normal$genero, "**.") else ""`
+:::
+
+#### Países
+
+```{r}
+#| label: paises-mes
+#| eval: !expr tiene_tags
+por_pais <- mes |> filter(!is.na(pais)) |> count(pais, sort = TRUE) |>
+  mutate(share = n / sum(n)) |> slice_head(n = 8)
+top_por_pais <- mes |> filter(pais %in% por_pais$pais) |> count(pais, artista) |>
+  group_by(pais) |> slice_max(n, n = 2, with_ties = FALSE) |>
+  summarise(artistas = paste(artista, collapse = ", "))
+por_pais <- left_join(por_pais, top_por_pais, by = "pais")
+
+div(class = "grafico",
+    div(class = "tabla-titulo", "¿De dónde vino lo que escuché?"),
+    div(class = "tabla-subtitulo", "Escuchas del mes de artistas con país identificado"),
+    div(class = "paises",
+        lapply(seq_len(nrow(por_pais)), \(i) {
+          f <- por_pais[i, ]
+          div(class = "pais-fila",
+              img(class = "pais-bandera", src = bandera(f$pais), alt = f$pais),
+              div(class = "pais-nombre", f$pais, div(class = "pais-artistas", f$artistas)),
+              div(class = "pais-barra",
+                  div(style = sprintf("width:%s%%;background:%s", round(100 * f$share / max(por_pais$share)),
+                                      if (f$pais == "Chile") verde else principal))),
+              div(class = "pais-pct", pct(f$share)))
+        })))
+```
+
+#### Mi ritmo
+
+```{r}
+#| label: ritmo-mes
+#| fig-height: 3.8
+p <- mes |>
+  count(semana, hora) |>
+  complete(semana, hora = 0:23, fill = list(n = 0)) |>
+  ggplot(aes(hora, fct_rev(semana), fill = n, text = paste0("<b>", semana, " ", hora, ":00</b><br>", n, " escuchas"))) +
+  geom_tile(color = "white") +
+  scale_fill_gradientn(colors = rampa, name = "Escuchas") +
+  scale_x_continuous(breaks = seq(0, 23, 3), labels = \(h) paste0(h, "h"), expand = c(0, 0)) +
+  labs(title = "¿A qué hora escuché música este mes?", x = NULL, y = NULL) +
+  theme(panel.grid = element_blank())
+interactivo(p)
+
+pico <- mes |> count(semana, hora) |> slice_max(n, n = 1, with_ties = FALSE)
+finde_mes <- mean(mes$semana %in% c("sáb", "dom"))
+```
+
+::: {.callout-note appearance="simple" icon="false"}
+**¿Qué me dice?** El momento con más música fue el **`r pico$semana` a las `r pico$hora`:00**. Los fines de semana sumaron el `r pct(finde_mes)` de las escuchas del mes (si fuera parejo, sería un 29%).
+:::
+
+#### Día a día
 
 ```{r}
 #| label: por-dia
@@ -240,17 +392,16 @@ p <- mes |>
 interactivo(p)
 ```
 
+:::
+
 ## 🔬 Análisis del mes
 
 Lo que sigue no describe el mes: lo **compara con toda mi historia** desde 2013.
 
 ```{r}
 #| label: analisis-preparacion
-source("R/etiquetas.R")
-tiene_tags <- file.exists("data/tags_artistas.parquet")
+# Los géneros y países ya se agregaron en el setup; aquí solo falta el ánimo
 if (tiene_tags) {
-  tags <- read_parquet("data/tags_artistas.parquet") |> filter(!is.na(tag), peso > 0)
-  todas <- agregar_genero_pais(todas, tags)
   animo_art <- animo_por_artista(tags)
 }
 todas <- todas |> mutate(mes_id = floor_date(dia, "month"))
@@ -303,17 +454,23 @@ div(class = "bienvenida",
 ```{r}
 #| label: rareza-grafico
 #| eval: !expr tiene_tags
-#| fig-height: 3.6
-p <- tibble(mes_id = mezcla_mes$mes_id, distancia) |>
-  mutate(este = mes_id == inicio) |>
-  ggplot(aes(distancia, fill = este)) +
-  geom_histogram(bins = 30, color = "#fcfcfb") +
-  geom_vline(xintercept = d_mes, color = verde, linewidth = 1) +
-  scale_fill_manual(values = c(`FALSE` = principal, `TRUE` = verde), guide = "none") +
+#| fig-height: 3.8
+rarezas <- tibble(mes_id = mezcla_mes$mes_id, rareza = distancia) |>
+  mutate(este = mes_id == inicio,
+         etiqueta = paste0("<b>", format(mes_id, "%m-%Y"), "</b><br>Rareza: ", round(rareza, 2),
+                           ifelse(este, "<br><b>← este mes</b>", "")))
+
+p <- ggplot(rarezas, aes(mes_id, rareza, text = etiqueta)) +
+  geom_hline(yintercept = median(rarezas$rareza), color = gris, linetype = "dashed") +
+  geom_segment(aes(xend = mes_id, y = 0, yend = rareza), color = "#d9d8d4", linewidth = 0.4) +
+  geom_point(data = \(d) filter(d, !este), color = principal, size = 1.6) +
+  geom_point(data = \(d) filter(d, este), color = verde, size = 4.5) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.08))) +
+  scale_x_date(date_breaks = "1 year", date_labels = "'%y") +
   labs(title = "¿Qué tan raro fue este mes?",
-       subtitle = "Distancia de la mezcla de géneros de cada mes a mi promedio histórico (línea verde: este mes)",
-       x = "Rareza (más a la derecha = más distinto a lo habitual)", y = "Meses")
-interactivo(p, tooltip = c("x", "y"))
+       subtitle = "Qué tan distinta fue la mezcla de géneros de cada mes respecto de mi promedio. Punto verde: este mes; línea punteada: un mes típico",
+       x = NULL, y = "Rareza")
+interactivo(p)
 ```
 
 #### 📈 Subidas y bajadas

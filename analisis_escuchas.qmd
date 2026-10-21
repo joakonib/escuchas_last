@@ -14,8 +14,8 @@ format:
     fig-width: 9
     fig-height: 5
     fig-dpi: 144
-    css: estilo.css
-    include-after-body: redibujar.html
+    css: assets/estilo.css
+    include-after-body: assets/redibujar.html
 execute:
   warning: false
   message: false
@@ -42,7 +42,7 @@ zona <- "America/Santiago"
 minutos_por_cancion <- 3.5
 
 if (!file.exists("data/escuchas.parquet")) {
-  stop("No existe data/escuchas.parquet: primero corre Rscript descargar_escuchas.R")
+  stop("No existe data/escuchas.parquet: primero corre Rscript scripts/descargar_escuchas.R")
 }
 
 escuchas <- read_parquet("data/escuchas.parquet") |>
@@ -398,7 +398,7 @@ con_oyentes <- escuchas |>
   filter(!is.na(oyentes), oyentes > 0)
 
 niveles <- c("🕳️ Underground (menos de 10 mil)", "🕯️ De culto (10 mil a 100 mil)",
-             "🎙️ Conocido (100 mil a 1 millón)", "🏟️ Masivo (más de 1 millón)")
+             "🎙️ Conocido (100 mil a 1 millón)", "🌍 Masivo (más de 1 millón)")
 nivel_de <- \(o) factor(cut(o, c(0, 1e4, 1e5, 1e6, Inf), labels = niveles, right = FALSE), levels = niveles)
 colores_nivel <- setNames(c("#163f25", verde, "#a7cbb0", morado), niveles)
 
@@ -1230,7 +1230,7 @@ artista_emblema <- escuchas |>
 
 nombres_era <- genero_dominante |>
   left_join(artista_emblema, by = "era") |>
-  transmute(era, nombre = paste0(genero, " · ", artista))
+  transmute(era, estilo = genero, emblema = artista, nombre = paste0(genero, " (", artista, ")"))
 
 eras <- eras |>
   left_join(nombres_era, by = "era") |>
@@ -1242,7 +1242,7 @@ colores_era <- c(verde, morado, rosado, "#c98500", "#6b6b67", "#72a982", "#9d7cc
 # Resumen por era: período, artistas principales y géneros con más peso
 resumen_eras <- escuchas |>
   inner_join(eras, by = "mes") |>
-  group_by(era, nombre) |>
+  group_by(era, nombre, estilo, emblema) |>
   summarise(
     inicio = min(mes), fin = max(mes), meses = n_distinct(mes), escuchas = n(),
     artistas = list(names(sort(table(artista), decreasing = TRUE))[1:4]),
@@ -1268,7 +1268,8 @@ tarjeta_era <- function(fila, color) {
   fotos <- imagen_artista(fila$artistas[[1]])
   div(class = "era-card", style = paste0("border-top: 6px solid ", color),
       div(class = "era-num", style = paste0("color:", color), paste("Era", fila$era)),
-      div(class = "era-nombre", sub("^[0-9]+\\. ", "", fila$nombre)),
+      div(class = "era-nombre", HTML(paste0("<span class='era-campo'>Estilo:</span> ", fila$estilo))),
+      div(class = "era-emblema", HTML(paste0("<span class='era-campo'>Artista emblema:</span> ", fila$emblema))),
       div(class = "era-periodo", paste0(fmt_mes(fila$inicio), " → ", fmt_mes(fila$fin),
                                         " · ", fila$meses, " meses")),
       div(class = "era-fotos", lapply(seq_along(fotos), \(i) {
@@ -1670,7 +1671,7 @@ if (tiene_letras) {
 }
 ```
 
-`r if (tiene_letras) paste0("Por ahora tengo **", nrow(letras), " letras** de las ", revisadas, " canciones revisadas, que suman el **", pct(cobertura_letras), "** de todas mis escuchas. La descarga sigue y este análisis se actualiza solo.") else "Todavía no hay letras descargadas: corre <code>Rscript descargar_letras.R</code>."`
+`r if (tiene_letras) paste0("Por ahora tengo **", nrow(letras), " letras** de las ", revisadas, " canciones revisadas, que suman el **", pct(cobertura_letras), "** de todas mis escuchas. Cada mes se suman las letras de las canciones nuevas.") else "Todavía no hay letras descargadas: corre <code>Rscript scripts/descargar_letras.R</code>."`
 
 ::: {.panel-tabset}
 

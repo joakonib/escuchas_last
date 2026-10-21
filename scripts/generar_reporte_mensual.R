@@ -1,7 +1,7 @@
 # Genera reportes/reporte_AAAA-MM.html con lo escuchado en un mes.
 #
-# Uso: Rscript generar_reporte_mensual.R            -> mes anterior
-#      Rscript generar_reporte_mensual.R 2026-09    -> mes indicado
+# Uso: Rscript scripts/generar_reporte_mensual.R            -> mes anterior
+#      Rscript scripts/generar_reporte_mensual.R 2026-09    -> mes indicado
 
 library(lubridate)
 

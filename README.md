@@ -1,82 +1,74 @@
 # escuchas_last
 
-Descarga mi historial de escuchas de [Last.fm](https://www.last.fm/user/jgaldamesh), lo enriquece con géneros, países, ánimo, popularidad e imágenes, y genera dos reportes en HTML:
+Descarga mi historial de escuchas de [Last.fm](https://www.last.fm/user/jgaldamesh), lo enriquece con géneros, países, ánimo, popularidad, imágenes y letras, y genera dos reportes interactivos en HTML:
 
-- **Reporte general** (`analisis_escuchas.html`): toda la historia desde 2013. Perfil musical, personalidad de oyente, géneros, ritmo diario, artistas, eras, ánimo y más.
-- **Reporte mensual** (`reportes/reporte_AAAA-MM.html`): solo lo escuchado en un mes.
+- **Reporte general** (`analisis_escuchas.html`): toda la historia desde 2013.
+- **Reporte mensual** (`reporte_mensual.html`, con historial en `reportes/reporte_AAAA-MM.html`): solo lo escuchado en un mes, comparado con mi historia.
+
+Ambos se publican en **GitHub Pages**: https://joakonib.github.io/escuchas_last/
 
 Todo se actualiza solo el día 1 de cada mes.
 
 ## Cómo fluyen los datos
 
 ```
-Last.fm API ──► descargar_escuchas.R ──► data/escuchas.parquet ─────────────┐
-                                                                            │
-Last.fm API ──► descargar_tags.R ──────► data/tags_artistas.parquet ────────┤
-                                         data/info_artistas.parquet ────────┤
-                                                                            ▼
-Deezer API ───► R/imagenes.R ──────────► data/imagenes/ ──────► analisis_escuchas.qmd ──► analisis_escuchas.html
-                                                          └───► reporte_mensual.qmd ────► reportes/reporte_AAAA-MM.html
-                                                                (vía generar_reporte_mensual.R)
+Last.fm API ─► scripts/descargar_escuchas.R ─► data/escuchas.parquet ───────────┐
+Last.fm API ─► scripts/descargar_tags.R ─────► data/tags_artistas.parquet ──────┤
+                                               data/info_artistas.parquet ──────┤
+LRCLIB API ──► scripts/descargar_letras.R ───► data/letras.parquet ─────────────┤
+Deezer API ──► R/imagenes.R ─────────────────► data/imagenes/ ──────────────────┤
+                                                                                ▼
+                        analisis_escuchas.qmd ──► analisis_escuchas.html ──► docs/
+                        reporte_mensual.qmd ────► reporte_mensual.html ────► docs/
+                        (vía scripts/generar_reporte_mensual.R)
 ```
 
-## Archivos
+## Estructura
 
-| Archivo | Qué hace |
+| Carpeta / archivo | Qué contiene |
 |---|---|
-| `descargar_escuchas.R` | Descarga las escuchas con `user.getRecentTracks` (200 por página, 4 consultas por segundo). Es **incremental**: solo pide lo posterior a la última escucha guardada. Guarda en Parquet; si encuentra un CSV de versiones antiguas, lo migra y lo borra. |
-| `descargar_tags.R` | Para los 500 artistas más escuchados baja hasta 30 etiquetas (`artist.getTopTags`) y los oyentes globales (`artist.getInfo`). Incremental: solo consulta artistas nuevos. |
-| `R/imagenes.R` | Busca fotos de artistas y portadas de discos en Deezer. Solo acepta coincidencias exactas de nombre; si no hay, deja un archivo `.none` para no volver a buscar y la galería muestra las iniciales. Cada imagen se descarga una sola vez. |
-| `analisis_escuchas.qmd` | Reporte general (ver secciones abajo). |
-| `reporte_mensual.qmd` | Reporte de un mes: cifras, artistas y discos con imagen, canciones, álbumes, escuchas por día y descubrimientos. Recibe el mes como parámetro `mes` (AAAA-MM). |
-| `generar_reporte_mensual.R` | Renderiza el reporte mensual (por defecto, del mes anterior) y lo deja en `reportes/`. |
-| `actualizar.bat` | Corre todo en orden; lo usa la tarea programada. |
-| `estilo.css` | Estilos de ambos reportes (grises y verdes, sin azul). |
+| `analisis_escuchas.qmd` | Reporte general. |
+| `reporte_mensual.qmd` | Reporte de un mes (parámetro `mes`, AAAA-MM). |
+| `actualizar.bat` | Ciclo completo: descarga, reportes y publicación. Lo corre la tarea programada. |
+| `scripts/` | Scripts que se ejecutan: `descargar_escuchas.R`, `descargar_tags.R`, `descargar_letras.R` y `generar_reporte_mensual.R`. |
+| `R/` | Funciones de apoyo que usan los reportes: `etiquetas.R` (países, ánimo, géneros), `imagenes.R` (Deezer), `letras.R` (texto) y `visual.R` (tablas y gráficos interactivos). |
+| `assets/` | `estilo.css` (diseño de ambos reportes) y `redibujar.html` (arregla los gráficos dentro de pestañas). |
+| `docs/` | Lo que se publica en GitHub Pages: portada (`index.html`) y los dos reportes. |
 | `FUENTES.md` | Maestro de fuentes: APIs, papers y decisiones propias. |
 
-Carpetas que **no** se suben a GitHub (`.gitignore`): `data/` (escuchas, tags, imágenes, log), `reportes/`, `input/` (historial de Spotify, pendiente), `.Renviron` (credenciales) y el HTML del reporte general.
+No se suben a GitHub (`.gitignore`): `data/` (escuchas, tags, letras, imágenes, log), `reportes/`, `input/`, `.Renviron` (credenciales) y los HTML de la raíz.
 
-## Qué hay en el reporte general
+### Qué hace cada script
 
-| Sección | Qué muestra | Cómo se calcula |
-|---|---|---|
-| Cifras | Escuchas, horas, artistas, canciones, racha más larga | Horas = escuchas × 3,5 min |
-| Mi perfil musical | Texto escrito a mano a partir de los resultados + géneros y países | Género = etiqueta de mayor peso del artista, sin etiquetas genéricas ("seen live"); país = etiqueta de nacionalidad |
-| Personalidad de oyente | Familiar/Explorador, Variado/Leal, Rotador/Repetidor, Popular/De nicho | Últimos 12 meses, con umbrales propios (ver `FUENTES.md`) |
-| Nicho y joyas escondidas | Popularidad de lo que escucho | Oyentes globales del artista en Last.fm |
-| Modelo MUSIC | Peso de 5 dimensiones de preferencia musical | Etiquetas asignadas a cada dimensión |
-| Línea de tiempo y calendario | Escuchas por mes y por día | — |
-| Mi ritmo | Hora y día de la semana, sesiones | Sesión = escuchas separadas por menos de 30 minutos |
-| Mis artistas y discos | Galerías con imagen, ranking anual, artista y canción de cada año | — |
-| Explorar o volver a lo conocido | Diversidad por año, géneros en el tiempo | Artista "nuevo" = primera escucha ese año |
-| Momentos | Artistas de madrugada y de fin de semana, géneros por estación, pandemia | Estaciones del hemisferio sur; pandemia = estado de catástrofe en Chile |
-| Mi ánimo musical | Valencia y energía por año, por hora y días extremos | Etiquetas de ánimo ubicadas en el modelo de Russell |
-| Mis eras musicales | Etapas según la mezcla de géneros | k-means (k = 5) sobre la proporción mensual de géneros |
-| Lectura psicológica | Interpretación lúdica de mis gustos | Investigación sobre música y personalidad (ver `FUENTES.md`) |
-| Obsesiones, olvidados, hitos | Canciones en loop, artistas abandonados, escuchas n.º 1, 10.000… | — |
-| Explorador de artistas | Tabla con buscador | Artistas con al menos 20 escuchas |
+| Script | Qué hace |
+|---|---|
+| `descargar_escuchas.R` | Baja las escuchas con `user.getRecentTracks` (200 por página). Incremental: solo pide lo posterior a la última escucha guardada. |
+| `descargar_tags.R` | Para los 500 artistas más escuchados baja hasta 30 etiquetas y sus oyentes globales. Incremental. |
+| `descargar_letras.R` | Baja de LRCLIB las letras de las 1.500 canciones más escuchadas. Incremental, guarda cada 100 canciones. |
+| `generar_reporte_mensual.R` | Renderiza el reporte de un mes (por defecto, el anterior), lo guarda en `reportes/` y lo copia a la raíz. |
 
-**Limpieza de datos:** se excluyen escuchas con fecha anterior a 2002 (Last.fm guarda algunas sin fecha válida como 01-01-1970). Las horas se analizan en hora de Chile (`America/Santiago`).
+## Qué hay en los reportes
+
+**General:** perfil musical, países con banderas, personalidad de oyente (año a año), popularidad, modelo MUSIC, línea de tiempo, ritmo, artistas y discos, omnivorismo, momentos (madrugada, fin de semana, estaciones, pandemia), ánimo musical (valencia y energía), eras musicales (clustering con restricción temporal), laboratorio (análisis de correspondencias, playlists ocultas con LDA, supervivencia de Kaplan-Meier, árbol de decisión), letras (idioma, palabras y temas con LDA), lectura psicológica, obsesiones, hitos y explorador de artistas.
+
+**Mensual:** lo mejor del mes (artista, canción y disco), artistas, discos, canciones y descubrimientos, géneros y países del mes, ritmo, día a día, y un análisis que compara el mes con toda mi historia (rareza, subidas y bajadas, ánimo, era más parecida y proyección del año).
+
+Las fuentes y los supuestos de cada análisis están en `FUENTES.md`.
 
 ## Uso
 
-1. Crear `.Renviron` en la raíz:
+1. Crear `.Renviron` en la raíz con `LASTFM_API_KEY=...` y `LASTFM_USER=...` (API key en https://www.last.fm/api/account/create).
+2. Correr `actualizar.bat`, o los pasos por separado:
    ```
-   LASTFM_API_KEY=...
-   LASTFM_USER=...
+   Rscript scripts/descargar_escuchas.R
+   Rscript scripts/descargar_tags.R
+   Rscript scripts/descargar_letras.R
+   quarto render analisis_escuchas.qmd
+   Rscript scripts/generar_reporte_mensual.R [AAAA-MM]
    ```
-   (API key en https://www.last.fm/api/account/create)
-2. `Rscript descargar_escuchas.R`
-3. `Rscript descargar_tags.R`
-4. `quarto render analisis_escuchas.qmd`
-5. `Rscript generar_reporte_mensual.R [AAAA-MM]` (sin argumento: mes anterior)
 
-Paquetes de R: `httr2`, `dplyr`, `tidyr`, `purrr`, `readr`, `arrow`, `lubridate`, `ggplot2`, `forcats`, `stringr`, `scales`, `gt`, `reactable`, `htmltools`.
+Paquetes de R: `httr2`, `dplyr`, `tidyr`, `purrr`, `readr`, `arrow`, `lubridate`, `ggplot2`, `ggrepel`, `forcats`, `stringr`, `scales`, `reactable`, `plotly`, `htmltools`, `topicmodels`, `slam`, `stopwords`, `survival` y `rpart`.
 
 ## Actualización automática
 
-`actualizar.bat` corre los pasos 2 a 5. Una tarea del Programador de tareas de Windows (**"Last.fm escuchas"**) lo ejecuta el **día 1 de cada mes a las 10:00**, o en cuanto se prenda el computador si ese día estaba apagado. El resultado de cada ejecución queda en `data/actualizacion.log`.
-
-## Pendiente
-
-- Consolidar con el historial ampliado de Spotify para rellenar meses sin registro en Last.fm (agosto y septiembre de 2026).
+La tarea **"Last.fm escuchas"** del Programador de tareas de Windows corre `actualizar.bat` el **día 1 de cada mes a las 10:00**, o en cuanto se prenda el computador si ese día estaba apagado. Al final copia los reportes a `docs/` y hace commit, pull y push, así que GitHub Pages queda al día. El log queda en `data/actualizacion.log`.
