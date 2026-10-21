@@ -90,13 +90,23 @@ interactivo <- function(p, tooltip = "text") {
   p <- p + labs(title = NULL, subtitle = NULL)
   alto <- (knitr::opts_current$get("fig.height") %||% 5) * 90
   g <- ggplotly(p, tooltip = tooltip, height = alto) |>
-    config(displayModeBar = FALSE, locale = "es") |>
+    config(displayModeBar = FALSE, locale = "es", scrollZoom = FALSE, responsive = TRUE) |>
     layout(
       hoverlabel = list(bgcolor = "#ffffff", bordercolor = "#cfcfcb",
                         font = list(color = "#1f1f1f", size = 12)),
       legend = list(orientation = "h", x = 0, y = 1.08),
-      margin = list(t = 10)
+      margin = list(t = 10),
+      # Sin arrastre ni zoom: en el celular el dedo desliza la página en vez del gráfico
+      dragmode = FALSE,
+      hovermode = "closest"
     )
+  # Fija todos los ejes (incluidos los de paneles múltiples) para que no se muevan al tocar
+  g <- plotly_build(g)
+  for (eje in grep("^[xy]axis", names(g$x$layout), value = TRUE)) {
+    g$x$layout[[eje]]$fixedrange <- TRUE
+  }
+  # Ancho adaptable: si no, hereda el ancho fijo de la figura y se sale en el celular
+  g$width <- "100%"
   div(class = "grafico",
       if (!is.null(titulo)) div(class = "tabla-titulo", titulo),
       if (!is.null(subtitulo)) div(class = "tabla-subtitulo", subtitulo),

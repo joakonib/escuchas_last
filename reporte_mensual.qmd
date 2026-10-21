@@ -466,7 +466,7 @@ p <- ggplot(rarezas, aes(mes_id, rareza, text = etiqueta)) +
   geom_point(data = \(d) filter(d, !este), color = principal, size = 1.6) +
   geom_point(data = \(d) filter(d, este), color = verde, size = 4.5) +
   scale_y_continuous(expand = expansion(mult = c(0, 0.08))) +
-  scale_x_date(date_breaks = "1 year", date_labels = "'%y") +
+  scale_x_date(date_breaks = "2 years", date_labels = "'%y") +
   labs(title = "¿Qué tan raro fue este mes?",
        subtitle = "Qué tan distinta fue la mezcla de géneros de cada mes respecto de mi promedio. Punto verde: este mes; línea punteada: un mes típico",
        x = NULL, y = "Rareza")
