@@ -1,0 +1,208 @@
+---
+title: "🔧 Cómo está hecho"
+subtitle: "Datos, procesamiento y técnicas detrás de los reportes"
+lang: es
+format:
+  html:
+    theme: cosmo
+    toc: true
+    toc-location: left
+    toc-title: "Contenido"
+    toc-depth: 2
+    embed-resources: true
+    html-math-method: katex
+    css: assets/estilo.css
+    include-after-body: assets/redibujar.html
+execute:
+  echo: false
+  warning: false
+  message: false
+---
+
+```{r}
+#| label: setup
+library(htmltools)
+source("R/visual.R")
+linea_generacion()
+```
+
+::: {.bienvenida}
+👋 Esta página explica **cómo se construyeron** el [reporte general](analisis_escuchas.html) y el [reporte mensual](reporte_mensual.html): de dónde salen los datos, cómo se limpian y qué hace cada técnica. Cada técnica tiene una explicación **en simple**, para cualquier lector, y otra **en detalle**, con fórmulas, supuestos y limitaciones. Todo el código está en [GitHub](https://github.com/joakonib/escuchas_last) y las referencias, en [FUENTES.md](https://github.com/joakonib/escuchas_last/blob/main/FUENTES.md).
+:::
+
+## 🗺️ El recorrido de los datos
+
+::: {.pasos}
+::: {.paso}
+**1. Escuchas**<br>Last.fm registra cada canción que pongo (un *scrobble*). Su API entrega el historial completo: fecha, artista, canción y álbum.
+:::
+::: {.paso}
+**2. Etiquetas**<br>Para los 500 artistas más escuchados se bajan hasta 30 etiquetas (géneros, países, ánimo) y su número de oyentes.
+:::
+::: {.paso}
+**3. Letras e imágenes**<br>Letras de las 1.500 canciones más escuchadas (LRCLIB) y fotos y portadas (Deezer).
+:::
+::: {.paso}
+**4. Análisis**<br>R procesa todo y Quarto arma los reportes HTML interactivos.
+:::
+::: {.paso}
+**5. Publicación**<br>Cada día 1, una tarea de Windows repite el ciclo y publica los reportes en GitHub Pages.
+:::
+:::
+
+Los datos se guardan en formato **Parquet**, que conserva los tipos (fechas, números), ocupa varias veces menos que un CSV y se lee mucho más rápido. Todas las descargas son **incrementales**: cada mes solo se pide lo nuevo.
+
+## 🧹 Limpieza y preparación
+
+| Paso | Qué se hace | Por qué |
+|---|---|---|
+| Fechas inválidas | Se excluyen las escuchas con fecha anterior a 2002 | Last.fm guarda algunas escuchas sin fecha válida como 01-01-1970 |
+| Zona horaria | Las fechas se pasan de UTC a hora de Chile (`America/Santiago`) | Para que "las 9 de la mañana" sean mis 9 de la mañana |
+| Horas escuchadas | Escuchas × 3,5 minutos | Last.fm no entrega la duración; 3,5 min es un promedio razonable |
+| Género de cada artista | La etiqueta de **mayor peso** del artista, descartando etiquetas genéricas ("seen live", "favorites", décadas, nacionalidades) | Simplifica, pero un artista queda con un solo género |
+| País de cada artista | La etiqueta de nacionalidad de mayor peso, más correcciones a mano (p. ej. Marcel Duchamp, banda punk chilena) | Las etiquetas de nacionalidad no siempre existen o son correctas |
+| Imágenes | Se acepta una foto de Deezer solo si el nombre coincide exactamente; entre homónimos se elige el de más seguidores | Para no mostrar la foto de otro artista ("Idles" ≠ "IDLES") |
+| Letras | Se detecta el idioma, se pasa a minúsculas, se separa en palabras y se quitan las palabras vacías ("el", "the", "yeah"…) | Para que el análisis se concentre en palabras con significado |
+
+## 📏 Medidas propias
+
+### Personalidad de oyente
+
+::: {.callout-note appearance="simple" icon="false"}
+**En simple.** Inspirada en Spotify Wrapped: cuatro ejes con dos polos cada uno. Para cada período veo de qué lado caigo.
+:::
+
+| Eje | Medida | Umbral (centro) |
+|---|---|---|
+| Familiar ↔ Explorador | % de escuchas a artistas descubiertos en el período | 15% |
+| Variado ↔ Leal | % de escuchas a los 10 artistas más escuchados del período | 30% |
+| Rotador ↔ Repetidor | Escuchas por canción distinta | 3 |
+| Popular ↔ De nicho | Mediana de oyentes en Last.fm de lo escuchado (invertida) | 1 millón |
+
+La posición en cada eje usa una **escala logarítmica**: el umbral queda al centro y 4 veces el umbral (o un cuarto) queda en el extremo,
+$$\text{posición} = 0{,}5 + \frac{\ln(\text{valor}/\text{umbral})}{2\ln 4}.$$
+Los umbrales son una decisión propia, no vienen de un estudio.
+
+### Omnivorismo
+
+::: {.callout-note appearance="simple" icon="false"}
+**En simple.** ¿A cuántos géneros igual de escuchados equivale mi mezcla real? Si escucho un solo género, vale 1; si reparto parejo entre 30, vale 30.
+:::
+
+Es el **número efectivo de géneros**, el exponencial de la entropía de Shannon, donde $p_g$ es la proporción de escuchas del género $g$ en el año:
+$$D = \exp\Big(-\sum_g p_g \ln p_g\Big).$$
+Se usa en ecología para medir biodiversidad. La interpretación sociológica viene del "omnívoro cultural" de Peterson (1992).
+
+### Otras medidas
+
+- **Sesión**: escuchas seguidas con menos de 30 minutos entre una y otra.
+- **Racha**: días consecutivos con al menos una escucha.
+- **Niveles de popularidad**: underground (< 10 mil oyentes), de culto (10 mil a 100 mil), conocido (100 mil a 1 millón) y masivo (> 1 millón).
+- **Artista nuevo**: el que escucho por primera vez en el período analizado.
+
+## 🎭 Ánimo musical (análisis de sentimiento)
+
+::: {.callout-note appearance="simple" icon="false"}
+**En simple.** Cada artista recibe una nota de **valencia** (de triste a alegre) y de **energía** (de calma a intensa), según las etiquetas de ánimo que le ponen los usuarios de Last.fm. Después promedio lo que escuché en cada año, hora o día.
+:::
+
+**En detalle.** Se basa en el **modelo circunflejo del afecto** de Russell (1980), que ubica cualquier emoción en dos ejes: valencia y activación. Armé un diccionario que asigna a cada etiqueta un valor en ambos ejes, entre −1 y +1; por ejemplo, *sad* = (−1; −0,3), *aggressive* = (−0,4; +1), *chill* = (+0,4; −0,9). El ánimo de un artista es el promedio de sus etiquetas, ponderado por el peso de cada etiqueta, y el de un período es el promedio de sus escuchas.
+
+**Limitaciones.** Mide el ánimo **de la música según la comunidad**, no el mío ni el de cada canción. El diccionario es una decisión propia, y los artistas sin etiquetas de ánimo quedan fuera (cubren cerca del 73% de las escuchas).
+
+## 🧠 Modelo MUSIC
+
+Rentfrow, Goldberg y Levitin (2011) mostraron que las preferencias musicales se resumen en cinco dimensiones: **M**ellow (suave), **U**npretentious (de raíz), **S**ophisticated (sofisticada), **I**ntense (intensa) y **C**ontemporary (contemporánea). Asigné cada etiqueta de género a una dimensión; cada artista reparte su peso entre las dimensiones según sus etiquetas, y el perfil final pondera por mis escuchas. Es una **aproximación**: el modelo original se mide con encuestas sobre fragmentos musicales, no con etiquetas.
+
+## 🔬 Técnicas de clasificación
+
+::: {.panel-tabset}
+
+#### 🗺️ Eras: clustering con restricción temporal
+
+::: {.callout-note appearance="simple" icon="false"}
+**En simple.** Pongo todos mis meses en fila, cada uno descrito por su mezcla de géneros, y un algoritmo corta la fila en tramos de meses parecidos. Cada tramo es una era, con inicio y final.
+:::
+
+**En detalle.** Clustering jerárquico aglomerativo con **restricción de contigüidad** y criterio de **Ward**, conocido en geología como CONISS (Grimm, 1987).
+
+1. Cada mes con al menos 300 escuchas es un vector con la proporción de sus 15 géneros principales.
+2. Se parte con cada mes como un grupo.
+3. En cada paso se fusionan los **dos grupos vecinos en el tiempo** cuya unión aumenta menos la varianza interna:
+$$\Delta(a,b) = \frac{n_a\,n_b}{n_a+n_b}\,\lVert \bar{x}_a-\bar{x}_b\rVert^2.$$
+4. El número de eras se elige donde el costo de seguir fusionando da el **mayor salto relativo** (entre 4 y 8).
+5. Cada era se nombra por su género dominante y por el artista más escuchado dentro de ese género.
+
+**Por qué no k-means.** k-means junta meses parecidos aunque estén separados por años, y fija el número de grupos de antemano. Aquí cada era es un tramo continuo y el número de eras sale de los datos.
+
+**Limitaciones.** Depende de un solo género por artista; los meses con pocas escuchas quedan fuera; la regla del mayor salto es una heurística.
+
+#### 🧭 Análisis de correspondencias
+
+::: {.callout-note appearance="simple" icon="false"}
+**En simple.** Un mapa donde los años y los géneros quedan cerca si "van juntos": un año aparece cerca de los géneros que escuché más de lo normal ese año.
+:::
+
+**En detalle.** Análisis de correspondencias simple sobre la tabla de contingencia **años × géneros** (escuchas), la técnica que Bourdieu usó en *La distinción* (1979). Con $P = N/n$, los totales de fila $r$ y de columna $c$, se descompone la matriz de residuos estandarizados
+$$S = D_r^{-1/2}\,(P - r c^\top)\,D_c^{-1/2} = U \Sigma V^\top$$
+y las coordenadas principales son $F = D_r^{-1/2} U \Sigma$ (años) y $G = D_c^{-1/2} V \Sigma$ (géneros). La **inercia** de cada dimensión, $\sigma_k^2/\sum \sigma^2$, dice qué parte de las diferencias explica. Lo implementé con una SVD en R base.
+
+**Cómo leerlo.** La distancia entre dos años o entre dos géneros es interpretable. La distancia entre un año y un género no lo es directamente: lo que importa es hacia qué lado del mapa queda cada uno.
+
+#### 🎧 Playlists ocultas y temas de las letras (LDA)
+
+::: {.callout-note appearance="simple" icon="false"}
+**En simple.** Un algoritmo que, sin saber nada de géneros, descubre grupos de cosas que suelen aparecer juntas: artistas que escucho en las mismas semanas, o palabras que aparecen en las mismas canciones.
+:::
+
+**En detalle.** *Latent Dirichlet Allocation* (Blei, Ng y Jordan, 2003). Supone que cada documento es una mezcla de $K$ temas y que cada tema es una distribución sobre palabras. Se estima por muestreo de Gibbs (500 iteraciones de calentamiento y 1.500 de muestreo para los artistas; 300 y 1.000 para las letras; semilla fija).
+
+| | Documento | Palabra | Temas |
+|---|---|---|---|
+| Playlists ocultas | Una semana (≥ 50 escuchas) | Un artista (top 300) | 6 |
+| Temas de las letras | Una canción | Una palabra (que aparece en ≥ 5 letras) | 8 |
+
+El peso de un tema en mi vida combina la mezcla de temas de cada canción con las veces que la escuché. Los temas de las letras se nombran automáticamente comparando sus palabras clave con un diccionario de temas conocidos (muerte y oscuridad, amor, el cuerpo, la mente…).
+
+**Limitaciones.** $K$ es una decisión propia. Los temas pueden cambiar levemente cuando entran datos nuevos. En las letras los temas tienden a separarse por idioma.
+
+#### ⏳ Supervivencia (Kaplan-Meier)
+
+::: {.callout-note appearance="simple" icon="false"}
+**En simple.** ¿Cuánto tiempo sigue sonando un artista desde que lo descubro? Como en medicina, se estima la probabilidad de "sobrevivir" X años.
+:::
+
+**En detalle.** Para cada artista con al menos 20 escuchas, el tiempo va desde la primera escucha hasta la última. El **evento** ("muerte") es no escucharlo en el último año; los artistas que sigo escuchando quedan **censurados**. El estimador de Kaplan-Meier (1958) es
+$$\hat S(t) = \prod_{t_i \le t}\left(1 - \frac{d_i}{n_i}\right),$$
+donde $d_i$ son los abandonos en el tiempo $t_i$ y $n_i$ los artistas todavía "vivos". Chilenos y extranjeros se comparan con la **prueba log-rank**.
+
+#### 🤖 Árbol de decisión
+
+::: {.callout-note appearance="simple" icon="false"}
+**En simple.** Una máquina intenta adivinar en qué momento escuché cada canción (horario laboral, noche o fin de semana) sabiendo solo cómo es la música.
+:::
+
+**En detalle.** Árbol de clasificación CART (Breiman y otros, 1984) con el paquete `rpart`, sobre una muestra de 40.000 escuchas. Las variables son valencia, energía, género (10 principales y "otro"), popularidad (logaritmo de los oyentes) y año. Se entrena con el 70% y se evalúa con el 30% restante. El acierto se compara con una **línea base**: adivinar siempre el momento más común. Las reglas que se muestran son las de las hojas que cubren más escuchas.
+
+:::
+
+## 📆 Análisis del reporte mensual
+
+| Análisis | Cómo se calcula |
+|---|---|
+| ¿Mes típico o raro? | Distancia euclidiana entre la mezcla de géneros del mes y mi promedio histórico. El percentil compara esa distancia con la de todos los meses con al menos 300 escuchas. |
+| Subidas y bajadas | Diferencia, en puntos porcentuales, entre la proporción de cada artista en el mes y en los 3 meses anteriores. |
+| Ánimo del mes | Valencia y energía del mes, y su percentil entre todos mis meses. |
+| ¿En qué era estoy? | Distancia entre la mezcla de géneros del mes y el perfil promedio de cada era del reporte general. La más cercana gana. |
+| Proyección | Ritmo diario en lo que va del año × días del año, comparado con los años anteriores. |
+
+## ⚠️ Limitaciones generales
+
+- **Last.fm no es todo lo que escucho**: hay meses en que el registro se cortó (agosto y septiembre de 2026), y la música fuera de las apps conectadas no queda registrada.
+- **Las etiquetas son de la comunidad**: géneros, países y ánimo dependen de lo que los usuarios de Last.fm ponen a cada artista, con sus sesgos (por ejemplo, "female vocalists" se usa mucho más que "male vocalists").
+- **Solo los artistas y canciones principales** tienen etiquetas (500 artistas) y letras (1.500 canciones). Cubren la mayor parte de las escuchas, pero no todas.
+- **Las interpretaciones psicológicas son lúdicas**: la investigación habla de tendencias promedio en muchas personas, no de diagnósticos individuales.
+
+## 🛠️ Herramientas
+
+**R** (`dplyr`, `tidyr`, `arrow`, `httr2`, `ggplot2`, `plotly`, `reactable`, `topicmodels`, `survival`, `rpart`, `ggrepel`, `stopwords`), **Quarto** para los reportes, **Parquet** para los datos, **GitHub Pages** para publicar y el **Programador de tareas de Windows** para la actualización mensual.

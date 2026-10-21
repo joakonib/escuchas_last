@@ -21,10 +21,12 @@ rem 1. Datos
 rem 2. Reportes
 %QUARTO% render analisis_escuchas.qmd >> %LOG% 2>&1
 %RSCRIPT% scripts\generar_reporte_mensual.R >> %LOG% 2>&1
+%QUARTO% render metodologia.qmd >> %LOG% 2>&1
 
 rem 3. Publicación en GitHub Pages y subida de cambios
 copy /Y analisis_escuchas.html docs\analisis_escuchas.html >> %LOG% 2>&1
 copy /Y reporte_mensual.html docs\reporte_mensual.html >> %LOG% 2>&1
+copy /Y metodologia.html docs\metodologia.html >> %LOG% 2>&1
 git add docs >> %LOG% 2>&1
 git commit -m "Actualización mensual de los reportes" >> %LOG% 2>&1
 git pull --rebase >> %LOG% 2>&1

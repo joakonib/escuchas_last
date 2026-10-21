@@ -12,6 +12,7 @@ Ambos se publican en GitHub Pages:
 - 🏠 **Portada:** https://joakonib.github.io/escuchas_last/docs/
 - 📈 **Reporte general:** https://joakonib.github.io/escuchas_last/docs/analisis_escuchas.html
 - 📆 **Reporte del mes:** https://joakonib.github.io/escuchas_last/docs/reporte_mensual.html
+- 🔧 **Cómo está hecho (metodología):** https://joakonib.github.io/escuchas_last/docs/metodologia.html
 
 Todo se actualiza solo el día 1 de cada mes.
 
@@ -35,6 +36,7 @@ Deezer API ──► R/imagenes.R ───────────────�
 |---|---|
 | `analisis_escuchas.qmd` | Reporte general. |
 | `reporte_mensual.qmd` | Reporte de un mes (parámetro `mes`, AAAA-MM). |
+| `metodologia.qmd` | Explica el recorrido de los datos, el procesamiento y cada técnica, en simple y en detalle. |
 | `actualizar.bat` | Ciclo completo: descarga, reportes y publicación. Lo corre la tarea programada. |
 | `scripts/` | Scripts que se ejecutan: `descargar_escuchas.R`, `descargar_tags.R`, `descargar_letras.R` y `generar_reporte_mensual.R`. |
 | `R/` | Funciones de apoyo que usan los reportes: `etiquetas.R` (países, ánimo, géneros), `imagenes.R` (Deezer), `letras.R` (texto) y `visual.R` (tablas y gráficos interactivos). |
