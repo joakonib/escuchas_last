@@ -65,7 +65,7 @@ fi
 
 # 1. Descargas
 verificar_escuchas() {
-  "$R" -e 'suppressMessages(library(arrow)); n <- nrow(read_parquet("data/escuchas.parquet")); r <- nrow(read_parquet(commandArgs(TRUE)[1])); cat("escuchas:", n, "| respaldo:", r, "\n"); quit(status = as.integer(n < r))' "$S/escuchas_respaldo.parquet"
+  "$R" scripts/verificar_escuchas.R "$S/escuchas_respaldo.parquet"
 }
 if [ "$DESDE_CERO" = 1 ] && [ -f "$S/escuchas_respaldo.parquet" ]; then
   rm -f data/escuchas.parquet
@@ -83,14 +83,7 @@ reintentar 4 "Etiquetas" "$R" scripts/descargar_tags.R
 reintentar 4 "Letras" "$R" scripts/descargar_letras.R
 
 # 2. Chequeo de letras
-"$R" -e 'suppressMessages({library(arrow); library(dplyr)})
-l <- read_parquet("data/letras.parquet"); e <- read_parquet("data/escuchas.parquet")
-ok <- l |> filter(!is.na(letra) | instrumental)
-k <- paste(e$artista, e$cancion)
-cat("Letras: filas", nrow(l), "| con letra", sum(!is.na(l$letra)), "| instrumentales", sum(l$instrumental),
-    "| encontradas", round(100 * nrow(ok) / nrow(l), 1), "%\n")
-cat("Duplicadas:", sum(duplicated(l[c("artista", "cancion")])), "| vacías:", sum(!is.na(l$letra) & nchar(trimws(l$letra)) < 20), "\n")
-cat("Escuchas con letra:", round(100 * mean(k %in% paste(ok$artista, ok$cancion)), 1), "%\n")' >> "$LOG" 2>&1
+"$R" scripts/chequear_letras.R >> "$LOG" 2>&1
 log "Chequeo de letras registrado arriba"
 
 # 3. Pausa para el análisis de los datos y la actualización de los textos.

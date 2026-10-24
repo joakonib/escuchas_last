@@ -51,14 +51,14 @@ Last.fm registra cada canción que pongo (un *scrobble*). Su API (`user.getRecen
 
 ### 2. Etiquetas
 
-Para los **1.000 artistas más escuchados** (cerca del 98% de mis escuchas) se bajan hasta 30 etiquetas que pone la comunidad (géneros, países, ánimo) y su número de oyentes en Last.fm.
+Para **todos los artistas** que he escuchado (3.271 al 24-10-2026, el 100% de mis escuchas) se bajan hasta 30 etiquetas que pone la comunidad (géneros, países, ánimo) y su número de oyentes en Last.fm.
 
 - **Script:** `scripts/descargar_tags.R` → `data/tags_artistas.parquet` y `data/info_artistas.parquet`.
 - De ahí salen el género, el país, el ánimo (valencia y energía) y la popularidad de cada artista.
 
 ### 3. Letras e imágenes
 
-- **Letras:** la meta son las **8.000 canciones más escuchadas** (todas las que escuché 5 veces o más, cerca del 78% de mis escuchas). Al 21-10-2026 van 5.400 revisadas y 4.735 con letra (61% de mis escuchas); el resto se completa en las actualizaciones mensuales. Vienen de [LRCLIB](https://lrclib.net). Si una canción no aparece, se busca otra vez con el título limpio (sin «Remastered», «Live», «feat.», paréntesis ni corchetes) y solo el artista principal: así aparecieron 74 letras más. Script `scripts/descargar_letras.R` → `data/letras.parquet`. Se usan solo para análisis: el reporte muestra palabras y temas agregados, nunca letras completas.
+- **Letras:** la meta son las **8.000 canciones más escuchadas** (todas las que escuché 5 veces o más, cerca del 78% de mis escuchas). Al 24-10-2026 la meta está cumplida: 8.000 revisadas y 6.980 con letra (69% de mis escuchas); las canciones nuevas que entren al grupo se suman en las actualizaciones mensuales. Vienen de [LRCLIB](https://lrclib.net). Si una canción no aparece, se busca otra vez con el título limpio (sin «Remastered», «Live», «feat.», paréntesis ni corchetes) y solo el artista principal: así aparecieron 99 letras más. Script `scripts/descargar_letras.R` → `data/letras.parquet`. Se usan solo para análisis: el reporte muestra palabras y temas agregados, nunca letras completas.
 - **Imágenes:** fotos de artistas y portadas de discos desde la API de Deezer (`R/imagenes.R`), guardadas en `data/imagenes/`.
 
 ### 4. Análisis
@@ -275,7 +275,7 @@ El reporte muestra en detalle solo la ganadora: las reglas si es el árbol, los 
 
 - **Last.fm no es todo lo que escucho**: hay meses en que el registro se cortó (agosto y septiembre de 2026), y la música fuera de las apps conectadas no queda registrada.
 - **Las etiquetas son de la comunidad**: géneros, países y ánimo dependen de lo que los usuarios de Last.fm ponen a cada artista, con sus sesgos (por ejemplo, "female vocalists" se usa mucho más que "male vocalists").
-- **Solo los artistas y canciones principales** tienen etiquetas (1.000 artistas, cerca del 98 % de las escuchas) y letras (meta de 8.000 canciones; hoy 4.735 con letra, el 61% de las escuchas). Cubren la mayor parte de las escuchas, pero no todas.
+- **Solo los artistas y canciones principales** tienen letras (las 8.000 canciones más escuchadas; 6.980 con letra, el 69% de las escuchas). Las etiquetas ya cubren a todos los artistas, pero las letras no a todas las canciones.
 - **Las interpretaciones psicológicas son lúdicas**: la investigación habla de tendencias promedio en muchas personas, no de diagnósticos individuales.
 
 ## 🛠️ Herramientas

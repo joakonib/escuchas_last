@@ -3548,7 +3548,7 @@ window.Quarto = {
 <a href="reporte_mensual.html">📆 Del mes</a>
 <span class="nav-actual" aria-current="page">🔧 Metodología</span>
 </nav>
-<div class="generado">🕒 Fecha y hora de generación: 21-10-2026, 09:13 (hora de Chile)</div>
+<div class="generado">🕒 Fecha y hora de generación: 24-10-2026, 01:13 (hora de Chile)</div>
 <div class="volver">
 <a class="volver-principal" href="analisis_escuchas.html">← Reporte general</a>
 <a class="volver-portada" href="index.html" title="Portada" aria-label="Portada">🏠</a>
@@ -3576,7 +3576,7 @@ window.Quarto = {
 </ul>
 </div>
 <div id="tabset-1-2" class="tab-pane" role="tabpanel" aria-labelledby="tabset-1-2-tab">
-<p>Para los <strong>1.000 artistas más escuchados</strong> (cerca del 98% de mis escuchas) se bajan hasta 30 etiquetas que pone la comunidad (géneros, países, ánimo) y su número de oyentes en Last.fm.</p>
+<p>Para <strong>todos los artistas</strong> que he escuchado (3.271 al 24-10-2026, el 100% de mis escuchas) se bajan hasta 30 etiquetas que pone la comunidad (géneros, países, ánimo) y su número de oyentes en Last.fm.</p>
 <ul>
 <li><strong>Script:</strong> <code>scripts/descargar_tags.R</code> → <code>data/tags_artistas.parquet</code> y <code>data/info_artistas.parquet</code>.</li>
 <li>De ahí salen el género, el país, el ánimo (valencia y energía) y la popularidad de cada artista.</li>
@@ -3584,7 +3584,7 @@ window.Quarto = {
 </div>
 <div id="tabset-1-3" class="tab-pane" role="tabpanel" aria-labelledby="tabset-1-3-tab">
 <ul>
-<li><strong>Letras:</strong> la meta son las <strong>8.000 canciones más escuchadas</strong> (todas las que escuché 5 veces o más, cerca del 78% de mis escuchas). Al 21-10-2026 van 5.400 revisadas y 4.735 con letra (61% de mis escuchas); el resto se completa en las actualizaciones mensuales. Vienen de <a href="https://lrclib.net">LRCLIB</a>. Si una canción no aparece, se busca otra vez con el título limpio (sin «Remastered», «Live», «feat.», paréntesis ni corchetes) y solo el artista principal: así aparecieron 74 letras más. Script <code>scripts/descargar_letras.R</code> → <code>data/letras.parquet</code>. Se usan solo para análisis: el reporte muestra palabras y temas agregados, nunca letras completas.</li>
+<li><strong>Letras:</strong> la meta son las <strong>8.000 canciones más escuchadas</strong> (todas las que escuché 5 veces o más, cerca del 78% de mis escuchas). Al 24-10-2026 la meta está cumplida: 8.000 revisadas y 6.980 con letra (69% de mis escuchas); las canciones nuevas que entren al grupo se suman en las actualizaciones mensuales. Vienen de <a href="https://lrclib.net">LRCLIB</a>. Si una canción no aparece, se busca otra vez con el título limpio (sin «Remastered», «Live», «feat.», paréntesis ni corchetes) y solo el artista principal: así aparecieron 99 letras más. Script <code>scripts/descargar_letras.R</code> → <code>data/letras.parquet</code>. Se usan solo para análisis: el reporte muestra palabras y temas agregados, nunca letras completas.</li>
 <li><strong>Imágenes:</strong> fotos de artistas y portadas de discos desde la API de Deezer (<code>R/imagenes.R</code>), guardadas en <code>data/imagenes/</code>.</li>
 </ul>
 </div>
@@ -3930,13 +3930,13 @@ window.Quarto = {
 <div class="cell-output-display">
 <div class="tabla tabla-texto">
 <div class="tabla-titulo">Resultados de las cinco técnicas</div>
-<div class="tabla-subtitulo">En escuchas de artistas que los modelos nunca vieron (27.938 para entrenar y 12.062 para probar). 🏆 = la que se muestra en el reporte</div>
+<div class="tabla-subtitulo">En escuchas de artistas que los modelos nunca vieron (26.291 para entrenar y 13.709 para probar). 🏆 = la que se muestra en el reporte</div>
 <div class="tabla-ayuda">
 ↕ Haz clic en el nombre de una columna para ordenar
-<button class="tabla-reset" type="button" onclick="Reactable.toggleSortBy(&#39;tabla-w0r2ew95xq&#39;, &#39;.orden&#39;, false); Reactable.setSearch(&#39;tabla-w0r2ew95xq&#39;, &#39;&#39;)">↺ Orden original</button>
+<button class="tabla-reset" type="button" onclick="Reactable.toggleSortBy(&#39;tabla-3t3khg1z45&#39;, &#39;.orden&#39;, false); Reactable.setSearch(&#39;tabla-3t3khg1z45&#39;, &#39;&#39;)">↺ Orden original</button>
 </div>
-<div class="reactable html-widget html-fill-item" id="tabla-w0r2ew95xq" style="width:auto;height:auto;"></div>
-<script type="application/json" data-for="tabla-w0r2ew95xq">{"x":{"tag":{"name":"Reactable","attribs":{"data":{"modelo":["Línea base (siempre el momento más común)","Regresión logística multinomial","Árbol de inferencia condicional","🏆 Random forest (300 árboles)","Gradient boosting (xgboost, 300 rondas)"],"acierto":[0.495440225501575,0.486983916431769,0.515171613331122,0.520560437738352,0.519731387829547],"balanceado":[0.333333333333333,0.342209161439804,0.373243303671103,0.388301188378313,0.378749226464053],"f1":[0.220867058432199,0.286876677269621,0.332976274892601,0.364503695654819,0.343202514009546],".orden":[1,2,3,4,5]},"columns":[{"id":"modelo","name":"Técnica","type":"character","minWidth":220,"style":{"fontWeight":600}},{"id":"acierto","name":"Acierto","type":"numeric","format":{"cell":{"digits":0,"percent":true},"aggregated":{"digits":0,"percent":true}},"maxWidth":90},{"id":"balanceado","name":"Balanceado","type":"numeric","format":{"cell":{"digits":0,"percent":true},"aggregated":{"digits":0,"percent":true}},"maxWidth":100},{"id":"f1","name":"F1","type":"numeric","format":{"cell":{"digits":0,"percent":true},"aggregated":{"digits":0,"percent":true}},"maxWidth":80},{"id":".orden","name":".orden","type":"numeric","show":false}],"pagination":false,"defaultPageSize":12,"highlight":true,"striped":true,"compact":true,"theme":{"color":"#1f1f1f","backgroundColor":"#ffffff","borderColor":"#ecebe7","stripedColor":"#f7f9f7","highlightColor":"#e6f0e8","cellPadding":"7px 10px","style":{"fontSize":"13.5px"},"headerStyle":{"background":"#2f2f2f","color":"#ffffff","fontWeight":600,"fontSize":"12.5px","borderBottom":"none"},"searchInputStyle":{"width":"100%","marginBottom":"8px"},"paginationStyle":{"fontSize":"12.5px"}},"language":{"searchPlaceholder":"Buscar…","noData":"Sin resultados","pageNext":"Siguiente","pagePrevious":"Anterior","pageNumbers":"{page} de {pages}","pageInfo":"{rowStart}–{rowEnd} de {rows}"},"elementId":"tabla-w0r2ew95xq","dataKey":"1b3e7cb736600f1beda038010608604b"},"children":[]},"class":"reactR_markup"},"evals":[],"jsHooks":[]}</script>
+<div class="reactable html-widget html-fill-item" id="tabla-3t3khg1z45" style="width:auto;height:auto;"></div>
+<script type="application/json" data-for="tabla-3t3khg1z45">{"x":{"tag":{"name":"Reactable","attribs":{"data":{"modelo":["Línea base (siempre el momento más común)","Regresión logística multinomial","Árbol de inferencia condicional","🏆 Random forest (300 árboles)","Gradient boosting (xgboost, 300 rondas)"],"acierto":[0.49376322124152,0.492085491283099,0.514771318112189,0.502589539718433,0.521190458822671],"balanceado":[0.333333333333333,0.347573872108687,0.377061741046756,0.383097162119935,0.382759483511606],"f1":[0.220366572256405,0.29518385616669,0.342277976509497,0.368915054948323,0.352124902720244],".orden":[1,2,3,4,5]},"columns":[{"id":"modelo","name":"Técnica","type":"character","minWidth":220,"style":{"fontWeight":600}},{"id":"acierto","name":"Acierto","type":"numeric","format":{"cell":{"digits":0,"percent":true},"aggregated":{"digits":0,"percent":true}},"maxWidth":90},{"id":"balanceado","name":"Balanceado","type":"numeric","format":{"cell":{"digits":0,"percent":true},"aggregated":{"digits":0,"percent":true}},"maxWidth":100},{"id":"f1","name":"F1","type":"numeric","format":{"cell":{"digits":0,"percent":true},"aggregated":{"digits":0,"percent":true}},"maxWidth":80},{"id":".orden","name":".orden","type":"numeric","show":false}],"pagination":false,"defaultPageSize":12,"highlight":true,"striped":true,"compact":true,"theme":{"color":"#1f1f1f","backgroundColor":"#ffffff","borderColor":"#ecebe7","stripedColor":"#f7f9f7","highlightColor":"#e6f0e8","cellPadding":"7px 10px","style":{"fontSize":"13.5px"},"headerStyle":{"background":"#2f2f2f","color":"#ffffff","fontWeight":600,"fontSize":"12.5px","borderBottom":"none"},"searchInputStyle":{"width":"100%","marginBottom":"8px"},"paginationStyle":{"fontSize":"12.5px"}},"language":{"searchPlaceholder":"Buscar…","noData":"Sin resultados","pageNext":"Siguiente","pagePrevious":"Anterior","pageNumbers":"{page} de {pages}","pageInfo":"{rowStart}–{rowEnd} de {rows}"},"elementId":"tabla-3t3khg1z45","dataKey":"f1a63db169958b3cde7c0a56caacc46d"},"children":[]},"class":"reactR_markup"},"evals":[],"jsHooks":[]}</script>
 </div>
 </div>
 </div>
@@ -3995,7 +3995,7 @@ window.Quarto = {
 <ul>
 <li><strong>Last.fm no es todo lo que escucho</strong>: hay meses en que el registro se cortó (agosto y septiembre de 2026), y la música fuera de las apps conectadas no queda registrada.</li>
 <li><strong>Las etiquetas son de la comunidad</strong>: géneros, países y ánimo dependen de lo que los usuarios de Last.fm ponen a cada artista, con sus sesgos (por ejemplo, “female vocalists” se usa mucho más que “male vocalists”).</li>
-<li><strong>Solo los artistas y canciones principales</strong> tienen etiquetas (1.000 artistas, cerca del 98 % de las escuchas) y letras (meta de 8.000 canciones; hoy 4.735 con letra, el 61% de las escuchas). Cubren la mayor parte de las escuchas, pero no todas.</li>
+<li><strong>Solo los artistas y canciones principales</strong> tienen letras (las 8.000 canciones más escuchadas; 6.980 con letra, el 69% de las escuchas). Las etiquetas ya cubren a todos los artistas, pero las letras no a todas las canciones.</li>
 <li><strong>Las interpretaciones psicológicas son lúdicas</strong>: la investigación habla de tendencias promedio en muchas personas, no de diagnósticos individuales.</li>
 </ul>
 </section>

@@ -18,9 +18,20 @@ echo ==== %date% %time% ==== >> %LOG%
 rem 1. Datos (los scripts son incrementales: reintentar retoma donde quedo).
 rem Fallan por la red, asi que se reintentan hasta 4 veces.
 set MAXI=4
+if not exist data\respaldo mkdir data\respaldo
+copy /Y data\escuchas.parquet data\respaldo\escuchas_respaldo.parquet > nul
 call :reintentar "Escuchas" %RSCRIPT% scripts\descargar_escuchas.R
+rem Verificacion (paso 1.1): total no menor que el respaldo, rango, huecos y duplicados.
+rem Si quedaron menos escuchas, se restaura el respaldo.
+%RSCRIPT% scripts\verificar_escuchas.R data\respaldo\escuchas_respaldo.parquet >> %LOG% 2>&1
+if errorlevel 1 (
+  echo [%time%] Escuchas: menos que el respaldo, se restaura >> %LOG%
+  copy /Y data\respaldo\escuchas_respaldo.parquet data\escuchas.parquet > nul
+)
 call :reintentar "Etiquetas" %RSCRIPT% scripts\descargar_tags.R
 call :reintentar "Letras" %RSCRIPT% scripts\descargar_letras.R
+rem Chequeo de letras (paso 2.1): queda en el log
+%RSCRIPT% scripts\chequear_letras.R >> %LOG% 2>&1
 
 rem 2. Reportes: un error de codigo no se arregla reintentando, por eso 2 intentos.
 rem Si alguno falla, no se publica (para no subir HTML viejo como si fuera nuevo).

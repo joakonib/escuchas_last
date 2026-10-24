@@ -15,7 +15,7 @@ leer_parquet <- function(f) read_parquet(readBin(f, "raw", file.size(f)))
 api_key <- Sys.getenv("LASTFM_API_KEY")
 if (api_key == "") stop("Falta LASTFM_API_KEY en .Renviron")
 
-n_artistas <- 1000
+n_artistas <- as.integer(Sys.getenv("N_ARTISTAS", "5000"))  # tope; 5000 cubre a todos los artistas (3.271 al 23-10-2026)
 archivo <- "data/tags_artistas.parquet"
 
 top <- leer_parquet("data/escuchas.parquet") |>

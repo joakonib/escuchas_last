@@ -36,8 +36,11 @@ consulta <- function(ruta, ...) {
       req_url_query(...) |>
       req_user_agent("escuchas_last (https://github.com/joakonib/escuchas_last)") |>
       req_throttle(rate = 2) |>
+      # Sin tope de tiempo, una conexión que LRCLIB deja abierta congela la descarga
+      # (pasó el 24-10-2026); con el tope, se reintenta como un error de red
+      req_timeout(30) |>
       req_retry(max_tries = 6, is_transient = \(r) resp_status(r) %in% c(429, 503),
-                backoff = \(i) 2^i) |>
+                retry_on_failure = TRUE, backoff = \(i) 2^i) |>
       req_error(is_error = \(r) FALSE) |>
       req_perform() |>
       resp_body_json(),

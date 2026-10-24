@@ -38,7 +38,7 @@ Deezer API ──► R/imagenes.R ───────────────�
 | `reporte_mensual.qmd` | Reporte de un mes (parámetro `mes`, AAAA-MM). |
 | `metodologia.qmd` | Explica el recorrido de los datos, el procesamiento y cada técnica, en simple y en detalle. |
 | `actualizar.bat` | Ciclo completo: descarga, reportes y publicación. Lo corre la tarea programada. |
-| `scripts/` | Scripts que se ejecutan: `descargar_escuchas.R`, `descargar_tags.R`, `descargar_letras.R` y `generar_reporte_mensual.R`. |
+| `scripts/` | Scripts que se ejecutan: `descargar_escuchas.R`, `descargar_tags.R`, `descargar_letras.R`, `verificar_escuchas.R`, `chequear_letras.R`, `generar_reporte_mensual.R` y `flujo_nocturno.sh`. |
 | `R/` | Funciones de apoyo que usan los reportes: `etiquetas.R` (países, ánimo, géneros), `imagenes.R` (Deezer), `letras.R` (texto) y `visual.R` (tablas y gráficos interactivos). |
 | `assets/` | `estilo.css` (diseño de ambos reportes) y `redibujar.html` (arregla los gráficos dentro de pestañas). |
 | `docs/` | Lo que se publica en GitHub Pages: portada (`index.html`, con «Sobre mí» y la foto de Ciro en `img/`), los dos reportes y la metodología. |
@@ -52,8 +52,10 @@ No se suben a GitHub (`.gitignore`): `data/` (escuchas, tags, letras, imágenes,
 | Script | Qué hace |
 |---|---|
 | `descargar_escuchas.R` | Baja las escuchas con `user.getRecentTracks` (200 por página). Incremental: solo pide lo posterior a la última escucha guardada. |
-| `descargar_tags.R` | Para los 1.000 artistas más escuchados baja hasta 30 etiquetas y sus oyentes globales. Incremental. |
-| `descargar_letras.R` | Baja de LRCLIB las letras de las 8.000 canciones más escuchadas (meta; se completa de a poco). Incremental, guarda cada 100 canciones. |
+| `descargar_tags.R` | Para todos los artistas escuchados (tope configurable con `N_ARTISTAS`, 5.000 por defecto) baja hasta 30 etiquetas y sus oyentes globales. Incremental. |
+| `descargar_letras.R` | Baja de LRCLIB las letras de las 8.000 canciones más escuchadas (tope configurable con `N_CANCIONES`). Incremental, guarda cada 100 canciones; cada consulta tiene un tope de 30 s. |
+| `verificar_escuchas.R` | Compara la base de escuchas con un respaldo (total no menor, rango, meses sin escuchas, duplicados). Lo usan `actualizar.bat` y el flujo nocturno. |
+| `chequear_letras.R` | Resume las letras: filas, % encontradas, instrumentales, duplicadas, vacías y % de escuchas con letra. |
 | `generar_reporte_mensual.R` | Renderiza el reporte de un mes (por defecto, el anterior), lo guarda en `reportes/` y lo copia a la raíz. |
 
 ## Qué hay en los reportes

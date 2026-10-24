@@ -184,11 +184,11 @@ tagList(
 ::: {.callout-note appearance="simple" icon="false"}
 ## En pocas palabras
 
-*Escrito el 21-10-2026, con los datos hasta esa fecha.*
+*Escrito el 24-10-2026, con los datos hasta esa fecha.*
 
-**Guitarras, ruido y oscuridad.** Casi tres cuartos de lo que escucho cae en la dimensión *intensa* del modelo MUSIC (ver más abajo). El género que más pesa es el **post-punk** (15%), seguido de una familia completa de metal: heavy, black, sludge, thrash, death, stoner y doom. También hay mucho post-hardcore y asoma el hip-hop.
+**Guitarras, ruido y oscuridad.** Casi tres cuartos de lo que escucho cae en la dimensión *intensa* del modelo MUSIC (ver más abajo). El género que más pesa es el **post-punk** (14%), seguido de una familia completa de metal: heavy, black, sludge, thrash, death, stoner y doom. También hay mucho post-hardcore y asoma el hip-hop.
 
-**Un viaje del metal al post-punk.** En 2013–2015 mandaban el metal y el hardcore (Godflesh, Black Sabbath, Amenra), con el punk de Attaque 77 de por medio. El post-punk pasó de nada en 2013 a su punto más alto en 2023 (23% de mis escuchas) y hoy ronda el 16%, de la mano de la ola británica e irlandesa: **IDLES** fue mi artista del año cuatro veces, y le siguen **Fontaines D.C.** y **Black Country, New Road**. En los últimos dos años se abrió hacia lo más melódico, con **La Brígida Orquesta** como artista de 2025.
+**Un viaje del metal al post-punk.** En 2013–2015 mandaban el metal y el hardcore (Godflesh, Black Sabbath, Amenra), con el punk de Attaque 77 de por medio. El post-punk pasó de nada en 2013 a su punto más alto en 2023 (22% de mis escuchas) y hoy ronda el 16%, de la mano de la ola británica e irlandesa: **IDLES** fue mi artista del año cuatro veces, y le siguen **Fontaines D.C.** y **Black Country, New Road**. En los últimos dos años se abrió hacia lo más melódico, con **La Brígida Orquesta** como artista de 2025.
 
 **Muy local.** Una de cada cuatro escuchas de artistas con país identificado es de un artista **chileno**, y si sumo Argentina, más de un tercio es del Cono Sur. Mi artista número uno de todos los tiempos es **Tenemos Explosivos**, presente los 14 años del historial. Lo acompañan La Brígida Orquesta, Macha y el Bloque Depresivo, Fiskales Ad-Hok, Yajaira y Los Tres.
 
@@ -390,7 +390,7 @@ tabla(tabla_evo, titulo = "Mi personalidad de oyente, año a año", filas = 20,
 
 #### Popularidad de mis artistas
 
-Clasifiqué a mis 1.000 artistas principales en cuatro niveles según cuántos oyentes tienen en Last.fm, la red de más de 60 millones de usuarios donde registro mis escuchas.
+Clasifiqué a todos mis artistas en cuatro niveles según cuántos oyentes tienen en Last.fm, la red de más de 60 millones de usuarios donde registro mis escuchas.
 
 ```{r}
 #| label: nicho
@@ -1524,7 +1524,7 @@ tabla(select(playlists, nombre, artistas), titulo = "Qué hay en cada playlist o
 ```
 
 ::: {.callout-note appearance="simple" icon="false"}
-**¿Qué me dice?** El modelo no sabe nada de géneros ni de fechas: solo ve qué artistas comparten semana. Aun así, cada playlist oculta corresponde a **una etapa de mi vida**: aparece, domina un par de años y se apaga, dejando paso a la siguiente. Eso confirma con otra técnica lo que mostraron las eras. Lo interesante son las mezclas que arma solo, juntando artistas de géneros muy distintos que en mi cabeza van juntos porque los escuché en la misma época, como Tom Waits con Charly García y Neurosis, o IDLES con Los Tres.
+**¿Qué me dice?** El modelo no sabe nada de géneros ni de fechas: solo ve qué artistas comparten semana. Aun así, cada playlist oculta corresponde a **una etapa de mi vida**: aparece, domina un par de años y se apaga, dejando paso a la siguiente. Eso confirma con otra técnica lo que mostraron las eras. Lo interesante son las mezclas que arma solo, juntando artistas de géneros muy distintos que en mi cabeza van juntos porque los escuché en la misma época, como Tom Waits con Neurosis y Napalm Death, o IDLES con Sumo y Fiskales Ad-Hok.
 :::
 
 #### ⏳ ¿Cuánto dura un amor musical?
@@ -1843,7 +1843,7 @@ if (tiene_letras) {
 }
 ```
 
-`r if (tiene_letras) paste0("Por ahora tengo **", nrow(letras), " letras** de las ", revisadas, " canciones revisadas, que suman el **", pct(cobertura_letras), "** de todas mis escuchas. Cada mes se suman las letras de las canciones nuevas.") else "Todavía no hay letras descargadas: corre <code>Rscript scripts/descargar_letras.R</code>."`
+`r if (tiene_letras) paste0("Por ahora tengo **", miles(nrow(letras)), " letras** de las ", miles(revisadas), " canciones revisadas, que suman el **", pct(cobertura_letras), "** de todas mis escuchas. Cada mes se suman las letras de las canciones nuevas.") else "Todavía no hay letras descargadas: corre <code>Rscript scripts/descargar_letras.R</code>."`
 
 ::: {.panel-tabset}
 
@@ -1876,7 +1876,7 @@ interactivo(p)
 ```
 
 ::: {.callout-note appearance="simple" icon="false"}
-**¿Qué me dice?** En total, el `r if (tiene_letras) pct(total_es) else "—"` de lo que escucho (entre las canciones con letra) está en **español**. La evolución sigue a las eras: en 2014, en plena era del metal, el español era apenas un 6%; desde entonces fue subiendo hasta rondar el 40% en los últimos años, de la mano de la escena chilena y argentina.
+**¿Qué me dice?** En total, el `r if (tiene_letras) pct(total_es) else "—"` de lo que escucho (entre las canciones con letra) está en **español**. La evolución sigue a las eras: en 2014, en plena era del metal, el español era apenas un 6%; desde entonces fue subiendo hasta rondar entre el 35% y el 40% en los últimos años, de la mano de la escena chilena y argentina.
 :::
 
 #### 🔤 Palabras más cantadas
@@ -2013,7 +2013,7 @@ interactivo(p)
 ```
 
 ::: {.callout-note appearance="simple" icon="false"}
-**¿Qué me dice?** *Escrito el 21-10-2026, con 4.735 letras.* Los ocho temas quedan casi parejos (entre 11% y 16% cada uno): ninguno domina. El más presente es **el amor y la vida en español**, con el voseo del rock chileno y argentino (*amor, vida, vos, corazón, mundo*) y Tenemos Explosivos como ejemplo. A su lado aparece otra forma de hablar de amor en castellano, más de **deseo y noche**, la del lenguaje urbano y tropical (*noche, gusta, mami, dame*), con La Brígida Orquesta. En inglés, el amor se reparte entre **el amor y las despedidas** (*love, time, feel, heart, lost*), con Black Country, New Road, y uno más íntimo de **abrazos, frío y espera** (*baby, cold, hold, stay, waiting*), con IDLES. Le siguen **la vida y el paso del tiempo** (*life, day, live, people, leave*), con Interpol, y un imaginario contemplativo de **luz y oscuridad** (*night, eyes, light, black, sky*), con Deafheaven. El lado más duro está en **la muerte, la sangre y lo sagrado** del metal (*die, blood, death, pain*) y en **la rabia, la calle y el dinero** del hip-hop y el hardcore (*fuck, money, bad*). Los temas se separan primero por idioma, porque las palabras de cada idioma casi nunca se mezclan en una misma canción, y luego por escena: cada género tiene su propio vocabulario, y por eso un mismo gran tema, como el amor, aparece partido en varios.
+**¿Qué me dice?** *Escrito el 24-10-2026, con 6.980 letras.* Los ocho temas quedan casi parejos (entre 11% y 16% cada uno): ninguno domina. El más presente es **el amor y la vida en español**, con el voseo del rock chileno y argentino (*quiero, amor, vida, vos, corazón*) y Tenemos Explosivos como ejemplo. A su lado aparece otra forma de hablar de amor en castellano, más de **deseo y noche**, la del lenguaje urbano y tropical (*mami, gusta, dime, noche, calle*), con La Brígida Orquesta. En inglés, el amor queda en **el amor y las despedidas** (*love, feel, heart, baby, stay, hold*), con IDLES. Le siguen **la vida y el paso del tiempo** (*time, life, day, mind, people*), con Fontaines D.C., y un imaginario contemplativo de **luz y oscuridad** (*eyes, night, light, black, sky*), con Type O Negative. Con más letras aparece un tema nuevo, el de **noches, peleas y quiebres** del post-punk (*girl, dance, hands, cut, city*), otra vez con IDLES. El lado más duro está en **la muerte, la sangre y lo sagrado** del metal (*die, death, blood, soul*), con Morbid Angel, y en **la rabia, la calle y el dinero** del hip-hop y el hardcore (*fuck, money, bring*). Los temas se separan primero por idioma, porque las palabras de cada idioma casi nunca se mezclan en una misma canción, y luego por escena: cada género tiene su propio vocabulario, y por eso un mismo gran tema, como el amor, aparece partido en varios.
 :::
 
 :::
@@ -2023,9 +2023,9 @@ interactivo(p)
 ::: {.callout-note appearance="simple" icon="false"}
 ## Lo que dice la investigación sobre gustos como los míos
 
-*Escrito el 21-10-2026. Es una lectura lúdica: los estudios hablan de tendencias promedio en muchas personas, no de diagnósticos individuales.*
+*Escrito el 24-10-2026. Es una lectura lúdica: los estudios hablan de tendencias promedio en muchas personas, no de diagnósticos individuales.*
 
-**Apertura, no rabia.** Con 71% de música *intensa*, mi perfil es casi puro "intenso y rebelde". Rentfrow y Gosling (2003) encontraron que quienes prefieren rock, alternativo y metal puntúan más alto en **apertura a la experiencia** (curiosidad, gusto por ideas nuevas), y que esa preferencia **no** se asocia a más neuroticismo ni a menos amabilidad, contra el estereotipo. North (2008) encontró que los fans del metal se parecen mucho a los de la música clásica: creativos, tranquilos consigo mismos y algo introvertidos.
+**Apertura, no rabia.** Con 70% de música *intensa*, mi perfil es casi puro "intenso y rebelde". Rentfrow y Gosling (2003) encontraron que quienes prefieren rock, alternativo y metal puntúan más alto en **apertura a la experiencia** (curiosidad, gusto por ideas nuevas), y que esa preferencia **no** se asocia a más neuroticismo ni a menos amabilidad, contra el estereotipo. North (2008) encontró que los fans del metal se parecen mucho a los de la música clásica: creativos, tranquilos consigo mismos y algo introvertidos.
 
 **La oscuridad como refugio.** Todos mis años caen en el cuadrante *tenso/oscuro*: valencia negativa y energía alta. La investigación sobre la "paradoja de la música triste" (Vuoskoski y otros, 2012) muestra que quienes disfrutan la música triste o sombría tienden a puntuar más alto en **empatía** y apertura. Y en música extrema, Sharman y Dingle (2015) vieron que escucharla después de enojarse no aumenta la rabia: ayuda a procesarla y sube las emociones positivas. Mis días más oscuros (doom de Cathedral, Black Sabbath y Witchfinder General) fueron todos entre 2013 y 2017; los más luminosos, de cumbia con **Chico Trujillo** y **La Floripondio**.
 

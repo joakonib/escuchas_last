@@ -54,6 +54,8 @@ Se actualiza cada vez que se agrega una fuente nueva.
 - Diccionarios que asignan etiquetas a países, a dimensiones MUSIC y a valencia/energía.
 - Duración promedio de 3,5 minutos por canción para estimar horas.
 - Número de eras (k = 5) en el análisis de clusters.
+- Cobertura: etiquetas y oyentes de todos los artistas (tope de 5.000; 3.271 al 24-10-2026) y letras de las 8.000 canciones más escuchadas.
+- Tope de 30 s por consulta a LRCLIB, con reintento: sin él, una conexión que el servidor dejó abierta congeló la descarga (24-10-2026).
 
 ## Portada (`docs/index.html`)
 

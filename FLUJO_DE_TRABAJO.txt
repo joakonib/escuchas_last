@@ -5,13 +5,14 @@ que se ejecuta (actualizar.bat para el mensual automático; el script nocturno
 para las corridas completas con Claude). Si un paso está aquí y no en el flujo
 efectivo, o al revés, hay que corregirlo.
 
-Última actualización: 21-10-2026
+Última actualización: 24-10-2026
 
 
 HAY DOS FLUJOS
 --------------
 A. Mensual automático (actualizar.bat, tarea programada el día 1 a las 10:00).
-   Sin intervención: descarga incremental, render, copia a docs/, commit y push.
+   Sin intervención: descarga incremental (con respaldo y verificación de las
+   escuchas, y chequeo de letras), render, copia a docs/, commit y push.
    Reintenta 4 veces las descargas, pull y push, y 2 los renders; si un
    render falla, no publica. Todo queda con hora en data/actualizacion.log.
    No tiene análisis ni revisión de textos (eso requiere a Claude).
@@ -54,25 +55,29 @@ FASE 1. Descargas
   1.1 Escuchas de Last.fm (scripts/descargar_escuchas.R).
       - Incremental por defecto. Para bajar todo desde cero: respaldar y quitar
         data/escuchas.parquet antes de correrlo.
-      - Verificar contra el respaldo: total de escuchas no menor, rango de
-        fechas, meses con huecos, duplicados. Si queda incompleta: restaurar
-        el respaldo y completar en modo incremental.
+      - Verificar contra el respaldo (scripts/verificar_escuchas.R): total de
+        escuchas no menor, rango de fechas, meses sin escuchas, duplicados. Si
+        queda incompleta: restaurar el respaldo y completar en modo incremental.
   1.2 Etiquetas y oyentes de artistas (scripts/descargar_tags.R).
-      - Cobertura actual: 1.000 artistas (cerca del 98 % de las escuchas).
+      - Cobertura: todos los artistas (tope N_ARTISTAS = 5.000; al 24-10-2026
+        son 3.271 = 100 % de las escuchas). Unos 19 min por 2.300 artistas.
       - Usa la misma API que 1.1: no correrlos en paralelo (límite de consultas).
   1.3 Letras de LRCLIB (scripts/descargar_letras.R).
-      - Meta: 8.000 canciones (cerca del 78 % de las escuchas; al 21-10-2026
-        van 5.400 revisadas, 4.735 con letra = 61 % de las escuchas;
-        todas las canciones con 5 o más escuchas).
-      - Unas 30 canciones por minuto: 1.000 canciones nuevas toman ~35 min.
+      - Meta: 8.000 canciones (todas las con 5 o más escuchas). Cumplida el
+        24-10-2026: 8.000 revisadas, 6.980 con letra = 69 % de las escuchas.
+      - Lotes de 100 canciones; cada lote toma de 3 a 5 min (hasta 12 si
+        LRCLIB está lento): 1.000 canciones nuevas, ~40 min.
+      - Cada consulta tiene un tope de 30 s (req_timeout) y se reintenta. Si
+        un lote pasa más de 15 min sin terminar, revisar si quedó pegado
+        (CPU del proceso R casi quieta): detenerlo y relanzar; retoma solo.
       - Puede correr en paralelo con 1.1 (otra API).
       - Al final hace una segunda pasada para las no encontradas, con el
         título limpio (sin "Remastered", "Live", "feat.", paréntesis ni
         corchetes) y el artista principal. Una sola vez por canción.
 
 FASE 2. Análisis antes del render (el flujo se pausa hasta que termine)
-  2.1 Chequeo de letras: filas, % encontradas, instrumentales, duplicadas,
-      vacías y % de escuchas con letra.
+  2.1 Chequeo de letras (scripts/chequear_letras.R): filas, % encontradas,
+      instrumentales, duplicadas, vacías y % de escuchas con letra.
   2.2 Render de prueba del reporte general: deja los resultados clave en
       data/resultados.rds (perfil, ánimo, eras, MUSIC, pandemia, letras).
   2.3 Recalcular cada cifra escrita a mano en los textos y compararla:
@@ -181,9 +186,7 @@ PENDIENTES / PRÓXIMOS PASOS
     con Last.fm (reproducciones de 30 s o más; ventana de tiempo; columna
     fuente) en data/escuchas_consolidadas.parquet, y que todo el flujo
     (etiquetas, letras, reportes, actualizar.bat) parta de esa base.
-  - Llevar la verificación de 1.1 y el chequeo de letras de 2.1 también a
-    actualizar.bat (flujo A). Los reintentos ya están (21-10-2026).
-  - actualizar.bat debe quedar SOLO en ASCII (sin tildes ni eñes): cmd.exe
+  - Regla vigente: actualizar.bat SOLO en ASCII (sin tildes ni eñes): cmd.exe
     con chcp 65001 lee mal los saltos goto/call si hay caracteres UTF-8.
   - Portada: complementar "Sobre mí".
 
@@ -217,3 +220,14 @@ HISTORIAL DE CAMBIOS DEL FLUJO
               la portada y en los reportes (scripts/ciro_sin_fondo.py quita
               el damero y pasa los azules a verde). Reporte mensual: si el
               mes anterior tiene pocos datos, usar el mes en curso (--mes).
+  24-10-2026  (noche del 23 al 24) Letras: meta de 8.000 cumplida (26 lotes,
+              6.980 con letra, 69 % de las escuchas). Etiquetas y oyentes
+              ampliados a todos los artistas (3.271, 100 % de las escuchas;
+              tope N_ARTISTAS). La descarga de letras quedó pegada 20 min en
+              una consulta sin respuesta: se agrega tope de 30 s por consulta
+              con reintento. Verificación de escuchas y chequeo de letras pasan
+              a scripts propios (verificar_escuchas.R, chequear_letras.R) y se
+              suman a actualizar.bat (flujo A), que sigue solo en ASCII.
+              Textos recalculados: post-punk 14 %, peak 2023 22 %, música
+              intensa 70 %, temas de letras (nuevo: "Noches, peleas y
+              quiebres") y playlists ocultas.
