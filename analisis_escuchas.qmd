@@ -1524,7 +1524,7 @@ tabla(select(playlists, nombre, artistas), titulo = "Qué hay en cada playlist o
 ```
 
 ::: {.callout-note appearance="simple" icon="false"}
-**¿Qué me dice?** El modelo no sabe nada de géneros ni de fechas: solo ve qué artistas comparten semana. Aun así, cada playlist oculta corresponde a **una etapa de mi vida**: aparece, domina un par de años y se apaga, dejando paso a la siguiente. Eso confirma con otra técnica lo que mostraron las eras. Lo interesante son las mezclas que arma solo, juntando artistas de géneros muy distintos que en mi cabeza van juntos porque los escuché en la misma época, como Tom Waits con Neurosis y Napalm Death, o IDLES con Sumo y Fiskales Ad-Hok.
+**¿Qué me dice?** El modelo no sabe nada de géneros ni de fechas: solo ve qué artistas comparten semana. Aun así, cada playlist oculta corresponde a **una etapa de mi vida**: aparece, domina un par de años y se apaga, dejando paso a la siguiente. Eso confirma con otra técnica lo que mostraron las eras. Lo interesante son las mezclas que arma solo, juntando artistas de géneros muy distintos que en mi cabeza van juntos porque los escuché en la misma época, como Tom Waits con Charly García y Neurosis, o IDLES con Napalm Death y C. Tangana.
 :::
 
 #### ⏳ ¿Cuánto dura un amor musical?

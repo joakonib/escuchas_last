@@ -237,4 +237,8 @@ HISTORIAL DE CAMBIOS DEL FLUJO
               reordena con cualquier cambio en los datos: siempre revisar
               ese texto (paso 2.3). Para lanzar actualizar.bat a mano, usar
               %ComSpec% y no "cmd": en este PC "cmd" apunta a Rtools y no
-              ejecuta el .bat, aunque termina sin error.
+              ejecuta el .bat, aunque termina sin error. Esa noche la tarea
+              programada partió sola a las 23:09, atrasada, en paralelo al
+              flujo B: chocaron los renders y publicó textos sin revisar. Antes
+              de un flujo B, revisar si la tarea tiene una corrida pendiente.
+              Las playlists ocultas también se reordenan: revisar su texto.
