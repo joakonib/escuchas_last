@@ -34,6 +34,14 @@ Reglas generales
   - Si una descarga falla todos sus intentos, se registra y se sigue. Si un
     RENDER falla, NO se publica (para no subir HTML viejo como nuevo).
   - Todo queda con hora en data/noche.log.
+  - Candado: data/flujo.lock impide que corran dos flujos a la vez (A y B lo
+    comparten). Si quedó de una corrida cortada se ignora pasadas 12 horas
+    en B y 1 día en A, o se puede borrar a mano.
+  - Modelos de temas y playlists congelados (data/modelo_*.rds): lo nuevo se
+    clasifica sin moverlos. Se reentrenan si lo nuevo supera el 15 % o con
+    --reentrenar, y entonces hay que reescribir sus textos.
+  - Textos: las cifras se calculan en el propio qmd; la redacción sigue
+    ESTILO.md (cómo escribe Joaquín).
   - Para detener un flujo: matar también sus procesos hijos (bash y R) y
     confirmar con la lista de procesos que no quede ninguno. Nunca dejar dos
     descargas escribiendo el mismo archivo: lo dañan (pasó el 21-10-2026 con
@@ -75,9 +83,12 @@ FASE 1. Descargas
         título limpio (sin "Remastered", "Live", "feat.", paréntesis ni
         corchetes) y el artista principal. Una sola vez por canción.
 
+  1.4 Clima de Santiago (scripts/descargar_clima.R, Open-Meteo). Incremental.
+
 FASE 2. Análisis antes del render (el flujo se pausa hasta que termine)
   2.1 Chequeo de letras (scripts/chequear_letras.R): filas, % encontradas,
-      instrumentales, duplicadas, vacías y % de escuchas con letra.
+      instrumentales, duplicadas, vacías y % de escuchas con letra. Chequeo de
+      estilo de los textos (scripts/chequear_estilo.R, guía en ESTILO.md).
   2.2 Render de prueba del reporte general: deja los resultados clave en
       data/resultados.rds (perfil, ánimo, eras, MUSIC, pandemia, letras).
   2.3 Recalcular cada cifra escrita a mano en los textos y compararla:
@@ -242,3 +253,7 @@ HISTORIAL DE CAMBIOS DEL FLUJO
               flujo B: chocaron los renders y publicó textos sin revisar. Antes
               de un flujo B, revisar si la tarea tiene una corrida pendiente.
               Las playlists ocultas también se reordenan: revisar su texto.
+              Luego, el mismo día: candado entre flujos, modelos congelados,
+              verificación de escuchas también en el flujo B, pull con
+              autostash en A, cruces nuevos (clima, letra y sonido,
+              genealogía), cifras calculadas y textos según ESTILO.md.

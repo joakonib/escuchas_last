@@ -42,6 +42,19 @@ Se actualiza cada vez que se agrega una fuente nueva.
 | Friedman (2001), *Greedy Function Approximation: A Gradient Boosting Machine*, Annals of Statistics; Chen y Guestrin (2016), *XGBoost* | Gradient boosting | Laboratorio: "¿Puede una máquina adivinar cuándo escucho?" |
 | [LRCLIB](https://lrclib.net) | Letras de las canciones más escuchadas (solo análisis local; el reporte muestra palabras y tópicos agregados) | `descargar_letras.R` → `data/letras.parquet` |
 
+## Cruces
+
+| Fuente | Qué se toma | Dónde se usa |
+|---|---|---|
+| [Open-Meteo, Historical Weather API](https://open-meteo.com/en/docs/historical-weather-api) | Temperatura media, lluvia y horas de sol diarias de Santiago | Sección "La música y el clima" |
+| Léxico NRC (Mohammad y Turney, 2013), vía paquete `syuzhet` | Palabras positivas y negativas en inglés y español | Pestaña "Lo que dice y cómo suena" |
+
+## Estilo de los textos
+
+| Fuente | Qué se toma | Dónde se usa |
+|---|---|---|
+| Trabajos propios anteriores a 2025 (tesis, tareas e informes, solo como muestra local) | Rasgos de escritura medidos; no se reproduce su contenido | `ESTILO.md` y `scripts/chequear_estilo.R` |
+
 ## Contexto
 
 | Fuente | Qué se toma | Dónde se usa |

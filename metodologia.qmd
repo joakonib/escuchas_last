@@ -271,6 +271,24 @@ El reporte muestra en detalle solo la ganadora: las reglas si es el árbol, los 
 | ¿En qué era estoy? | Distancia entre la mezcla de géneros del mes y el perfil promedio de cada era del reporte general. La más cercana gana. |
 | Proyección | Ritmo diario en lo que va del año × días del año, comparado con los años anteriores. |
 
+## 🔗 Cruces con otras fuentes
+
+### La música y el clima
+
+El clima diario de Santiago proviene de [Open-Meteo](https://open-meteo.com) (`scripts/descargar_clima.R`). Se analizan los días con al menos 10 escuchas con ánimo, y se considera día con lluvia aquel con 1 mm o más. Para que el resultado no se confunda con las estaciones, cada variable se compara con el promedio de su mismo mes y año, controlando además si es fin de semana. Los intervalos de 95% se obtienen con 1.000 remuestreos de semanas completas, ya que los días seguidos se parecen entre sí y un intervalo tradicional resultaría optimista.
+
+### Lo que dice la letra y cómo suena
+
+El sentimiento de cada letra es el promedio de sus palabras positivas (+1) y negativas (−1) según el léxico NRC (Mohammad y Turney, 2013), disponible en el paquete `syuzhet`. Se exigen al menos 15 palabras del léxico por canción y se estandariza dentro de cada idioma, dado que el léxico en español es una traducción y no es comparable con el inglés. El sonido corresponde a la valencia de las etiquetas del artista, por lo cual todas las canciones de un artista tienen el mismo valor. Asimismo, un léxico no entiende la ironía ni el contexto.
+
+### Genealogía de mis descubrimientos
+
+Para cada artista con al menos 20 escuchas se busca al artista que más sonó durante las tres horas anteriores a su primera escucha, y en caso de empate gana el más cercano. No se considera el primer mes del historial, ya que no tiene un período anterior contra el cual comparar. La cadena se arma siguiendo a cada padrino hacia atrás. Cabe señalar que se trata de cercanía en el tiempo y no de causalidad.
+
+### Modelos estables
+
+Los modelos LDA de temas y playlists se entrenan una vez y se guardan en `data/`. Los documentos nuevos se clasifican con el modelo guardado, sin modificar sus temas, y solo se reentrena si los documentos nuevos superan el 15% o si se solicita con `--reentrenar`. De esta manera los temas no cambian con cada actualización y sus textos siguen siendo válidos.
+
 ## ⚠️ Limitaciones generales
 
 - **Last.fm no es todo lo que escucho**: hay meses en que el registro se cortó (agosto y septiembre de 2026), y la música fuera de las apps conectadas no queda registrada.

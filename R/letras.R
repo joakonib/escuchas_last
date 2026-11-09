@@ -37,6 +37,31 @@ tokenizar_letras <- function(letras) {
     filter(str_length(palabra) >= 3, !palabra %in% palabras_vacias)
 }
 
+# Sentimiento de cada letra con el léxico NRC (Mohammad y Turney, 2013): promedio de las
+# palabras positivas (+1) y negativas (-1) que contiene. Se estandariza dentro de cada
+# idioma, porque el léxico en español es una traducción y no es comparable con el inglés.
+sentimiento_letras <- function(tokens, min_palabras = 15) {
+  lexico <- function(lengua, idioma) {
+    syuzhet::get_sentiment_dictionary("nrc", language = lengua) |>
+      filter(sentiment %in% c("positive", "negative")) |>
+      # En este léxico value siempre es 1: el signo lo da la columna sentiment
+      group_by(palabra = word) |>
+      summarise(valor = mean(ifelse(sentiment == "negative", -1, 1)), .groups = "drop") |>
+      filter(valor != 0) |>
+      mutate(idioma = idioma)
+  }
+  tokens |>
+    filter(!is.na(idioma)) |>
+    inner_join(bind_rows(lexico("english", "Inglés"), lexico("spanish", "Español")),
+               by = c("palabra", "idioma")) |>
+    group_by(artista, cancion, idioma) |>
+    summarise(sent_letra = mean(valor), palabras_lexico = n(), .groups = "drop") |>
+    filter(palabras_lexico >= min_palabras) |>
+    group_by(idioma) |>
+    mutate(z_letra = as.numeric(scale(sent_letra))) |>
+    ungroup()
+}
+
 # Temas conocidos para nombrar y describir los tópicos de LDA. Cada tópico recibe
 # el tema cuyas palabras clave coinciden más con sus 15 palabras principales
 # (las primeras pesan más), y cada tema se usa una sola vez. Hay subtemas

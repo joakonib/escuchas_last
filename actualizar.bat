@@ -15,6 +15,15 @@ if not defined ESPERA set ESPERA=60
 
 echo ==== %date% %time% ==== >> %LOG%
 
+rem Candado compartido con flujo_nocturno.sh: dos flujos a la vez danan los archivos.
+rem mkdir falla si ya existe; un candado de mas de 1 dia es de una corrida que se corto.
+forfiles /P data /M flujo.lock /D -1 /C "%ComSpec% /c rmdir @path" > nul 2>&1
+mkdir data\flujo.lock 2> nul
+if errorlevel 1 (
+  echo [%time%] Hay otro flujo en curso: no se ejecuta >> %LOG%
+  exit /b 1
+)
+
 rem 1. Datos (los scripts son incrementales: reintentar retoma donde quedo).
 rem Fallan por la red, asi que se reintentan hasta 4 veces.
 set MAXI=4
@@ -30,6 +39,7 @@ if errorlevel 1 (
 )
 call :reintentar "Etiquetas" %RSCRIPT% scripts\descargar_tags.R
 call :reintentar "Letras" %RSCRIPT% scripts\descargar_letras.R
+call :reintentar "Clima" %RSCRIPT% scripts\descargar_clima.R
 rem Chequeo de letras (paso 2.1): queda en el log
 %RSCRIPT% scripts\chequear_letras.R >> %LOG% 2>&1
 
@@ -46,6 +56,7 @@ if errorlevel 1 set FALLO=1
 if defined FALLO (
   echo [%time%] Un render fallo: NO se publica. Revisar el log. >> %LOG%
   echo Fin con errores: %date% %time% >> %LOG%
+  rmdir data\flujo.lock
   exit /b 1
 )
 
@@ -53,12 +64,14 @@ rem 3. Publicacion en GitHub Pages y subida de cambios
 copy /Y analisis_escuchas.html docs\analisis_escuchas.html >> %LOG% 2>&1
 copy /Y reporte_mensual.html docs\reporte_mensual.html >> %LOG% 2>&1
 copy /Y metodologia.html docs\metodologia.html >> %LOG% 2>&1
+del /q analisis_escuchas.knit.md analisis_escuchas.rmarkdown > nul 2>&1
 git add docs >> %LOG% 2>&1
 git commit -m "Actualizacion mensual de los reportes" >> %LOG% 2>&1
 set MAXI=4
-call :reintentar "Pull" git pull --rebase
+call :reintentar "Pull" git pull --rebase --autostash
 call :reintentar "Push" git push
 echo Fin: %date% %time% >> %LOG%
+rmdir data\flujo.lock
 exit /b 0
 
 rem Ejecuta un comando hasta MAXI veces y registra cada intento con la hora.

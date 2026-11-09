@@ -55,6 +55,8 @@ No se suben a GitHub (`.gitignore`): `data/` (escuchas, tags, letras, imágenes,
 | `descargar_tags.R` | Para todos los artistas escuchados (tope configurable con `N_ARTISTAS`, 5.000 por defecto) baja hasta 30 etiquetas y sus oyentes globales. Incremental. |
 | `descargar_letras.R` | Baja de LRCLIB las letras de las 8.000 canciones más escuchadas (tope configurable con `N_CANCIONES`). Incremental, guarda cada 100 canciones; cada consulta tiene un tope de 30 s. |
 | `verificar_escuchas.R` | Compara la base de escuchas con un respaldo (total no menor, rango, meses sin escuchas, duplicados). Lo usan `actualizar.bat` y el flujo nocturno. |
+| `descargar_clima.R` | Baja de Open-Meteo el clima diario de Santiago a `data/clima.parquet`. Incremental. |
+| `chequear_estilo.R` | Revisa que los textos del reporte sigan la guía de `ESTILO.md`. Solo informa. |
 | `chequear_letras.R` | Resume las letras: filas, % encontradas, instrumentales, duplicadas, vacías y % de escuchas con letra. |
 | `generar_reporte_mensual.R` | Renderiza el reporte de un mes (por defecto, el anterior), lo guarda en `reportes/` y lo copia a la raíz. |
 

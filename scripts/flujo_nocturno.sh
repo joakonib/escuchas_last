@@ -4,10 +4,11 @@
 # de los datos y los textos, renderiza, publica (commit, pull, push) y, si se pide,
 # apaga el PC. Todo queda con hora en data/noche.log.
 #
-# Uso: bash scripts/flujo_nocturno.sh [--mes AAAA-MM] [--desde-cero] [--apagar]
+# Uso: bash scripts/flujo_nocturno.sh [--mes AAAA-MM] [--desde-cero] [--reentrenar] [--apagar]
 #   --mes         mes del reporte mensual (por defecto, el mes anterior)
 #   --desde-cero  vuelve a bajar todo el historial de Last.fm y lo verifica contra un respaldo
-#   --apagar      apaga el PC al terminar (con 2 minutos de margen; cancelar: shutdown /a)
+#   --reentrenar  vuelve a entrenar los modelos de temas y playlists (hay que reescribir sus textos)
+#   --apagar      apaga el PC al terminar (solo con la confirmación expresa de Joaquín en ese momento)
 #
 # Reintentos: 4 para lo que falla por la red (descargas, pull, push) y 2 para los
 # renders (un error de código no se arregla reintentando). Si un render falla, no se
@@ -26,6 +27,7 @@ while [ $# -gt 0 ]; do
     --mes) MES=$2; shift ;;
     --desde-cero) DESDE_CERO=1 ;;
     --apagar) APAGAR=1 ;;
+    --reentrenar) export REENTRENAR_MODELOS=1 ;;
   esac
   shift
 done
@@ -53,6 +55,16 @@ apagar() {
 }
 
 mkdir -p "$S"
+
+# Candado compartido con actualizar.bat: dos flujos a la vez dañan los archivos.
+# mkdir es atómico; un candado de más de 12 horas es de una corrida que se cortó.
+find data/flujo.lock -maxdepth 0 -mmin +720 -exec rmdir {} \; 2>/dev/null
+if ! mkdir data/flujo.lock 2>/dev/null; then
+  log "Hay otro flujo en curso (data/flujo.lock): no se ejecuta"
+  exit 1
+fi
+trap 'rmdir data/flujo.lock 2>/dev/null' EXIT
+
 log "==== Inicio flujo completo (mes $MES, desde cero: $DESDE_CERO) ===="
 
 # 0. Respaldo de las escuchas, siempre, antes de tocar nada
@@ -78,13 +90,20 @@ if [ "$DESDE_CERO" = 1 ] && [ -f "$S/escuchas_respaldo.parquet" ]; then
   fi
 else
   reintentar 4 "Escuchas (incremental)" "$R" scripts/descargar_escuchas.R
+  if [ -f "$S/escuchas_respaldo.parquet" ] && ! verificar_escuchas >> "$LOG" 2>&1; then
+    log "Escuchas: menos que el respaldo, se restaura"
+    cp "$S/escuchas_respaldo.parquet" data/escuchas.parquet
+  fi
 fi
 reintentar 4 "Etiquetas" "$R" scripts/descargar_tags.R
 reintentar 4 "Letras" "$R" scripts/descargar_letras.R
+reintentar 4 "Clima" "$R" scripts/descargar_clima.R
 
 # 2. Chequeo de letras
 "$R" scripts/chequear_letras.R >> "$LOG" 2>&1
 log "Chequeo de letras registrado arriba"
+"$R" scripts/chequear_estilo.R >> "$LOG" 2>&1
+log "Chequeo de estilo de los textos registrado arriba (ver ESTILO.md)"
 
 # 3. Pausa para el análisis de los datos y la actualización de los textos.
 # Quien revisa crea data/respaldo/analisis_ok al terminar; si no aparece en 60 min, se sigue igual.
@@ -107,7 +126,7 @@ fi
 cp analisis_escuchas.html reporte_mensual.html metodologia.html docs/ && log "Reportes copiados a docs/"
 
 # 5. Limpieza (paso 4.0 del flujo) y publicación
-rm -rf .Rhistory ./*_files; log "Limpieza de temporales hecha"
+rm -rf .Rhistory ./*_files ./*.knit.md ./*.rmarkdown; log "Limpieza de temporales hecha"
 git add -u >> "$LOG" 2>&1
 git add docs assets R scripts FLUJO_DE_TRABAJO.txt >> "$LOG" 2>&1
 git commit -q -m "change: actualización completa de los reportes ($(date +%d-%m-%Y))" >> "$LOG" 2>&1

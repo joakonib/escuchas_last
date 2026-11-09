@@ -179,22 +179,50 @@ tagList(
 )
 ```
 
+```{r}
+#| label: cifras-texto
+#| echo: false
+# Cifras de los textos: se calculan aquí para que nunca queden desactualizadas
+cf <- list(anios = n_distinct(escuchas$anio))
+if (tiene_tags) {
+  con_genero <- filter(escuchas, !is.na(genero))
+  pp <- con_genero |> group_by(anio) |> summarise(p = mean(genero == "Post-punk"))
+  con_pais <- filter(escuchas, !is.na(pais))
+  del_anio <- escuchas |> count(anio, artista) |> group_by(anio) |> slice_max(n, n = 1, with_ties = FALSE)
+  desde <- ultimo_dia - 365
+  debut <- escuchas |> group_by(artista) |> summarise(p = min(dia))
+  ultimo_anio <- escuchas |> filter(dia > desde) |> left_join(debut, by = "artista")
+  cf <- c(cf, list(
+    pp_total = mean(con_genero$genero == "Post-punk"), pp_peak = max(pp$p),
+    pp_peak_anio = pp$anio[which.max(pp$p)], pp_hoy = tail(pp$p, 1),
+    chile = mean(con_pais$pais == "Chile"), cono = mean(con_pais$pais %in% c("Chile", "Argentina")),
+    idles = sum(del_anio$artista == "IDLES"), nuevos = mean(ultimo_anio$p > desde),
+    finde = mean(escuchas$semana %in% c("sáb", "dom"))
+  ))
+  if (file.exists("data/info_artistas.parquet")) {
+    oy <- read_parquet(readBin("data/info_artistas.parquet", "raw", file.size("data/info_artistas.parquet")))
+    cf$oyentes <- ultimo_anio |> inner_join(oy, by = "artista") |> filter(!is.na(oyentes)) |>
+      summarise(m = round(median(oyentes) / 1e5) * 100) |> pull(m)
+  }
+}
+```
+
 ## 🎸 Mi perfil musical
 
 ::: {.callout-note appearance="simple" icon="false"}
 ## En pocas palabras
 
-*Escrito el 08-11-2026, con los datos hasta esa fecha.*
+*Actualizado con datos hasta el `r fmt_fecha(ultimo_dia)`.*
 
-**Guitarras, ruido y oscuridad.** Casi tres cuartos de lo que escucho cae en la dimensión *intensa* del modelo MUSIC (ver más abajo). El género que más pesa es el **post-punk** (14%), seguido de una familia completa de metal: heavy, black, sludge, thrash, death, stoner y doom. También hay mucho post-hardcore y asoma el hip-hop.
+Respecto a lo que escucho, el género con mayor peso corresponde al post-punk, con un `r pct(cf$pp_total)` de mis escuchas, seguido por una familia completa de metal que va desde el heavy hasta el black, el sludge, el thrash, el death, el stoner y el doom. Asimismo, el post-hardcore tiene una presencia importante y el hip-hop comienza a asomar, mientras que la mayor parte de mi música cae en la dimensión intensa del modelo MUSIC que se revisa más adelante.
 
-**Un viaje del metal al post-punk.** En 2013–2015 mandaban el metal y el hardcore (Godflesh, Black Sabbath, Amenra), con el punk de Attaque 77 de por medio. El post-punk pasó de nada en 2013 a su punto más alto en 2023 (22% de mis escuchas) y hoy ronda el 16%, de la mano de la ola británica e irlandesa: **IDLES** fue mi artista del año cuatro veces, y le siguen **Fontaines D.C.** y **Black Country, New Road**. En los últimos dos años se abrió hacia lo más melódico, con **La Brígida Orquesta** como artista de 2025.
+En cuanto a la evolución, entre 2013 y 2015 predominaban el metal y el hardcore, con artistas como Godflesh, Black Sabbath y Amenra, y con el punk de Attaque 77 de por medio. El post-punk, que en 2013 no tenía presencia alguna, alcanzó su punto más alto en `r cf$pp_peak_anio` con un `r pct(cf$pp_peak)` de mis escuchas y actualmente se ubica en torno al `r pct(cf$pp_hoy)`, lo cual se explica en gran medida por la ola británica e irlandesa. En este sentido, IDLES fue mi artista del año en `r cf$idles` ocasiones, seguido por Fontaines D.C. y Black Country, New Road. Durante los últimos dos años mi escucha se abrió hacia lo más melódico, tal como lo muestra La Brígida Orquesta, que fue mi artista de 2025.
 
-**Muy local.** Una de cada cuatro escuchas de artistas con país identificado es de un artista **chileno**, y si sumo Argentina, más de un tercio es del Cono Sur. Mi artista número uno de todos los tiempos es **Tenemos Explosivos**, presente los 14 años del historial. Lo acompañan La Brígida Orquesta, Macha y el Bloque Depresivo, Fiskales Ad-Hok, Yajaira y Los Tres.
+Por otro lado, mi escucha es bastante local, ya que el `r pct(cf$chile)` de las escuchas de artistas con país identificado corresponde a artistas chilenos, cifra que sube a un `r pct(cf$cono)` si se suma Argentina. Mi artista número uno de todos los tiempos es Tenemos Explosivos, que está presente en los `r cf$anios` años del historial, y dentro de la escena local lo acompañan La Brígida Orquesta, Macha y el Bloque Depresivo, Fiskales Ad-Hok, Yajaira y Los Tres.
 
-**Fiel y de nicho.** Hoy soy más de volver a lo conocido que de explorar: solo un 7% de mis escuchas del último año fue a artistas nuevos. El artista típico que escucho tiene unos 300 mil oyentes en Last.fm, lejos de los millones de un artista masivo. Entre las joyas escondidas, con menos de 10 mil oyentes, están Yajaira, Asamblea Internacional del Fuego y Agriculture.
+Actualmente tiendo más a volver a lo conocido que a explorar, dado que solo un `r pct(cf$nuevos)` de mis escuchas del último año fue a artistas nuevos. Asimismo, el artista típico que escucho tiene unos `r cf$oyentes` mil oyentes en Last.fm, lo cual está bastante lejos de los millones que tiene un artista masivo. Dentro de las joyas escondidas, con menos de 10 mil oyentes, se encuentran Yajaira, Asamblea Internacional del Fuego y Agriculture.
 
-**Música para trabajar.** El patrón es de oficina: escucho sobre todo de lunes a viernes entre las 9 y las 18 horas. Los fines de semana solo suman un 16% de las escuchas.
+Finalmente, el patrón horario corresponde a uno de oficina, ya que escucho principalmente de lunes a viernes entre las 9 y las 18 horas, mientras que los fines de semana solo suman un `r pct(cf$finde)` de las escuchas.
 :::
 
 ::: {.panel-tabset}
@@ -261,7 +289,7 @@ div(class = "grafico",
 
 ## 🧭 Mi personalidad de oyente
 
-Inspirado en las [personalidades de oyente de Spotify Wrapped](https://www.aol.com/16-personality-types-spotify-wrapped-195652285.html), que describen cómo escucha cada persona con pares de rasgos: si explora o vuelve a lo conocido, si es leal a pocos artistas o varía, si repite canciones y si escucha lo masivo o lo de nicho. Cada pestaña es un período: los **últimos 12 meses** y cada año desde que uso Last.fm. La pestaña **Evolución** muestra cómo fui cambiando. Los umbrales que separan un polo del otro son una decisión propia y se muestran bajo cada eje.
+Inspirado en las [personalidades de oyente de Spotify Wrapped](https://www.aol.com/16-personality-types-spotify-wrapped-195652285.html), que describen cómo escucha cada persona con pares de rasgos: si explora o vuelve a lo conocido, si es leal a pocos artistas o varía, si repite canciones y si escucha lo masivo o lo de nicho. Cada pestaña es un período: los últimos 12 meses y cada año desde que uso Last.fm. La pestaña Evolución muestra cómo fui cambiando. Los umbrales que separan un polo del otro son una decisión propia y se muestran bajo cada eje.
 
 ```{r}
 #| label: personalidad-calculo
@@ -465,7 +493,7 @@ a0 <- min(nivel_anual$anio); a1 <- max(nivel_anual$anio)
 ```
 
 ::: {.callout-note appearance="simple" icon="false"}
-**¿Qué me dice?** El grueso de lo que escucho está en artistas **conocidos pero no masivos**: el nivel de 100 mil a 1 millón de oyentes concentra el `r if (file.exists("data/info_artistas.parquet")) pct(por_nivel$share[por_nivel$nivel == niveles[3]]) else "—"` de mis escuchas, y los masivos solo el `r if (file.exists("data/info_artistas.parquet")) pct(por_nivel$share[por_nivel$nivel == niveles[4]]) else "—"`. Escucho artistas con escena propia, lejos del *mainstream* pero no secretos. En el tiempo, lo masivo pasó del `r if (file.exists("data/info_artistas.parquet")) pct(masivo(a0)) else "—"` en `r if (file.exists("data/info_artistas.parquet")) a0 else ""` al `r if (file.exists("data/info_artistas.parquet")) pct(masivo(a1)) else "—"` en `r if (file.exists("data/info_artistas.parquet")) a1 else ""`, y lo underground y de culto, del `r if (file.exists("data/info_artistas.parquet")) pct(nicho_(a0)) else "—"` al `r if (file.exists("data/info_artistas.parquet")) pct(nicho_(a1)) else "—"`. Gran parte de mi nicho son **bandas chilenas**, que tienen pocos oyentes a escala global aunque sean importantes en la escena local.
+**¿Qué me dice?** La mayor parte de lo que escucho corresponde a artistas conocidos pero no masivos, ya que el nivel de 100 mil a 1 millón de oyentes concentra el `r if (file.exists("data/info_artistas.parquet")) pct(por_nivel$share[por_nivel$nivel == niveles[3]]) else "—"` de mis escuchas, y los masivos solo el `r if (file.exists("data/info_artistas.parquet")) pct(por_nivel$share[por_nivel$nivel == niveles[4]]) else "—"`. En este sentido, se trata de artistas con escena propia, que están lejos del *mainstream* sin ser secretos. Respecto a su evolución, lo masivo pasó del `r if (file.exists("data/info_artistas.parquet")) pct(masivo(a0)) else "—"` en `r if (file.exists("data/info_artistas.parquet")) a0 else ""` al `r if (file.exists("data/info_artistas.parquet")) pct(masivo(a1)) else "—"` en `r if (file.exists("data/info_artistas.parquet")) a1 else ""`, y lo underground y de culto, del `r if (file.exists("data/info_artistas.parquet")) pct(nicho_(a0)) else "—"` al `r if (file.exists("data/info_artistas.parquet")) pct(nicho_(a1)) else "—"`. Cabe señalar que gran parte de mi nicho corresponde a bandas chilenas, las cuales tienen pocos oyentes a escala global aunque sean importantes dentro de la escena local.
 :::
 
 #### Joyas escondidas
@@ -492,7 +520,7 @@ tabla(joyas,
 
 ### Mis gustos según el modelo MUSIC
 
-La psicología de la música resume las preferencias musicales en cinco dimensiones: el [modelo MUSIC de Rentfrow y colaboradores](https://www.gsb.stanford.edu/index%2Ephp/node/428616). Su nombre son las iniciales de cada una en inglés. Aquí se aproximan asignando las etiquetas de cada artista a una dimensión; la pestaña **¿Qué es cada dimensión?** explica cada una.
+La psicología de la música resume las preferencias musicales en cinco dimensiones: el [modelo MUSIC de Rentfrow y colaboradores](https://www.gsb.stanford.edu/index%2Ephp/node/428616). Su nombre son las iniciales de cada una en inglés. Aquí se aproximan asignando las etiquetas de cada artista a una dimensión; la pestaña ¿Qué es cada dimensión? explica cada una.
 
 ::: {.panel-tabset}
 
@@ -667,7 +695,7 @@ interactivo(p)
 #### Franjas y sesiones
 
 ::: {.callout-tip appearance="simple" icon="false"}
-**Teoría.** La socióloga Tia DeNora, en *Music in Everyday Life* (2000), describe la música como una **"tecnología del yo"**: la usamos para regular el ánimo, la energía y la concentración en la vida cotidiana. Mi patrón de horario de oficina calza con esa idea: la música como compañía para trabajar.
+**Teoría.** La socióloga Tia DeNora, en *Music in Everyday Life* (2000), describe la música como una "tecnología del yo": la usamos para regular el ánimo, la energía y la concentración en la vida cotidiana. Mi patrón de horario de oficina calza con esa idea: la música como compañía para trabajar.
 :::
 
 ```{r}
@@ -700,7 +728,7 @@ sesiones <- escuchas |>
 maraton <- slice_max(sesiones, canciones, n = 1, with_ties = FALSE)
 ```
 
-Si una sesión termina tras 30 minutos sin música, he tenido `r miles(nrow(sesiones))` sesiones. La mediana es de `r median(sesiones$canciones)` canciones. Mi maratón más larga fue el `r fmt_fecha(as_date(maraton$inicio))`: **`r maraton$canciones` canciones seguidas** durante `r round(maraton$horas, 1)` horas.
+Si una sesión termina tras 30 minutos sin música, he tenido `r miles(nrow(sesiones))` sesiones. La mediana es de `r median(sesiones$canciones)` canciones. Mi maratón más larga fue el `r fmt_fecha(as_date(maraton$inicio))`: `r maraton$canciones` canciones seguidas durante `r round(maraton$horas, 1)` horas.
 
 :::
 
@@ -746,7 +774,7 @@ interactivo(p)
 #### Ranking año a año
 
 ::: {.callout-tip appearance="simple" icon="false"}
-**Teoría.** El **pico de reminiscencia** (*reminiscence bump*) es la tendencia a recordar con más cariño la música que escuchamos entre los 10 y los 30 años (Krumhansl y Zupnick, 2013). Los artistas que aparecen en el ranking todos los años, como Tenemos Explosivos o Black Sabbath, son candidatos a ser esa banda sonora fundacional.
+**Teoría.** El pico de reminiscencia (*reminiscence bump*) es la tendencia a recordar con más cariño la música que escuchamos entre los 10 y los 30 años (Krumhansl y Zupnick, 2013). Los artistas que aparecen en el ranking todos los años, como Tenemos Explosivos o Black Sabbath, son candidatos a ser esa banda sonora fundacional.
 :::
 
 ```{r}
@@ -852,17 +880,17 @@ tabla(diversidad, titulo = "Diversidad por año", filas = 20,
 #### ¿Soy omnívoro?
 
 ::: {.callout-tip appearance="simple" icon="false"}
-**Teoría.** Bourdieu (1979) veía el gusto como marca de clase: las élites consumían "alta cultura" y despreciaban lo popular. Richard Peterson (1992; Peterson y Kern, 1996) mostró que eso cambió: el nuevo signo de distinción es ser **omnívoro**, es decir, disfrutar de muchos géneros, cultos y populares a la vez.
+**Teoría.** Bourdieu (1979) veía el gusto como marca de clase: las élites consumían "alta cultura" y despreciaban lo popular. Richard Peterson (1992; Peterson y Kern, 1996) mostró que eso cambió: el nuevo signo de distinción es ser omnívoro, es decir, disfrutar de muchos géneros, cultos y populares a la vez.
 :::
 
 ::: {.callout-note appearance="simple" icon="false"}
-**¿Cómo se mide?** No basta con contar cuántos géneros escuché: si en un año escuché 50 géneros, pero el 95% fue metal, no soy muy omnívoro. Por eso uso el **número efectivo de géneros**, una medida de diversidad que viene de la ecología y la teoría de la información (es el exponencial de la entropía de Shannon). Responde a la pregunta: *¿a cuántos géneros, igual de escuchados, equivale mi mezcla real?*
+**¿Cómo se mide?** No basta con contar cuántos géneros escuché: si en un año escuché 50 géneros, pero el 95% fue metal, no soy muy omnívoro. Por eso uso el número efectivo de géneros, una medida de diversidad que viene de la ecología y la teoría de la información (es el exponencial de la entropía de Shannon). Responde a la pregunta: *¿a cuántos géneros, igual de escuchados, equivale mi mezcla real?*
 
 - Si escuchara **un solo género**, el índice sería **1**.
 - Si repartiera mis escuchas **en partes iguales entre 30 géneros**, sería **30**.
 - Si escuchara 30 géneros pero casi todo fuera uno solo, sería cercano a **1**.
 
-Mientras más alto, más **repartido** está mi gusto entre géneros.
+Mientras más alto, más repartido está mi gusto entre géneros.
 :::
 
 ```{r}
@@ -888,7 +916,7 @@ interactivo(p)
 ```
 
 ::: {.callout-note appearance="simple" icon="false"}
-**¿Qué me dice?** En `r if (tiene_tags) min(omnivoro$anio) else ""` mi mezcla equivalía a unos **`r if (tiene_tags) round(omnivoro$efectivos[1]) else "—"` géneros** igual de escuchados; en `r if (tiene_tags) max(omnivoro$anio) else ""`, a unos **`r if (tiene_tags) round(tail(omnivoro$efectivos, 1)) else "—"`**, y llegué a un máximo de `r if (tiene_tags) round(max(omnivoro$efectivos)) else "—"` en `r if (tiene_tags) omnivoro$anio[which.max(omnivoro$efectivos)] else ""`. El número de géneros distintos que toco en un año también subió, de `r if (tiene_tags) omnivoro$generos[1] else "—"` a cerca de `r if (tiene_tags) max(omnivoro$generos) else "—"`. Pasé de un gusto **especializado** (casi todo metal) a uno **omnívoro**, como el que describe Peterson. Ojo: el primer año del historial está incompleto (empieza en septiembre), lo que baja un poco su valor.
+**¿Qué me dice?** En `r if (tiene_tags) min(omnivoro$anio) else ""` mi mezcla equivalía a unos `r if (tiene_tags) round(omnivoro$efectivos[1]) else "—"` géneros igual de escuchados; en `r if (tiene_tags) max(omnivoro$anio) else ""`, a unos `r if (tiene_tags) round(tail(omnivoro$efectivos, 1)) else "—"`, y llegué a un máximo de `r if (tiene_tags) round(max(omnivoro$efectivos)) else "—"` en `r if (tiene_tags) omnivoro$anio[which.max(omnivoro$efectivos)] else ""`. El número de géneros distintos que toco en un año también subió, de `r if (tiene_tags) omnivoro$generos[1] else "—"` a cerca de `r if (tiene_tags) max(omnivoro$generos) else "—"`. Por lo tanto, pasé de un gusto especializado, que era casi todo metal, a uno omnívoro como el que describe Peterson. Cabe tener en consideración que el primer año del historial está incompleto, ya que comienza en septiembre, lo cual baja un poco su valor.
 :::
 
 #### Géneros en el tiempo
@@ -923,6 +951,87 @@ p <- escuchas |>
 interactivo(p)
 ```
 
+:::
+
+## 🌳 Genealogía de mis descubrimientos
+
+Para cada artista que escuché al menos 20 veces busqué quién venía sonando durante las tres horas anteriores a su primera escucha, y consideré como padrino al que más sonó en esa ventana. De esta manera se puede armar una cadena de descubrimientos, aunque cabe señalar que se trata de una cercanía en el tiempo y no de una causa, ya que el modo aleatorio o una playlist también pueden poner a dos artistas uno detrás del otro.
+
+```{r}
+#| label: genealogia
+#| fig-height: 5.4
+hist_gen <- escuchas |> select(uts, artista) |> arrange(uts)
+ventana_gen <- 3 * 3600
+
+debuts_gen <- hist_gen |>
+  group_by(artista) |>
+  summarise(debut = min(uts), total = n()) |>
+  # El primer mes del historial no tiene un antes contra el cual comparar
+  filter(total >= 20, debut >= min(hist_gen$uts) + 30 * 86400)
+
+buscar_padrino <- function(hijo, debut) {
+  desde <- findInterval(debut - ventana_gen, hist_gen$uts) + 1
+  hasta <- findInterval(debut - 1, hist_gen$uts)
+  if (hasta < desde) return(NA_character_)
+  previos <- hist_gen$artista[desde:hasta]
+  previos <- previos[previos != hijo]
+  if (length(previos) == 0) return(NA_character_)
+  conteo <- table(previos)
+  # En caso de empate gana el que sonó más cerca del debut
+  tail(previos[previos %in% names(conteo)[conteo == max(conteo)]], 1)
+}
+
+genealogia <- debuts_gen |>
+  mutate(padrino = mapply(buscar_padrino, artista, debut, USE.NAMES = FALSE))
+padrino_de <- setNames(genealogia$padrino, genealogia$artista)
+
+linaje <- function(artista) {
+  cadena <- artista
+  while (!is.na(padrino_de[cadena[1]]) && length(cadena) < 50) cadena <- c(unname(padrino_de[cadena[1]]), cadena)
+  cadena
+}
+linajes <- lapply(genealogia$artista, linaje)
+descendencia <- table(unlist(lapply(linajes, \(l) head(l, -1))))
+
+padrinos <- genealogia |>
+  filter(!is.na(padrino)) |>
+  arrange(desc(total)) |>
+  group_by(padrino) |>
+  summarise(ahijados = n(), ejemplos = paste(head(artista, 3), collapse = ", ")) |>
+  mutate(descendencia = as.integer(descendencia[padrino])) |>
+  arrange(desc(ahijados), desc(descendencia))
+
+mas_largo <- linajes[[which.max(lengths(linajes))]]
+sin_padrino <- mean(is.na(genealogia$padrino))
+
+p <- padrinos |>
+  slice_head(n = 15) |>
+  ggplot(aes(ahijados, fct_reorder(padrino, ahijados),
+             text = paste0("<b>", padrino, "</b><br>", ahijados, " ahijados directos<br>",
+                           descendencia, " en toda su descendencia<br>Por ejemplo: ", ejemplos))) +
+  geom_col(fill = verde, width = 0.7) +
+  scale_x_continuous(breaks = \(l) seq(0, ceiling(l[2]), by = 3), expand = expansion(mult = c(0, 0.05))) +
+  labs(title = "Los artistas que más me han llevado a otros",
+       subtitle = "Artistas que sonaron justo antes de la primera escucha de otro artista", x = NULL, y = NULL) +
+  theme(panel.grid.major.y = element_blank())
+interactivo(p)
+```
+
+```{r}
+#| label: genealogia-tabla
+top_gen <- genealogia |> arrange(desc(total)) |> slice_head(n = 12)
+tabla(tibble(artista = top_gen$artista,
+             linaje = vapply(top_gen$artista, \(a) paste(tail(linaje(a), 6), collapse = " → "), "")),
+      titulo = "De dónde vienen mis artistas más escuchados",
+      subtitulo = "Últimos eslabones de la cadena de descubrimientos, del más antiguo al más reciente",
+      columnas = list(
+        artista = colDef(name = "Artista", minWidth = 160, style = list(fontWeight = 600)),
+        linaje  = colDef(name = "Cadena", minWidth = 380)
+      ))
+```
+
+::: {.callout-note appearance="simple" icon="false"}
+**¿Qué me dice?** De los `r miles(nrow(genealogia))` artistas analizados, un `r pct(sin_padrino)` llegó sin que sonara otro artista durante las tres horas anteriores, lo cual corresponde a descubrimientos más bien directos. Respecto al resto, `r padrinos$padrino[1]` es quien más me ha llevado a otros artistas, con `r padrinos$ahijados[1]` ahijados directos. Asimismo, la cadena más larga tiene `r length(mas_largo)` eslabones y parte en `r mas_largo[1]`, para terminar en `r tail(mas_largo, 1)`.
 :::
 
 ## 🌦️ Momentos
@@ -1044,7 +1153,7 @@ tabla(pandemia, titulo = "Mi música en tres tiempos",
 
 ## 🎭 Mi ánimo musical
 
-Un análisis de sentimiento a partir de las **etiquetas de ánimo** que la comunidad de Last.fm pone a cada artista ("melancholic", "aggressive", "happy", "chill", "dark"…). Cada etiqueta se ubica en el [modelo circunflejo del afecto de Russell](https://doi.org/10.1037/h0077714): **valencia** (triste ↔ alegre) y **energía** (calma ↔ intensidad). Cada artista recibe el promedio de sus etiquetas, ponderado por su peso, y cada período el promedio de lo que escuché. Mide el ánimo de la *música*, no el mío, aunque algo dice.
+Un análisis de sentimiento a partir de las etiquetas de ánimo que la comunidad de Last.fm pone a cada artista ("melancholic", "aggressive", "happy", "chill", "dark"…). Cada etiqueta se ubica en el [modelo circunflejo del afecto de Russell](https://doi.org/10.1037/h0077714): valencia (triste ↔ alegre) y energía (calma ↔ intensidad). Cada artista recibe el promedio de sus etiquetas, ponderado por su peso, y cada período el promedio de lo que escuché. Mide el ánimo de la *música*, no el mío, aunque algo dice.
 
 ```{r}
 #| label: animo-calculo
@@ -1100,7 +1209,7 @@ interactivo(p)
 - 🙂 **Valencia**: qué tan **positiva o negativa** se siente la música. Va de −1 (triste, oscura, melancólica; p. ej. el doom de Black Sabbath) a +1 (alegre, luminosa; p. ej. la cumbia de Chico Trujillo).
 - ⚡ **Energía**: qué tan **activadora o calmada** es. Va de −1 (tranquila, suave; p. ej. ambient o folk) a +1 (intensa, rápida, fuerte; p. ej. hardcore o thrash).
 
-Combinadas dan cuatro estados: **eufórica** (alegre y enérgica), **serena** (alegre y calma), **melancólica** (triste y calma) y **tensa** (triste y enérgica). Se calculan a partir de las etiquetas de ánimo que los usuarios de Last.fm ponen a cada artista.
+Combinadas dan cuatro estados: eufórica (alegre y enérgica), serena (alegre y calma), melancólica (triste y calma) y tensa (triste y enérgica). Se calculan a partir de las etiquetas de ánimo que los usuarios de Last.fm ponen a cada artista.
 :::
 
 ```{r}
@@ -1127,7 +1236,7 @@ interactivo(p)
 #### Días extremos
 
 ::: {.callout-note appearance="simple" icon="false"}
-**¿Cómo se leen?** Para cada día con al menos 40 escuchas promedié la **valencia** de todo lo que escuché ese día (de −1, muy triste u oscuro, a +1, muy alegre). Los **días más oscuros** son los cinco con el promedio más bajo: jornadas casi enteras de música sombría. Los **más luminosos**, los cinco con el promedio más alto. El "artista del día" es el que más sonó esa jornada y suele explicar el resultado.
+**¿Cómo se leen?** Para cada día con al menos 40 escuchas promedié la valencia de todo lo que escuché ese día (de −1, muy triste u oscuro, a +1, muy alegre). Los días más oscuros son los cinco con el promedio más bajo: jornadas casi enteras de música sombría. Los más luminosos, los cinco con el promedio más alto. El "artista del día" es el que más sonó esa jornada y suele explicar el resultado.
 :::
 
 ```{r}
@@ -1160,9 +1269,83 @@ tabla(dias_extremos, titulo = "Mis días más oscuros y más luminosos",
 
 :::
 
+## 🌧️ La música y el clima
+
+Crucé mis días de escucha con el clima diario de Santiago, obtenido desde [Open-Meteo](https://open-meteo.com), con el objetivo de evaluar si la lluvia o la temperatura se asocian a lo que escucho. Para que no se confunda con las estaciones, cada día se compara con el resto de su mismo mes y año, controlando además si es fin de semana.
+
+```{r}
+#| label: clima
+#| eval: !expr file.exists("data/clima.parquet") && tiene_tags
+#| fig-height: 3.6
+clima <- read_parquet(readBin("data/clima.parquet", "raw", file.size("data/clima.parquet")))
+
+dias_clima <- escuchas_animo |>
+  group_by(dia) |>
+  summarise(Valencia = mean(valencia), Energía = mean(energia), Escuchas = n()) |>
+  filter(Escuchas >= 10) |>
+  inner_join(clima, by = "dia") |>
+  mutate(llovio = as.numeric(lluvia_mm >= 1), temp5 = temperatura / 5,
+         finde = as.numeric(wday(dia, week_start = 1) >= 6),
+         periodo = format(dia, "%Y-%m"), semana_b = as.character(floor_date(dia, "week", week_start = 1)))
+
+resultados_clima <- c("Valencia", "Energía", "Escuchas")
+predictores_clima <- c("llovio", "temp5", "finde")
+# Efectos en desviaciones estándar y dentro de cada mes
+dentro <- dias_clima |>
+  mutate(across(all_of(resultados_clima), \(y) as.numeric(scale(y)))) |>
+  group_by(periodo) |>
+  mutate(across(all_of(c(resultados_clima, predictores_clima)), \(x) x - mean(x))) |>
+  ungroup()
+
+X_clima <- as.matrix(dentro[predictores_clima])
+por_semana <- split(seq_len(nrow(dentro)), dentro$semana_b)
+ajustar <- \(y, i) .lm.fit(X_clima[i, , drop = FALSE], dentro[[y]][i])$coefficients[1:2]
+
+# Intervalos por bootstrap de semanas completas: los días seguidos se parecen entre sí
+set.seed(2026)
+muestras <- replicate(1000, unlist(por_semana[sample(length(por_semana), replace = TRUE)], use.names = FALSE), simplify = FALSE)
+efectos_clima <- bind_rows(lapply(resultados_clima, \(y) {
+  b <- sapply(muestras, \(i) ajustar(y, i))
+  tibble(resultado = y, factor = c("Día con lluvia", "5 °C más"),
+         efecto = ajustar(y, seq_len(nrow(dentro))),
+         inf = apply(b, 1, quantile, 0.025), sup = apply(b, 1, quantile, 0.975))
+})) |>
+  mutate(resultado = factor(resultado, levels = rev(resultados_clima)),
+         factor = factor(factor, levels = c("Día con lluvia", "5 °C más")))
+
+p <- efectos_clima |>
+  # Las dos filas de cada resultado se separan a mano: plotly no respeta el dodge en los intervalos
+  mutate(fila = as.numeric(resultado) + if_else(factor == "Día con lluvia", 0.14, -0.14)) |>
+  ggplot(aes(efecto, fila, color = factor,
+             text = paste0("<b>", resultado, "</b><br>", factor, ": ",
+                           format(round(efecto, 2), decimal.mark = ","), " desv. est.<br>Intervalo: ",
+                           format(round(inf, 2), decimal.mark = ","), " a ",
+                           format(round(sup, 2), decimal.mark = ",")))) +
+  geom_vline(xintercept = 0, color = gris) +
+  geom_linerange(aes(xmin = inf, xmax = sup), linewidth = 0.9) +
+  geom_point(size = 3) +
+  scale_color_manual(values = c("Día con lluvia" = verde, "5 °C más" = morado), name = NULL) +
+  scale_x_continuous(breaks = seq(-0.2, 0.2, by = 0.1), labels = \(x) format(x, decimal.mark = ",")) +
+  scale_y_continuous(breaks = seq_along(levels(efectos_clima$resultado)), labels = levels(efectos_clima$resultado)) +
+  labs(title = "Qué cambia con la lluvia y la temperatura",
+       subtitle = "Diferencia en desviaciones estándar, dentro de cada mes, con intervalo de 95%", x = NULL, y = NULL)
+interactivo(p)
+
+efecto_txt <- function(res, fac) {
+  e <- filter(efectos_clima, resultado == res, factor == fac)
+  format(round(e$efecto, 2), nsmall = 2, decimal.mark = ",")
+}
+con_efecto <- sum(efectos_clima$inf > 0 | efectos_clima$sup < 0)
+medias_lluvia <- dias_clima |> group_by(llovio) |> summarise(valencia = mean(Valencia), n = n())
+```
+
+::: {.callout-note appearance="simple" icon="false"}
+**¿Qué me dice?** `r if (exists("efectos_clima")) paste0("Se analizaron ", miles(nrow(dias_clima)), " días, de los cuales ", medias_lluvia$n[medias_lluvia$llovio == 1], " tuvieron lluvia. Respecto a la valencia, un día con lluvia presenta una diferencia de ", efecto_txt("Valencia", "Día con lluvia"), " desviaciones estándar, mientras que 5 grados más de temperatura presentan una de ", efecto_txt("Valencia", "5 °C más"), ". En cuanto a la energía, la diferencia ante la lluvia es de ", efecto_txt("Energía", "Día con lluvia"), ", y en la cantidad de escuchas es de ", efecto_txt("Escuchas", "Día con lluvia"), ". ", if (con_efecto == 0) "Ninguno de estos intervalos excluye al cero, por lo cual el clima no parece tener relación con lo que escucho, lo cual es coherente con que mi música esté más ligada a la rutina que al ambiente." else "Cabe señalar que estas diferencias son de magnitud pequeña, por lo cual el clima explica solo una parte menor de lo que escucho.") else "—"`
+:::
+
 ## 🗺️ Mis eras musicales
 
-¿Mi gusto cambió de golpe o de a poco? Para responderlo puse **todos mis meses en fila**, cada uno descrito por la mezcla de géneros que escuché, y le pedí a un algoritmo que cortara la fila en tramos donde los meses se parecen entre sí. Cada tramo es una **era**: una etapa con un sonido propio, con inicio y final. El algoritmo decidió solo cuántas eras hay.
+¿Mi gusto cambió de golpe o de a poco? Para responderlo puse todos mis meses en fila, cada uno descrito por la mezcla de géneros que escuché, y le pedí a un algoritmo que cortara la fila en tramos donde los meses se parecen entre sí. Cada tramo es una era: una etapa con un sonido propio, con inicio y final. El algoritmo decidió solo cuántas eras hay.
 
 ```{r}
 #| label: eras-calculo
@@ -1263,7 +1446,7 @@ meses_es <- c("ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oc
 fmt_mes <- \(d) paste(meses_es[month(d)], year(d))
 ```
 
-El algoritmo encontró **`r if (tiene_tags) k else "—"` eras**.
+El algoritmo encontró `r if (tiene_tags) k else "—"` eras.
 
 ::: {.panel-tabset}
 
@@ -1300,7 +1483,7 @@ div(class = "eras-grid",
 
 #### ¿Por qué son eras?
 
-Cada barra es una era y muestra **de qué estuvo hecha**: qué parte de lo que escuché en esos meses fue de cada género. Si las barras se ven distintas entre sí, el algoritmo hizo bien su trabajo.
+Cada barra es una era y muestra de qué estuvo hecha: qué parte de lo que escuché en esos meses fue de cada género. Si las barras se ven distintas entre sí, el algoritmo hizo bien su trabajo.
 
 ```{r}
 #| label: eras-generos
@@ -1334,13 +1517,13 @@ interactivo(p)
 ```
 
 ::: {.callout-note appearance="simple" icon="false"}
-**¿Qué me dice?** Las dos primeras eras son de **metal clásico**: doom, death, stoner y heavy metal (Saint Vitus, Godflesh, Black Sabbath, Electric Wizard), con Tom Waits y Amenra de compañía en la segunda. Desde mayo de 2018 el **post-punk** toma el control y no lo suelta, pero cambia de compañía: primero con heavy metal, hip-hop y sludge (IDLES, Interpol, Nick Cave), después con post-hardcore y black metal (Black Country, New Road, Deafheaven y la vuelta fuerte de Tenemos Explosivos) y ahora con la nueva escena chilena (La Brígida Orquesta) y un black metal experimental: Deafheaven, que lo mezcla con shoegaze, Agriculture y Mamaleek suman casi nueve de cada diez escuchas de black metal de esta era. Mi gusto no reemplazó una cosa por otra: **fue sumando capas**.
+**¿Qué me dice?** Las dos primeras eras corresponden a metal clásico, con doom, death, stoner y heavy metal a través de artistas como Saint Vitus, Godflesh, Black Sabbath y Electric Wizard, mientras que en la segunda aparecen también Tom Waits y Amenra. A partir de mayo de 2018 el post-punk toma el control y se mantiene hasta hoy, aunque va cambiando de compañía. En una primera etapa aparece junto al heavy metal, el hip-hop y el sludge, con IDLES, Interpol y Nick Cave; luego con el post-hardcore y el black metal, con Black Country, New Road, Deafheaven y la vuelta de Tenemos Explosivos; y actualmente con la nueva escena chilena, representada por La Brígida Orquesta, y con un black metal experimental. Respecto a este último, Deafheaven, Agriculture y Mamaleek suman casi nueve de cada diez escuchas del género en esta era. Lo cual da cuenta de que mi gusto fue sumando capas en vez de reemplazar una cosa por otra.
 :::
 
 #### Detalle técnico
 
 ::: {.callout-tip appearance="simple" icon="false"}
-**Método.** *Clustering* jerárquico aglomerativo **con restricción de contigüidad** y criterio de **Ward** (Grimm, 1987), el mismo que usan geólogos y paleoecólogos para dividir capas de sedimento en zonas. Cada mes (con al menos 300 escuchas) es un vector con la proporción de los 15 géneros principales. Se parte con cada mes como grupo y en cada paso se fusionan los **dos grupos vecinos** cuya unión aumenta menos la varianza interna. A diferencia de k-means, nunca junta meses separados en el tiempo, así que cada era es un tramo continuo. El número de eras se elige donde el costo de seguir fusionando da el mayor salto (entre 4 y 8 eras).
+**Método.** *Clustering* jerárquico aglomerativo con restricción de contigüidad y criterio de Ward (Grimm, 1987), el mismo que usan geólogos y paleoecólogos para dividir capas de sedimento en zonas. Cada mes (con al menos 300 escuchas) es un vector con la proporción de los 15 géneros principales. Se parte con cada mes como grupo y en cada paso se fusionan los dos grupos vecinos cuya unión aumenta menos la varianza interna. A diferencia de k-means, nunca junta meses separados en el tiempo, así que cada era es un tramo continuo. El número de eras se elige donde el costo de seguir fusionando da el mayor salto (entre 4 y 8 eras).
 :::
 
 ```{r}
@@ -1378,7 +1561,7 @@ Cuatro técnicas de estadística y aprendizaje automático para mirar mis gustos
 #### 🧭 El espacio de mis gustos
 
 ::: {.callout-tip appearance="simple" icon="false"}
-**Teoría.** Pierre Bourdieu, en *La distinción* (1979), usó el **análisis de correspondencias** para dibujar el "espacio de los gustos" de la sociedad francesa: un mapa donde los gustos que suelen ir juntos quedan cerca. Aquí uso la misma técnica con mis propios datos: géneros (en morado) y años (en verde) en un mismo plano. Un año queda cerca de los géneros que escuché **más de lo normal** ese año, y los años van cambiando de color de claro a oscuro.
+**Teoría.** Pierre Bourdieu, en *La distinción* (1979), usó el análisis de correspondencias para dibujar el "espacio de los gustos" de la sociedad francesa: un mapa donde los gustos que suelen ir juntos quedan cerca. Aquí uso la misma técnica con mis propios datos: géneros (en morado) y años (en verde) en un mismo plano. Un año queda cerca de los géneros que escuché más de lo normal ese año, y los años van cambiando de color de claro a oscuro.
 :::
 
 ```{r}
@@ -1440,13 +1623,13 @@ ggplot() +
 ```
 
 ::: {.callout-note appearance="simple" icon="false"}
-**¿Qué me dice?** La primera dimensión explica `r if (tiene_tags) pct(inercia[1]) else "—"` de las diferencias entre años, y es básicamente **el paso del tiempo**: a la izquierda quedan los géneros de mis primeros años (`r if (tiene_tags) extremo("d1", 1) else ""`) y a la derecha los de ahora (`r if (tiene_tags) extremo("d1", -1) else ""`). Los años avanzan casi en línea recta de un extremo al otro: mi gusto no saltó de golpe, **se desplazó de forma gradual**, año a año. La segunda dimensión separa lo más extremo y atmosférico (arriba) del rock y el punk más clásicos (abajo), y muestra que en los últimos años volví a subir hacia lo intenso, ahora desde el post-punk y el post-hardcore.
+**¿Qué me dice?** La primera dimensión explica `r if (tiene_tags) pct(inercia[1]) else "—"` de las diferencias entre años, y corresponde básicamente al paso del tiempo, ya que a la izquierda quedan los géneros de mis primeros años (`r if (tiene_tags) extremo("d1", 1) else ""`) y a la derecha los de ahora (`r if (tiene_tags) extremo("d1", -1) else ""`). Los años avanzan casi en línea recta de un extremo al otro, lo cual indica que mi gusto se desplazó de forma gradual y sin saltos bruscos. La segunda dimensión separa lo más extremo y atmosférico (arriba) del rock y el punk más clásicos (abajo), y permite observar que en los últimos años volví a subir hacia lo intenso, ahora desde el post-punk y el post-hardcore.
 :::
 
 #### 🎧 Playlists ocultas
 
 ::: {.callout-tip appearance="simple" icon="false"}
-**Teoría.** El **modelo de tópicos LDA** (*Latent Dirichlet Allocation*, Blei, Ng y Jordan, 2003) se creó para descubrir temas en colecciones de textos: supone que cada documento mezcla varios temas y que cada tema es un conjunto de palabras que aparecen juntas. Aquí cada **semana** es un "documento" y cada **artista**, una "palabra". Los "temas" que encuentra son mis **playlists ocultas**: artistas que tiendo a escuchar en las mismas semanas, aunque nunca haya armado esas listas.
+**Teoría.** El modelo de tópicos LDA (*Latent Dirichlet Allocation*, Blei, Ng y Jordan, 2003) se creó para descubrir temas en colecciones de textos: supone que cada documento mezcla varios temas y que cada tema es un conjunto de palabras que aparecen juntas. Aquí cada semana es un "documento" y cada artista, una "palabra". Los "temas" que encuentra son mis playlists ocultas: artistas que tiendo a escuchar en las mismas semanas, aunque nunca haya armado esas listas.
 :::
 
 ```{r}
@@ -1463,16 +1646,10 @@ semanas <- escuchas |>
   filter(sum(n) >= 50) |>
   ungroup()
 
-doc_id <- factor(semanas$semana_id)
-term_id <- factor(semanas$artista)
-dtm <- slam::simple_triplet_matrix(as.integer(doc_id), as.integer(term_id), semanas$n,
-                                   dimnames = list(levels(doc_id), levels(term_id)))
-class(dtm) <- c("DocumentTermMatrix", class(dtm))
-attr(dtm, "weighting") <- c("term frequency", "tf")
-
+source("R/modelos_estables.R")
 k_lda <- 6
-modelo_lda <- LDA(dtm, k = k_lda, method = "Gibbs",
-                  control = list(seed = 2026, burnin = 500, iter = 1500))
+modelo_lda <- lda_estable(transmute(semanas, doc = as.character(semana_id), term = artista, n),
+                          "data/modelo_playlists.rds", k = k_lda, burnin = 500, iter = 1500)
 
 beta <- exp(modelo_lda@beta)
 colnames(beta) <- modelo_lda@terms
@@ -1524,13 +1701,13 @@ tabla(select(playlists, nombre, artistas), titulo = "Qué hay en cada playlist o
 ```
 
 ::: {.callout-note appearance="simple" icon="false"}
-**¿Qué me dice?** El modelo no sabe nada de géneros ni de fechas: solo ve qué artistas comparten semana. Aun así, cada playlist oculta corresponde a **una etapa de mi vida**: aparece, domina un par de años y se apaga, dejando paso a la siguiente. Eso confirma con otra técnica lo que mostraron las eras. Lo interesante son las mezclas que arma solo, juntando artistas de géneros muy distintos que en mi cabeza van juntos porque los escuché en la misma época, como Tom Waits con Charly García y Neurosis, o IDLES con Napalm Death y C. Tangana.
+**¿Qué me dice?** El modelo no tiene información respecto a géneros ni fechas, ya que solo observa qué artistas comparten semana. Aun así, cada playlist oculta corresponde a una etapa de mi vida, dado que aparece, domina un par de años y luego se apaga para dar paso a la siguiente, lo cual confirma con otra técnica lo que mostraron las eras. En este sentido, resultan interesantes las mezclas que arma el modelo, las cuales juntan artistas de géneros muy distintos que escuché en la misma época, tal como ocurre con Tom Waits junto a Charly García y Neurosis, o con IDLES junto a Napalm Death y C. Tangana.
 :::
 
 #### ⏳ ¿Cuánto dura un amor musical?
 
 ::: {.callout-tip appearance="simple" icon="false"}
-**Teoría.** El **análisis de supervivencia** se creó en medicina para estimar cuánto tiempo pasa hasta un evento, como una recaída. El estimador de **Kaplan-Meier** (1958) permite usar casos que todavía no tienen el evento (*censurados*). Aquí el "paciente" es cada artista que escuché al menos 20 veces; su vida empieza el día que lo escuché por primera vez, y "muere" si llevo más de un año sin ponerlo. Los que sigo escuchando están vivos (censurados).
+**Teoría.** El análisis de supervivencia se creó en medicina para estimar cuánto tiempo pasa hasta un evento, como una recaída. El estimador de Kaplan-Meier (1958) permite usar casos que todavía no tienen el evento (*censurados*). Aquí el "paciente" es cada artista que escuché al menos 20 veces; su vida empieza el día que lo escuché por primera vez, y "muere" si llevo más de un año sin ponerlo. Los que sigo escuchando están vivos (censurados).
 :::
 
 ```{r}
@@ -1570,13 +1747,13 @@ interactivo(p)
 ```
 
 ::: {.callout-note appearance="simple" icon="false"}
-**¿Qué me dice?** De `r nrow(vidas)` artistas que escuché al menos 20 veces, `r sum(vidas$abandonado)` ya los "abandoné". La **vida media** de un amor musical, el momento en que la mitad de los artistas ya dejó de sonar, es de unos **`r round(vida_media / 12, 1)` años**: cuando un artista entra a mi vida, tiende a quedarse mucho tiempo. La comparación entre artistas chilenos y extranjeros tiene un valor p de `r format(round(p_valor, 3), decimal.mark = ",")` (prueba log-rank): `r if (p_valor < 0.05) "la diferencia es estadísticamente significativa" else "no hay evidencia suficiente de que unos duren más que otros"`.
+**¿Qué me dice?** De `r nrow(vidas)` artistas que escuché al menos 20 veces, `r sum(vidas$abandonado)` ya los "abandoné". La vida media de un amor musical, es decir, el momento en que la mitad de los artistas ya dejó de sonar, es de unos `r round(vida_media / 12, 1)` años, lo cual indica que cuando un artista entra a mi vida tiende a quedarse por mucho tiempo. La comparación entre artistas chilenos y extranjeros tiene un valor p de `r format(round(p_valor, 3), decimal.mark = ",")` (prueba log-rank), por lo cual `r if (p_valor < 0.05) "la diferencia es estadísticamente significativa" else "no hay evidencia suficiente de que unos duren más que otros"`.
 :::
 
 #### 🤖 ¿Puede una máquina adivinar cuándo escucho?
 
 ::: {.callout-tip appearance="simple" icon="false"}
-**Teoría.** Le pido a varias técnicas de clasificación que adivinen **en qué momento** escuché cada canción (horario laboral, noche o fin de semana) sabiendo solo cómo es la música: ánimo, género, popularidad del artista y año. Cada una aprende con una parte de los datos y se evalúa con otra que no vio: aquí, con **artistas que nunca vio**, para que no pueda hacer trampa memorizándolos. Pruebo cinco: una **línea base** que siempre adivina el momento más común; una **regresión logística multinomial**, que mide cuánto empuja cada característica hacia cada momento; un **árbol de inferencia condicional** (Hothorn, Hornik y Zeileis, 2006), que aprende reglas legibles y solo corta cuando la diferencia es estadísticamente significativa; un **random forest** (Breiman, 2001), que combina cientos de árboles independientes, y un **gradient boosting** (Friedman, 2001; Chen y Guestrin, 2016), que suma árboles chicos donde cada uno corrige los errores de los anteriores: estos dos últimos suelen ser los que más aciertan, pero no se pueden leer. Aquí muestro solo la que mejor adivina; la comparación completa está en la [metodología](metodologia.html#modelos).
+**Teoría.** Le pido a varias técnicas de clasificación que adivinen en qué momento escuché cada canción (horario laboral, noche o fin de semana) sabiendo solo cómo es la música: ánimo, género, popularidad del artista y año. Cada una aprende con una parte de los datos y se evalúa con otra que no vio: aquí, con artistas que nunca vio, para que no pueda hacer trampa memorizándolos. Pruebo cinco: una línea base que siempre adivina el momento más común; una regresión logística multinomial, que mide cuánto empuja cada característica hacia cada momento; un árbol de inferencia condicional (Hothorn, Hornik y Zeileis, 2006), que aprende reglas legibles y solo corta cuando la diferencia es estadísticamente significativa; un random forest (Breiman, 2001), que combina cientos de árboles independientes, y un gradient boosting (Friedman, 2001; Chen y Guestrin, 2016), que suma árboles chicos donde cada uno corrige los errores de los anteriores: estos dos últimos suelen ser los que más aciertan, pero no se pueden leer. Aquí muestro solo la que mejor adivina; la comparación completa está en la [metodología](metodologia.html#modelos).
 :::
 
 ```{r}
@@ -1803,12 +1980,12 @@ detalle_modelo <- paste0(" La característica en la que más se fija es **", tol
 # Lectura de los resultados
 mejora <- mejor$balanceado - comparacion$balanceado[1]
 texto_modelos <- paste0(
-  "Probé cinco técnicas ([comparación en la metodología](metodologia.html#modelos)) y la que mejor adivina es el **", tolower(mejor$modelo), "**: acierta el ", pct(mejor$acierto),
+  "Probé cinco técnicas ([comparación en la metodología](metodologia.html#modelos)) y la que mejor adivina es el ", tolower(mejor$modelo), ", que acierta el ", pct(mejor$acierto),
   " de las veces (", pct(mejor$balanceado), " balanceado, F1 de ", pct(mejor$f1), "), contra un ", pct(comparacion$acierto[1]),
   " de la línea base (", pct(comparacion$balanceado[1]), " balanceado). ",
-  if (mejora < 0.05) "Es decir, **casi no se puede adivinar**: la música que escucho es muy parecida a cualquier hora y en cualquier día. No tengo una \"música de oficina\" y otra de fin de semana: mi gusto me acompaña igual en todos lados."
-  else if (mejora < 0.12) "Es decir, **algo se puede adivinar**: hay diferencias según el momento, pero son suaves."
-  else "Es decir, **la música sí cambia según el momento**, y los modelos lo captan.",
+  if (mejora < 0.05) "En este sentido, casi no se puede adivinar, ya que la música que escucho es muy parecida a cualquier hora y en cualquier día. Por lo tanto, no tengo una \"música de oficina\" y otra de fin de semana, dado que mi gusto me acompaña de igual manera en todos lados."
+  else if (mejora < 0.12) "En este sentido, algo se puede adivinar, ya que existen diferencias según el momento, aunque estas son suaves."
+  else "En este sentido, la música cambia según el momento y los modelos logran captarlo.",
   if (exists("detalle_modelo")) detalle_modelo else ""
 )
 ```
@@ -1823,7 +2000,7 @@ texto_modelos <- paste0(
 
 <img src="assets/ciro/ciro_rapero.webp" alt="Ciro, mi gato gris y blanco, con buzo verde y jockey, micrófono en mano, como rapero de Kneecap" class="ciro-lateral" width="90" height="118">
 
-Bajé las letras de mis canciones más escuchadas desde [LRCLIB](https://lrclib.net), una base abierta de letras, para ver **de qué hablan**. Por derechos de autor aquí solo muestro palabras y temas agregados, nunca letras completas.
+Bajé las letras de mis canciones más escuchadas desde [LRCLIB](https://lrclib.net), una base abierta de letras, para ver de qué hablan. Por derechos de autor aquí solo muestro palabras y temas agregados, nunca letras completas.
 
 ```{r}
 #| label: letras-preparacion
@@ -1843,7 +2020,7 @@ if (tiene_letras) {
 }
 ```
 
-`r if (tiene_letras) paste0("Por ahora tengo **", miles(nrow(letras)), " letras** de las ", miles(revisadas), " canciones revisadas, que suman el **", pct(cobertura_letras), "** de todas mis escuchas. Cada mes se suman las letras de las canciones nuevas.") else "Todavía no hay letras descargadas: corre <code>Rscript scripts/descargar_letras.R</code>."`
+`r if (tiene_letras) paste0("Por ahora tengo ", miles(nrow(letras)), " letras de las ", miles(revisadas), " canciones revisadas, que suman el ", pct(cobertura_letras), " de todas mis escuchas. Cada mes se suman las letras de las canciones nuevas.") else "Todavía no hay letras descargadas: corre <code>Rscript scripts/descargar_letras.R</code>."`
 
 ::: {.panel-tabset}
 
@@ -1876,7 +2053,7 @@ interactivo(p)
 ```
 
 ::: {.callout-note appearance="simple" icon="false"}
-**¿Qué me dice?** En total, el `r if (tiene_letras) pct(total_es) else "—"` de lo que escucho (entre las canciones con letra) está en **español**. La evolución sigue a las eras: en 2014, en plena era del metal, el español era apenas un 6%; desde entonces fue subiendo hasta rondar entre el 35% y el 40% en los últimos años, de la mano de la escena chilena y argentina.
+**¿Qué me dice?** En total, el `r if (tiene_letras) pct(total_es) else "—"` de lo que escucho (entre las canciones con letra) está en español. Respecto a su evolución, esta sigue a las eras, ya que en 2014, en plena era del metal, el español era apenas un 6%, y desde entonces fue subiendo hasta ubicarse entre un 35% y un 40% durante los últimos años, lo cual se explica por la escena chilena y argentina.
 :::
 
 #### 🔤 Palabras más cantadas
@@ -1911,7 +2088,7 @@ tagList(interactivo(graf_palabras("Español", verde)), interactivo(graf_palabras
 #### 🧩 Los temas de mis canciones
 
 ::: {.callout-tip appearance="simple" icon="false"}
-**Teoría.** Es el mismo **modelo de tópicos LDA** de las playlists ocultas, ahora en su uso original: textos. Cada **letra** es un documento y el modelo encuentra grupos de palabras que suelen aparecer juntas en una misma canción. Cada grupo es un **tema**. Una canción puede mezclar varios temas, y el peso de un tema en mi vida depende de cuántas veces escuché las canciones que hablan de él.
+**Teoría.** Es el mismo modelo de tópicos LDA de las playlists ocultas, ahora en su uso original: textos. Cada letra es un documento y el modelo encuentra grupos de palabras que suelen aparecer juntas en una misma canción. Cada grupo es un tema. Una canción puede mezclar varios temas, y el peso de un tema en mi vida depende de cuántas veces escuché las canciones que hablan de él.
 :::
 
 ```{r}
@@ -1922,15 +2099,9 @@ conteo_letras <- tokens |> count(cancion_id, palabra)
 vocab_letras <- conteo_letras |> count(palabra) |> filter(n >= 5) |> pull(palabra)
 conteo_letras <- filter(conteo_letras, palabra %in% vocab_letras)
 
-d <- factor(conteo_letras$cancion_id); t <- factor(conteo_letras$palabra)
-dtm_letras <- slam::simple_triplet_matrix(as.integer(d), as.integer(t), conteo_letras$n,
-                                          dimnames = list(levels(d), levels(t)))
-class(dtm_letras) <- c("DocumentTermMatrix", class(dtm_letras))
-attr(dtm_letras, "weighting") <- c("term frequency", "tf")
-
 k_letras <- 8
-modelo_letras <- LDA(dtm_letras, k = k_letras, method = "Gibbs",
-                     control = list(seed = 2026, burnin = 300, iter = 1000))
+modelo_letras <- lda_estable(transmute(conteo_letras, doc = cancion_id, term = palabra, n),
+                             "data/modelo_letras.rds", k = k_letras, burnin = 300, iter = 1000)
 
 # Nombre y descripción de cada tema según sus palabras clave (diccionario en R/letras.R)
 temas <- tibble(tema = seq_len(k_letras),
@@ -2013,27 +2184,93 @@ interactivo(p)
 ```
 
 ::: {.callout-note appearance="simple" icon="false"}
-**¿Qué me dice?** *Escrito el 08-11-2026, con 6.996 letras.* Los ocho temas quedan casi parejos (entre 11% y 16% cada uno): ninguno domina. El más presente es **el amor y la vida en español**, con el voseo del rock chileno y argentino (*amor, quiero, vida, vos, corazón*) y Tenemos Explosivos como ejemplo. A su lado aparece otra forma de hablar de amor en castellano, más de **deseo y noche**, la del lenguaje urbano y tropical (*mami, gusta, dime, noche, calle*), con La Brígida Orquesta. En inglés, el amor queda en **el amor y las despedidas** (*love, feel, mind, heart, hold*), con IDLES. Le siguen **la vida y el paso del tiempo** (*time, life, day, live, leave*), con Black Country, New Road, y un imaginario contemplativo de **luz y oscuridad** (*eyes, night, light, sun, sky*), con Interpol. Otro tema, **luz, cielo y lo sagrado**, gira sobre todo en torno a Dios, la gente y el cuerpo (*god, people, body, hands*), con Nick Cave. El lado más duro está en **la muerte, la sangre y lo sagrado** del metal y el punk (*die, death, blood, soul, kill*), con Dead Kennedys, y en **la rabia, la calle y el dinero** del hip-hop y el hardcore (*fuck, money, boy*). Los temas se separan primero por idioma, porque las palabras de cada idioma casi nunca se mezclan en una misma canción, y luego por escena: cada género tiene su propio vocabulario, y por eso un mismo gran tema, como el amor, aparece partido en varios.
+**¿Qué me dice?** Los ocho temas quedan bastante parejos, con entre un `r pct(min(peso_temas$share))` y un `r pct(max(peso_temas$share))` cada uno, por lo cual ninguno domina. El más presente corresponde al amor y la vida en español, con el voseo del rock chileno y argentino (*amor, quiero, vida, vos, corazón*), siendo Tenemos Explosivos su ejemplo más claro. Asimismo, aparece otra forma de hablar de amor en castellano, más cercana al deseo y la noche, propia del lenguaje urbano y tropical (*mami, gusta, dime, noche, calle*), en donde destaca La Brígida Orquesta. En inglés, el amor se encuentra en el tema de las despedidas (*love, feel, mind, heart, hold*), con IDLES, seguido por la vida y el paso del tiempo (*time, life, day, live, leave*), con Black Country, New Road, y por un imaginario contemplativo de luz y oscuridad (*eyes, night, light, sun, sky*), con Interpol. Otro tema, nombrado como luz, cielo y lo sagrado, gira principalmente en torno a Dios, la gente y el cuerpo (*god, people, body, hands*), con Nick Cave. Respecto al lado más duro, este se observa en la muerte, la sangre y lo sagrado del metal y el punk (*die, death, blood, soul, kill*), con Dead Kennedys, y en la rabia, la calle y el dinero del hip-hop y el hardcore (*fuck, money, boy*). Cabe señalar que los temas se separan primero por idioma, ya que las palabras de cada idioma casi nunca se mezclan en una misma canción, y luego por escena, dado que cada género tiene su propio vocabulario. Por lo cual, un mismo gran tema como el amor aparece dividido en varios.
+:::
+
+#### 🎭 Lo que dice y cómo suena
+
+::: {.callout-tip appearance="simple" icon="false"}
+**Teoría.** El sentimiento de cada letra se calcula con el léxico NRC (Mohammad y Turney, 2013), que clasifica palabras como positivas o negativas, y se estandariza dentro de cada idioma. Cómo suena corresponde a la valencia de las etiquetas del artista, por lo cual se trata de una medida del artista y no de cada canción. Cabe señalar que un léxico no entiende la ironía ni el contexto, por lo que los casos individuales deben tomarse con cautela.
+:::
+
+```{r}
+#| label: letra-sonido
+#| eval: !expr tiene_letras && tiene_tags && requireNamespace("syuzhet", quietly = TRUE)
+#| fig-height: 5
+letra_sonido <- sentimiento_letras(tokens) |>
+  inner_join(animo_artista, by = "artista") |>
+  inner_join(escuchas_cancion, by = c("artista", "cancion")) |>
+  filter(veces >= 10) |>
+  mutate(z_sonido = as.numeric(scale(valencia)),
+         etiqueta = str_remove(paste(artista, cancion, sep = " — "), regex(" - (\\d{4} )?remaster(ed)?.*$", ignore_case = TRUE)))
+
+cor_letra_sonido <- cor(letra_sonido$z_letra, letra_sonido$z_sonido, method = "spearman")
+
+p <- letra_sonido |>
+  filter(veces >= 20) |>
+  ggplot(aes(valencia, z_letra, color = idioma,
+             text = paste0("<b>", etiqueta, "</b><br>Letra: ", format(round(z_letra, 1), decimal.mark = ","),
+                           "<br>Sonido: ", format(round(valencia, 2), decimal.mark = ","), "<br>", veces, " escuchas"))) +
+  geom_hline(yintercept = 0, color = gris) +
+  geom_point(size = 1.8, alpha = 0.65) +
+  scale_color_manual(values = c(Español = verde, Inglés = morado), name = NULL) +
+  labs(title = "Lo que dice la letra y cómo suena el artista",
+       subtitle = "Cada punto es una canción con 20 escuchas o más",
+       x = "Sonido: valencia del artista (más a la derecha, más alegre)",
+       y = "Letra: sentimiento estandarizado (más arriba, más positiva)")
+interactivo(p)
+
+tabla_contraste <- function(datos, titulo, subtitulo) {
+  tabla(transmute(datos, etiqueta, letra = round(z_letra, 1), sonido = round(valencia, 2), veces),
+        titulo = titulo, subtitulo = subtitulo,
+        columnas = list(
+          etiqueta = colDef(name = "Canción", minWidth = 260),
+          letra    = colDef(name = "Letra", maxWidth = 80),
+          sonido   = colDef(name = "Sonido", maxWidth = 80),
+          veces    = colDef(name = "Escuchas", maxWidth = 90)
+        ))
+}
+luminosas_oscuras <- letra_sonido |> filter(z_sonido > 0.5, z_letra < -1) |> arrange(z_letra) |> slice_head(n = 8)
+oscuras_luminosas <- letra_sonido |> filter(z_sonido < -0.5, z_letra > 1) |> arrange(desc(z_letra)) |> slice_head(n = 8)
+tagList(
+  tabla_contraste(luminosas_oscuras, "Suenan luminosas, pero la letra es oscura", "Artista de sonido más alegre que mi promedio y letra bastante más negativa"),
+  tabla_contraste(oscuras_luminosas, "Suenan oscuras, pero la letra es luminosa", "Artista de sonido más oscuro que mi promedio y letra bastante más positiva")
+)
+```
+
+::: {.callout-note appearance="simple" icon="false"}
+**¿Qué me dice?** `r if (exists("cor_letra_sonido")) paste0("Se analizaron ", miles(nrow(letra_sonido)), " canciones que escuché al menos 10 veces, y la correlación entre el sentimiento de la letra y el sonido del artista es de ", format(round(cor_letra_sonido, 2), decimal.mark = ","), ", lo cual indica que ", if (abs(cor_letra_sonido) < 0.2) "cómo suena un artista dice bastante poco respecto a lo que dicen sus letras" else "lo que dicen las letras guarda relación con cómo suena el artista", ". Las tablas muestran los contrastes más marcados, aunque algunos responden a limitaciones del léxico, ya que una palabra como fuego se contabiliza como negativa aun cuando la canción sea festiva.") else "—"`
 :::
 
 :::
+
+```{r}
+#| label: cifras-psico
+#| eval: !expr tiene_tags
+# Cifras de la lectura psicológica
+coma2 <- \(x) sub("-", "−", format(round(x, 2), nsmall = 2, decimal.mark = ","), fixed = TRUE)
+a_ini <- por_anio_animo[1, ]
+a_fin <- tail(por_anio_animo, 1)
+pan <- pandemia
+cf$intensa <- music$share[str_starts(as.character(music$dimension), "Intensa")]
+```
 
 ## 🧠 Lectura psicológica
 
 ::: {.callout-note appearance="simple" icon="false"}
 ## Lo que dice la investigación sobre gustos como los míos
 
-*Escrito el 08-11-2026. Es una lectura lúdica: los estudios hablan de tendencias promedio en muchas personas, no de diagnósticos individuales.*
+*Esta lectura es lúdica, ya que los estudios hablan de tendencias promedio en muchas personas y no de diagnósticos individuales.*
 
-**Apertura, no rabia.** Con 70% de música *intensa*, mi perfil es casi puro "intenso y rebelde". Rentfrow y Gosling (2003) encontraron que quienes prefieren rock, alternativo y metal puntúan más alto en **apertura a la experiencia** (curiosidad, gusto por ideas nuevas), y que esa preferencia **no** se asocia a más neuroticismo ni a menos amabilidad, contra el estereotipo. North (2008) encontró que los fans del metal se parecen mucho a los de la música clásica: creativos, tranquilos consigo mismos y algo introvertidos.
+Con un `r pct(cf$intensa)` de música intensa, mi perfil se ubica casi por completo en lo intenso y rebelde. Al respecto, Rentfrow y Gosling (2003) encontraron que quienes prefieren el rock, lo alternativo y el metal puntúan más alto en apertura a la experiencia, y que dicha preferencia no se asocia a mayor neuroticismo ni a menor amabilidad, lo cual va en contra del estereotipo. Asimismo, North (2008) señala que quienes escuchan metal se parecen bastante a quienes escuchan música clásica, ya que tienden a ser personas creativas, tranquilas consigo mismas y algo introvertidas.
 
-**La oscuridad como refugio.** Todos mis años caen en el cuadrante *tenso/oscuro*: valencia negativa y energía alta. La investigación sobre la "paradoja de la música triste" (Vuoskoski y otros, 2012) muestra que quienes disfrutan la música triste o sombría tienden a puntuar más alto en **empatía** y apertura. Y en música extrema, Sharman y Dingle (2015) vieron que escucharla después de enojarse no aumenta la rabia: ayuda a procesarla y sube las emociones positivas. Mis días más oscuros (doom de Cathedral, Black Sabbath y Witchfinder General) fueron todos entre 2013 y 2017; los más luminosos, de cumbia con **Chico Trujillo** y **La Floripondio**.
+Respecto al ánimo, todos mis años caen en el cuadrante tenso y oscuro, con valencia negativa y energía alta. En este sentido, la investigación sobre la paradoja de la música triste (Vuoskoski y otros, 2012) indica que quienes disfrutan este tipo de música tienden a puntuar más alto en empatía y apertura. Por su parte, Sharman y Dingle (2015) observaron que escuchar música extrema después de enojarse no aumenta la rabia, ya que ayuda a procesarla y sube las emociones positivas. Mis días más oscuros, con el doom de Cathedral, Black Sabbath y Witchfinder General, se encuentran todos entre 2013 y 2017, mientras que los más luminosos corresponden a la cumbia de Chico Trujillo y La Floripondio.
 
-**Bajando las revoluciones.** La energía de lo que escucho cayó de 0,71 en 2013 a 0,42 en 2026, y la valencia subió de −0,43 a cerca de −0,25. Las eras lo muestran: empecé con el doom de Saint Vitus y Godflesh (2013–2014), seguí con el heavy metal de Black Sabbath, mezclado con Tom Waits y Amenra (2015–2018) y desde mediados de 2018 encadeno tres eras de post-punk: la de IDLES, la de Black Country, New Road y la actual de Fontaines D.C. Sigo en lo intenso, pero más melódico y menos extremo.
+La energía de lo que escucho bajó de `r coma2(a_ini$energia)` en `r a_ini$anio` a `r coma2(a_fin$energia)` en `r a_fin$anio`, mientras que la valencia subió de `r coma2(a_ini$valencia)` a `r coma2(a_fin$valencia)`. Esto también se observa en las eras, ya que comencé con el doom de Saint Vitus y Godflesh, seguí con el heavy metal de Black Sabbath mezclado con Tom Waits y Amenra, y desde mediados de 2018 encadeno tres eras de post-punk, que corresponden a la de IDLES, la de Black Country, New Road y la actual de Fontaines D.C. Por lo tanto, sigo dentro de lo intenso, aunque de una manera más melódica y menos extrema.
 
-**La música como compañía de la rutina.** Escucho en horario de oficina y durante la pandemia escuché **un tercio menos** (21 escuchas al día, contra 32 antes): la música va pegada a la rutina, a trabajar y moverme, más que al tiempo libre. Después de la pandemia volví con todo, a 56 escuchas al día, y con el **doble de música chilena** (de 16% a 32%).
+Durante la pandemia escuché cerca de un tercio menos, con `r round(pan$por_dia[pan$periodo == "Pandemia"])` escuchas al día frente a las `r round(pan$por_dia[pan$periodo == "Antes"])` de antes, lo cual da cuenta de que la música está bastante ligada a la rutina, a trabajar y a moverme, más que al tiempo libre. Con posterioridad a la pandemia subí a `r round(pan$por_dia[pan$periodo == "Después"])` escuchas al día, y la música chilena pasó de un `r pct(pan$chilenos[pan$periodo == "Antes"])` a un `r pct(pan$chilenos[pan$periodo == "Después"])`.
 
-**Raíces que no se mueven.** En 14 años cambiaron los géneros, pero Tenemos Explosivos estuvo todos los años, y la escena local fue ganando espacio. Hoy exploro poco (7% de artistas nuevos): datos de plataformas como Deezer sugieren que, en promedio, la gente deja de buscar música nueva alrededor de los 30 años y vuelve a lo que la marcó.
+Finalmente, en `r cf$anios` años cambiaron los géneros, aunque Tenemos Explosivos estuvo presente todos los años y la escena local fue ganando espacio. Actualmente exploro poco, con un `r pct(cf$nuevos)` de escuchas a artistas nuevos, lo cual es coherente con datos de plataformas como Deezer, que sugieren que en promedio las personas dejan de buscar música nueva alrededor de los 30 años.
 :::
 
 ## 🔁 Obsesiones y amores olvidados
@@ -2043,7 +2280,7 @@ interactivo(p)
 #### En loop
 
 ::: {.callout-tip appearance="simple" icon="false"}
-**Teoría.** El **efecto de mera exposición** (Zajonc, 1968) dice que algo nos gusta más mientras más lo vemos o escuchamos. Pero Berlyne (1971) mostró que la relación es una **U invertida**: el gusto sube con la repetición hasta un punto y después cae por saturación. Las canciones en loop son ese peak; los "amores olvidados", quizás, la bajada.
+**Teoría.** El efecto de mera exposición (Zajonc, 1968) dice que algo nos gusta más mientras más lo vemos o escuchamos. Pero Berlyne (1971) mostró que la relación es una U invertida: el gusto sube con la repetición hasta un punto y después cae por saturación. Las canciones en loop son ese peak; los "amores olvidados", quizás, la bajada.
 :::
 
 ```{r}
@@ -2180,7 +2417,11 @@ if (tiene_tags) {
                letras = if (exists("peso_temas"))
                  list(n = nrow(letras), revisadas = revisadas, cobertura = cobertura_letras,
                       total_es = total_es, idioma_anual = idioma_anual, temas = peso_temas,
-                      temas_anio = temas_anio, palabras = palabras_top)),
+                      temas_anio = temas_anio, palabras = palabras_top),
+               clima = if (exists("efectos_clima")) efectos_clima,
+               letra_sonido = if (exists("cor_letra_sonido"))
+                 list(cor = cor_letra_sonido, luminosas_oscuras = luminosas_oscuras, oscuras_luminosas = oscuras_luminosas),
+               genealogia = if (exists("padrinos")) list(padrinos = padrinos, mas_largo = mas_largo, sin_padrino = sin_padrino)),
           "data/resultados.rds")
 }
 ```
