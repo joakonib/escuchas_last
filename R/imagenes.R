@@ -1,12 +1,10 @@
-# Fotos de artistas y portadas de discos desde la API pública de Deezer.
-# Se guardan en data/imagenes/ y solo se descargan una vez. Si Deezer no tiene
-# una coincidencia exacta, se deja un archivo .none para no volver a buscarla.
+# 0. Cargo paquetes ------
+pacman::p_load(httr2)
 
-library(httr2)
-
+# 1. Carpeta de imágenes ------
 dir_imagenes <- "data/imagenes"
 
-# Nombre de archivo seguro a partir de un texto
+# 2. Funciones auxiliares ------
 slug <- function(x) {
   s <- iconv(x, to = "ASCII//TRANSLIT")
   s[is.na(s)] <- x[is.na(s)]
@@ -15,15 +13,16 @@ slug <- function(x) {
 
 normalizar <- function(x) tolower(trimws(gsub("[^[:alnum:] ]", "", iconv(x, to = "ASCII//TRANSLIT"))))
 
+# 3. Búsqueda en Deezer ------
 buscar_deezer <- function(tipo, q) {
   resp <- tryCatch(
-    request(paste0("https://api.deezer.com/search/", tipo)) |>
-      req_url_query(q = q, limit = 5) |>
-      req_throttle(rate = 8) |>
-      req_retry(max_tries = 3) |>
-      req_perform() |>
-      resp_body_json(),
-    error = \(e) NULL
+    request(paste0("https://api.deezer.com/search/", tipo)) %>%
+      req_url_query(q = q, limit = 5) %>%
+      req_throttle(rate = 8) %>%
+      req_retry(max_tries = 3) %>%
+      req_perform() %>%
+      resp_body_json()
+    ,error = function(e) NULL
   )
   resp$data
 }
@@ -32,11 +31,11 @@ descargar <- function(url, archivo) {
   ok <- tryCatch({
     download.file(url, archivo, mode = "wb", quiet = TRUE)
     TRUE
-  }, error = \(e) FALSE, warning = \(w) FALSE)
+  }, error = function(e) FALSE, warning = function(w) FALSE)
   if (ok) archivo else NA_character_
 }
 
-# Ruta local de la imagen (o NA si no hay), buscando en Deezer si hace falta
+#### solo acepta coincidencia exacta; un .none evita repetir la búsqueda
 imagen <- function(tipo, artista, album = NULL) {
   carpeta <- file.path(dir_imagenes, if (tipo == "artist") "artistas" else "discos")
   dir.create(carpeta, recursive = TRUE, showWarnings = FALSE)
@@ -49,19 +48,15 @@ imagen <- function(tipo, artista, album = NULL) {
   } else {
     buscar_deezer("album", sprintf('artist:"%s" album:"%s"', artista, album))
   }
-  # Solo se acepta una coincidencia exacta del nombre, para no mostrar la foto de otro
-  exactos <- Filter(\(r) {
+  exactos <- Filter(function(r) {
     if (tipo == "artist") normalizar(r$name) == normalizar(artista)
     else normalizar(r$artist$name) == normalizar(artista)
   }, resultados)
-  # Puede haber varios artistas con el mismo nombre (p. ej. "Idles" e "IDLES"):
-  # se elige el que tiene más seguidores
   if (tipo == "artist" && length(exactos) > 1) {
-    exactos <- exactos[order(-vapply(exactos, \(r) as.numeric(r$nb_fan %||% 0), 0))]
+    exactos <- exactos[order(-vapply(exactos, function(r) as.numeric(r$nb_fan %||% 0), 0))]
   }
   elegido <- if (length(exactos) > 0) exactos[[1]] else NULL
   url <- if (tipo == "artist") elegido$picture_medium else elegido$cover_medium
-  # Deezer usa una imagen genérica cuando el artista no tiene foto
   if (is.null(url) || grepl("/artist//", url, fixed = TRUE)) {
     file.create(paste0(base, ".none"))
     return(NA_character_)
@@ -69,23 +64,24 @@ imagen <- function(tipo, artista, album = NULL) {
   descargar(url, paste0(base, ".jpg"))
 }
 
-imagen_artista <- function(artistas) vapply(artistas, \(a) imagen("artist", a), "", USE.NAMES = FALSE)
+## 3.1 Vectorización ------
+imagen_artista <- function(artistas) vapply(artistas, function(a) imagen("artist", a), "", USE.NAMES = FALSE)
 imagen_disco <- function(artistas, albumes) {
-  mapply(\(a, b) imagen("album", a, b), artistas, albumes, USE.NAMES = FALSE)
+  mapply(function(a, b) imagen("album", a, b), artistas, albumes, USE.NAMES = FALSE)
 }
 
-# Grilla de tarjetas con imagen, título y detalle. Sin imagen, muestra las iniciales.
+# 4. Galería de tarjetas ------
 galeria <- function(imagenes, titulos, detalles) {
-  tarjetas <- Map(\(img, titulo, detalle) {
+  tarjetas <- Map(function(img, titulo, detalle) {
     visual <- if (is.na(img)) {
       iniciales <- paste(substr(strsplit(titulo, " ")[[1]], 1, 1)[1:min(2, lengths(strsplit(titulo, " ")))], collapse = "")
       htmltools::div(class = "galeria-vacia", toupper(iniciales))
     } else {
       htmltools::img(src = img, alt = titulo, loading = "lazy")
     }
-    htmltools::div(class = "galeria-item", visual,
-                   htmltools::div(class = "galeria-titulo", titulo),
-                   htmltools::div(class = "galeria-detalle", detalle))
+    htmltools::div(class = "galeria-item", visual
+                   ,htmltools::div(class = "galeria-titulo", titulo)
+                   ,htmltools::div(class = "galeria-detalle", detalle))
   }, imagenes, titulos, detalles)
   htmltools::div(class = "galeria", tarjetas)
 }

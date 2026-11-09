@@ -77,32 +77,32 @@ fi
 
 # 1. Descargas
 verificar_escuchas() {
-  "$R" scripts/verificar_escuchas.R "$S/escuchas_respaldo.parquet"
+  "$R" scripts/01.verificar_escuchas.R "$S/escuchas_respaldo.parquet"
 }
 if [ "$DESDE_CERO" = 1 ] && [ -f "$S/escuchas_respaldo.parquet" ]; then
   rm -f data/escuchas.parquet
-  if reintentar 4 "Escuchas desde cero" "$R" scripts/descargar_escuchas.R && verificar_escuchas >> "$LOG" 2>&1; then
+  if reintentar 4 "Escuchas desde cero" "$R" scripts/00.descargar_escuchas.R && verificar_escuchas >> "$LOG" 2>&1; then
     log "Escuchas: descarga desde cero verificada contra el respaldo"
   else
     log "Descarga desde cero incompleta: restauro el respaldo y completo de forma incremental"
     cp "$S/escuchas_respaldo.parquet" data/escuchas.parquet
-    reintentar 4 "Escuchas (incremental)" "$R" scripts/descargar_escuchas.R
+    reintentar 4 "Escuchas (incremental)" "$R" scripts/00.descargar_escuchas.R
   fi
 else
-  reintentar 4 "Escuchas (incremental)" "$R" scripts/descargar_escuchas.R
+  reintentar 4 "Escuchas (incremental)" "$R" scripts/00.descargar_escuchas.R
   if [ -f "$S/escuchas_respaldo.parquet" ] && ! verificar_escuchas >> "$LOG" 2>&1; then
     log "Escuchas: menos que el respaldo, se restaura"
     cp "$S/escuchas_respaldo.parquet" data/escuchas.parquet
   fi
 fi
-reintentar 4 "Etiquetas" "$R" scripts/descargar_tags.R
-reintentar 4 "Letras" "$R" scripts/descargar_letras.R
-reintentar 4 "Clima" "$R" scripts/descargar_clima.R
+reintentar 4 "Etiquetas" "$R" scripts/02.descargar_tags.R
+reintentar 4 "Letras" "$R" scripts/03.descargar_letras.R
+reintentar 4 "Clima" "$R" scripts/04.descargar_clima.R
 
 # 2. Chequeo de letras
-"$R" scripts/chequear_letras.R >> "$LOG" 2>&1
+"$R" scripts/05.chequear_letras.R >> "$LOG" 2>&1
 log "Chequeo de letras registrado arriba"
-"$R" scripts/chequear_estilo.R >> "$LOG" 2>&1
+"$R" scripts/06.chequear_estilo.R >> "$LOG" 2>&1
 log "Chequeo de estilo de los textos registrado arriba (ver ESTILO.md)"
 
 # 3. Pausa para el análisis de los datos y la actualización de los textos.
@@ -115,9 +115,9 @@ rm -f "$S/esperando_analisis"
 
 # 4. Reportes: si alguno falla, no se publica
 ok=1
-reintentar 2 "Render reporte general" "$Q" render analisis_escuchas.qmd || ok=0
-reintentar 2 "Render reporte mensual ($MES)" "$R" scripts/generar_reporte_mensual.R "$MES" || ok=0
-reintentar 2 "Render metodología" "$Q" render metodologia.qmd || ok=0
+reintentar 2 "Render reporte general" "$Q" render 07.analisis_escuchas.qmd || ok=0
+reintentar 2 "Render reporte mensual ($MES)" "$R" scripts/08.generar_reporte_mensual.R "$MES" || ok=0
+reintentar 2 "Render metodología" "$Q" render 09.metodologia.qmd || ok=0
 if [ "$ok" = 0 ]; then
   log "==== Un render falló: NO se publica. Revisar el log. ===="
   apagar

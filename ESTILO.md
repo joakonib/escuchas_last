@@ -1,6 +1,6 @@
 # Guía de estilo de los textos
 
-Los textos interpretativos de los reportes deben sonar como escribe Joaquín. Esta guía sale de comparar sus trabajos anteriores a 2025 (unas 25 mil palabras de tesis, tareas e informes) con los textos del reporte. `scripts/chequear_estilo.R` la revisa en cada corrida completa.
+Los textos interpretativos de los reportes deben sonar como escribe Joaquín. Esta guía sale de comparar sus trabajos anteriores a 2025 (unas 25 mil palabras de tesis, tareas e informes) con los textos del reporte. `scripts/06.chequear_estilo.R` la revisa en cada corrida completa.
 
 ## Cómo escribe
 
@@ -27,3 +27,7 @@ No se imitan los errores de tipeo ni de concordancia que aparecen en las muestra
 ## Cifras
 
 Toda cifra que dependa de los datos se calcula en el propio texto con R, para que no quede desactualizada. Solo se escriben a mano las interpretaciones y los nombres de artistas que salen de los modelos.
+
+## Código
+
+Sigue el estilo de `simel_eme`: `remove(list=ls())` al inicio de cada script, paquetes con `pacman::p_load`, pipe `%>%`, comas al inicio de línea, `purrr` en vez de loops `for`, títulos `# 1. Título ------` y subtítulos `## 1.1 Subtítulo ------`, y notas cortas `#### nota`. Los archivos se numeran según el orden en que corren.

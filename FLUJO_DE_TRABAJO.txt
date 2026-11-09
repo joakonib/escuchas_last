@@ -8,6 +8,56 @@ efectivo, o al revés, hay que corregirlo.
 Última actualización: 08-11-2026
 
 
+WORKFLOW COMPLETO (MAPA RÁPIDO)
+-------------------------------
+Los archivos están numerados en el orden en que corren. Se ejecuta desde la
+raíz del proyecto.
+
+  ANTES   Candado data/flujo.lock (impide dos flujos a la vez) y respaldo de
+          data/escuchas.parquet en data/respaldo/.
+
+  DATOS
+  00  scripts/00.descargar_escuchas.R   Last.fm    -> data/escuchas.parquet
+  01  scripts/01.verificar_escuchas.R   compara contra el respaldo; si hay
+                                        menos escuchas, se restaura
+  02  scripts/02.descargar_tags.R       Last.fm    -> data/tags_artistas.parquet
+                                                      data/info_artistas.parquet
+  03  scripts/03.descargar_letras.R     LRCLIB     -> data/letras.parquet
+  04  scripts/04.descargar_clima.R      Open-Meteo -> data/clima.parquet
+
+  CONTROLES (quedan en el log, no detienen el flujo)
+  05  scripts/05.chequear_letras.R      cobertura, duplicadas y vacías
+  06  scripts/06.chequear_estilo.R      textos según ESTILO.md (solo flujo B)
+
+  REVISIÓN (solo flujo B)
+      Pausa hasta 60 min: render de prueba, comparar cifras y textos, y crear
+      data/respaldo/analisis_ok para continuar.
+
+  REPORTES (si uno falla, no se publica nada)
+  07  07.analisis_escuchas.qmd          -> analisis_escuchas.html
+                                           data/resultados.rds y data/modelos.rds
+  08  scripts/08.generar_reporte_mensual.R + 08.reporte_mensual.qmd
+                                        -> reporte_mensual.html
+                                           reportes/reporte_AAAA-MM.html
+  09  09.metodologia.qmd                -> metodologia.html
+
+  PUBLICACIÓN
+      Copiar los tres HTML a docs/, limpiar temporales, commit, pull y push.
+      GitHub Pages publica docs/.
+
+  CÓMO SE LANZA
+      Mensual:   actualizar.bat (tarea "Last.fm escuchas", día 1 a las 10:00)
+      Completo:  bash scripts/flujo_nocturno.sh --mes AAAA-MM [--desde-cero]
+                 [--reentrenar]
+      Apagar el PC solo con la confirmación expresa de Joaquín en ese momento.
+
+  QUÉ SE REENTRENA
+      Temas y playlists (data/modelo_*.rds): si lo nuevo supera el 15 % o con
+      --reentrenar; en ese caso hay que reescribir sus textos.
+      Clasificadores (data/modelos.rds): si las escuchas crecen más de 5 % o
+      con --reentrenar.
+
+
 HAY DOS FLUJOS
 --------------
 A. Mensual automático (actualizar.bat, tarea programada el día 1 a las 10:00).
@@ -60,19 +110,19 @@ FASE 0. Preparación
   0.2 Respaldar data/escuchas.parquet antes de cualquier descarga desde cero.
 
 FASE 1. Descargas
-  1.1 Escuchas de Last.fm (scripts/descargar_escuchas.R).
+  1.1 Escuchas de Last.fm (scripts/00.descargar_escuchas.R).
       - Incremental por defecto. Para bajar todo desde cero: respaldar y quitar
         data/escuchas.parquet antes de correrlo.
-      - Verificar contra el respaldo (scripts/verificar_escuchas.R): total de
+      - Verificar contra el respaldo (scripts/01.verificar_escuchas.R): total de
         escuchas no menor, rango de fechas, meses sin escuchas, duplicados. Si
         queda incompleta: restaurar el respaldo y completar en modo incremental.
-  1.2 Etiquetas y oyentes de artistas (scripts/descargar_tags.R).
+  1.2 Etiquetas y oyentes de artistas (scripts/02.descargar_tags.R).
       - Cobertura: todos los artistas (tope N_ARTISTAS = 5.000; al 24-10-2026
         son 3.271 = 100 % de las escuchas). Unos 19 min por 2.300 artistas.
       - Usa la misma API que 1.1: no correrlos en paralelo (límite de consultas).
-  1.3 Letras de LRCLIB (scripts/descargar_letras.R).
-      - Meta: 8.000 canciones (todas las con 5 o más escuchas). Cumplida el
-        24-10-2026: 8.000 revisadas, 6.980 con letra = 69 % de las escuchas.
+  1.3 Letras de LRCLIB (scripts/03.descargar_letras.R).
+      - Se buscan las canciones con 3 o más escuchas (MIN_ESCUCHAS). Al
+        09-11-2026: 13.009 revisadas, 11.143 con letra = 77 % de las escuchas.
       - Lotes de 100 canciones; cada lote toma de 3 a 5 min (hasta 12 si
         LRCLIB está lento): 1.000 canciones nuevas, ~40 min.
       - Cada consulta tiene un tope de 30 s (req_timeout) y se reintenta. Si
@@ -83,12 +133,12 @@ FASE 1. Descargas
         título limpio (sin "Remastered", "Live", "feat.", paréntesis ni
         corchetes) y el artista principal. Una sola vez por canción.
 
-  1.4 Clima de Santiago (scripts/descargar_clima.R, Open-Meteo). Incremental.
+  1.4 Clima de Santiago (scripts/04.descargar_clima.R, Open-Meteo). Incremental.
 
 FASE 2. Análisis antes del render (el flujo se pausa hasta que termine)
-  2.1 Chequeo de letras (scripts/chequear_letras.R): filas, % encontradas,
+  2.1 Chequeo de letras (scripts/05.chequear_letras.R): filas, % encontradas,
       instrumentales, duplicadas, vacías y % de escuchas con letra. Chequeo de
-      estilo de los textos (scripts/chequear_estilo.R, guía en ESTILO.md).
+      estilo de los textos (scripts/06.chequear_estilo.R, guía en ESTILO.md).
   2.2 Render de prueba del reporte general: deja los resultados clave en
       data/resultados.rds (perfil, ánimo, eras, MUSIC, pandemia, letras).
   2.3 Recalcular cada cifra escrita a mano en los textos y compararla:
@@ -108,10 +158,10 @@ FASE 2. Análisis antes del render (el flujo se pausa hasta que termine)
       sigue igual.
 
 FASE 3. Reportes
-  3.1 quarto render analisis_escuchas.qmd
-  3.2 Rscript scripts/generar_reporte_mensual.R <AAAA-MM>
+  3.1 quarto render 07.analisis_escuchas.qmd
+  3.2 Rscript scripts/08.generar_reporte_mensual.R <AAAA-MM>
       (mes en curso si el anterior tiene pocos datos).
-  3.3 quarto render metodologia.qmd
+  3.3 quarto render 09.metodologia.qmd
   3.4 Copiar los tres HTML a docs/.
   3.5 Revisión WCAG 2.2 AA en las dos versiones: computador (~1280 px) y
       celular (marco de 380 px dentro de una página, porque Chrome sin ventana
@@ -189,7 +239,7 @@ CRITERIOS DE ANÁLISIS (modelos y técnicas)
     la muestra, no solo significancia.
   - Semilla fija para que los resultados sean reproducibles.
   - Cada decisión de diseño (división, parámetros, umbrales) queda explicada
-    en metodologia.qmd.
+    en 09.metodologia.qmd.
 
 
 PENDIENTES / PRÓXIMOS PASOS
@@ -238,7 +288,7 @@ HISTORIAL DE CAMBIOS DEL FLUJO
               tope N_ARTISTAS). La descarga de letras quedó pegada 20 min en
               una consulta sin respuesta: se agrega tope de 30 s por consulta
               con reintento. Verificación de escuchas y chequeo de letras pasan
-              a scripts propios (verificar_escuchas.R, chequear_letras.R) y se
+              a scripts propios (01.verificar_escuchas.R, 05.chequear_letras.R) y se
               suman a actualizar.bat (flujo A), que sigue solo en ASCII.
               Textos recalculados: post-punk 14 %, peak 2023 22 %, música
               intensa 70 %, temas de letras (nuevo: "Noches, peleas y
@@ -257,3 +307,11 @@ HISTORIAL DE CAMBIOS DEL FLUJO
               verificación de escuchas también en el flujo B, pull con
               autostash en A, cruces nuevos (clima, letra y sonido,
               genealogía), cifras calculadas y textos según ESTILO.md.
+  09-11-2026  Letras ampliadas a 3 o más escuchas. Fallos de red ya no se
+              registran como "sin datos". Escritura segura de parquet (R/datos.R).
+              Clasificadores solo se reentrenan si las escuchas crecen 5 %.
+              Reporte: fuera personalidad de oyente, MUSIC visible, Top 25 y
+              detalle técnico de eras; entran correspondencias múltiples,
+              transiciones de género, huella mundial, discos, flechazos,
+              reencuentros y aperturas de sesión. Código al estilo simel_eme
+              (pacman, %>%, purrr, títulos numerados) y archivos numerados.

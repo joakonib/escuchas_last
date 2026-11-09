@@ -29,29 +29,29 @@ rem Fallan por la red, asi que se reintentan hasta 4 veces.
 set MAXI=4
 if not exist data\respaldo mkdir data\respaldo
 copy /Y data\escuchas.parquet data\respaldo\escuchas_respaldo.parquet > nul
-call :reintentar "Escuchas" %RSCRIPT% scripts\descargar_escuchas.R
+call :reintentar "Escuchas" %RSCRIPT% scripts\00.descargar_escuchas.R
 rem Verificacion (paso 1.1): total no menor que el respaldo, rango, huecos y duplicados.
 rem Si quedaron menos escuchas, se restaura el respaldo.
-%RSCRIPT% scripts\verificar_escuchas.R data\respaldo\escuchas_respaldo.parquet >> %LOG% 2>&1
+%RSCRIPT% scripts\01.verificar_escuchas.R data\respaldo\escuchas_respaldo.parquet >> %LOG% 2>&1
 if errorlevel 1 (
   echo [%time%] Escuchas: menos que el respaldo, se restaura >> %LOG%
   copy /Y data\respaldo\escuchas_respaldo.parquet data\escuchas.parquet > nul
 )
-call :reintentar "Etiquetas" %RSCRIPT% scripts\descargar_tags.R
-call :reintentar "Letras" %RSCRIPT% scripts\descargar_letras.R
-call :reintentar "Clima" %RSCRIPT% scripts\descargar_clima.R
+call :reintentar "Etiquetas" %RSCRIPT% scripts\02.descargar_tags.R
+call :reintentar "Letras" %RSCRIPT% scripts\03.descargar_letras.R
+call :reintentar "Clima" %RSCRIPT% scripts\04.descargar_clima.R
 rem Chequeo de letras (paso 2.1): queda en el log
-%RSCRIPT% scripts\chequear_letras.R >> %LOG% 2>&1
+%RSCRIPT% scripts\05.chequear_letras.R >> %LOG% 2>&1
 
 rem 2. Reportes: un error de codigo no se arregla reintentando, por eso 2 intentos.
 rem Si alguno falla, no se publica (para no subir HTML viejo como si fuera nuevo).
 set MAXI=2
 set FALLO=
-call :reintentar "Reporte general" %QUARTO% render analisis_escuchas.qmd
+call :reintentar "Reporte general" %QUARTO% render 07.analisis_escuchas.qmd
 if errorlevel 1 set FALLO=1
-call :reintentar "Reporte mensual" %RSCRIPT% scripts\generar_reporte_mensual.R
+call :reintentar "Reporte mensual" %RSCRIPT% scripts\08.generar_reporte_mensual.R
 if errorlevel 1 set FALLO=1
-call :reintentar "Metodologia" %QUARTO% render metodologia.qmd
+call :reintentar "Metodologia" %QUARTO% render 09.metodologia.qmd
 if errorlevel 1 set FALLO=1
 if defined FALLO (
   echo [%time%] Un render fallo: NO se publica. Revisar el log. >> %LOG%
@@ -64,7 +64,7 @@ rem 3. Publicacion en GitHub Pages y subida de cambios
 copy /Y analisis_escuchas.html docs\analisis_escuchas.html >> %LOG% 2>&1
 copy /Y reporte_mensual.html docs\reporte_mensual.html >> %LOG% 2>&1
 copy /Y metodologia.html docs\metodologia.html >> %LOG% 2>&1
-del /q analisis_escuchas.knit.md analisis_escuchas.rmarkdown > nul 2>&1
+del /q 07.analisis_escuchas.knit.md 07.analisis_escuchas.rmarkdown > nul 2>&1
 git add docs >> %LOG% 2>&1
 git commit -m "Actualizacion mensual de los reportes" >> %LOG% 2>&1
 set MAXI=4

@@ -7,9 +7,9 @@ Se actualiza cada vez que se agrega una fuente nueva.
 
 | Fuente | Qué se obtiene | Dónde se usa |
 |---|---|---|
-| [API de Last.fm](https://www.last.fm/api) — `user.getRecentTracks` | Historial completo de escuchas (fecha, artista, canción, álbum) | `descargar_escuchas.R` → `data/escuchas.parquet` |
-| [API de Last.fm](https://www.last.fm/api) — `artist.getTopTags` | Hasta 30 etiquetas por artista, con su peso (géneros, países, ánimo) | `descargar_tags.R` → `data/tags_artistas.parquet` |
-| [API de Last.fm](https://www.last.fm/api) — `artist.getInfo` | Oyentes y reproducciones globales de cada artista | `descargar_tags.R` → `data/info_artistas.parquet` |
+| [API de Last.fm](https://www.last.fm/api) — `user.getRecentTracks` | Historial completo de escuchas (fecha, artista, canción, álbum) | `00.descargar_escuchas.R` → `data/escuchas.parquet` |
+| [API de Last.fm](https://www.last.fm/api) — `artist.getTopTags` | Hasta 30 etiquetas por artista, con su peso (géneros, países, ánimo) | `02.descargar_tags.R` → `data/tags_artistas.parquet` |
+| [API de Last.fm](https://www.last.fm/api) — `artist.getInfo` | Oyentes y reproducciones globales de cada artista | `02.descargar_tags.R` → `data/info_artistas.parquet` |
 | [API pública de Deezer](https://developers.deezer.com/api) — `search/artist`, `search/album` | Fotos de artistas y portadas de discos (solo coincidencias exactas de nombre) | `R/imagenes.R` → `data/imagenes/` |
 | Historial ampliado de Spotify (*pendiente*) | Cada reproducción con milisegundos escuchados y saltos | Base consolidada con Last.fm (por hacer) |
 
@@ -17,7 +17,6 @@ Se actualiza cada vez que se agrega una fuente nueva.
 
 | Fuente | Qué se toma | Dónde se usa |
 |---|---|---|
-| [Personalidades de oyente de Spotify Wrapped 2022](https://www.aol.com/16-personality-types-spotify-wrapped-195652285.html) ([otra reseña](https://says.com/my/entertainment/spotify-wrapped-2022-16-personalities)) | Idea de describir al oyente con pares de rasgos (familiaridad/exploración, lealtad/variedad, común/único) | Sección "Mi personalidad de oyente" |
 | [Tourmaline](https://next.tangled.org/ewancroft.uk/tourmaline) | Idea de un índice de nicho según la popularidad del artista | Sección "¿Qué tan de nicho es lo que escucho?" |
 | [Puntaje de eclecticismo en Last.fm](https://www.spudart.org/blog/what-is-your-eclectic-score/amp/) | Idea de medir diversidad del gusto | Tabla "Diversidad por año" |
 | Rentfrow, Goldberg y Levitin (2011); [Kosinski y otros (2012), replicación del modelo MUSIC](https://www.gsb.stanford.edu/index%2Ephp/node/428616) | Cinco dimensiones de preferencia musical: Mellow, Unpretentious, Sophisticated, Intense, Contemporary | Sección "Mis gustos según el modelo MUSIC" |
@@ -40,7 +39,7 @@ Se actualiza cada vez que se agrega una fuente nueva.
 | Venables y Ripley (2002), *Modern Applied Statistics with S* (`nnet`) | Regresión logística multinomial | Laboratorio: "¿Puede una máquina adivinar cuándo escucho?" |
 | Breiman (2001), *Random Forests*, Machine Learning; Wright y Ziegler (2017), *ranger*, Journal of Statistical Software | Random forest | Laboratorio: "¿Puede una máquina adivinar cuándo escucho?" |
 | Friedman (2001), *Greedy Function Approximation: A Gradient Boosting Machine*, Annals of Statistics; Chen y Guestrin (2016), *XGBoost* | Gradient boosting | Laboratorio: "¿Puede una máquina adivinar cuándo escucho?" |
-| [LRCLIB](https://lrclib.net) | Letras de las canciones más escuchadas (solo análisis local; el reporte muestra palabras y tópicos agregados) | `descargar_letras.R` → `data/letras.parquet` |
+| [LRCLIB](https://lrclib.net) | Letras de las canciones más escuchadas (solo análisis local; el reporte muestra palabras y tópicos agregados) | `03.descargar_letras.R` → `data/letras.parquet` |
 
 ## Cruces
 
@@ -53,7 +52,7 @@ Se actualiza cada vez que se agrega una fuente nueva.
 
 | Fuente | Qué se toma | Dónde se usa |
 |---|---|---|
-| Trabajos propios anteriores a 2025 (tesis, tareas e informes, solo como muestra local) | Rasgos de escritura medidos; no se reproduce su contenido | `ESTILO.md` y `scripts/chequear_estilo.R` |
+| Trabajos propios anteriores a 2025 (tesis, tareas e informes, solo como muestra local) | Rasgos de escritura medidos; no se reproduce su contenido | `ESTILO.md` y `scripts/06.chequear_estilo.R` |
 
 ## Contexto
 
@@ -63,11 +62,10 @@ Se actualiza cada vez que se agrega una fuente nueva.
 
 ## Decisiones propias (no vienen de una fuente)
 
-- Umbrales de la personalidad de oyente (15% artistas nuevos, 30% top 10, 3 escuchas por canción, 1 millón de oyentes).
 - Diccionarios que asignan etiquetas a países, a dimensiones MUSIC y a valencia/energía.
 - Duración promedio de 3,5 minutos por canción para estimar horas.
 - Número de eras (k = 5) en el análisis de clusters.
-- Cobertura: etiquetas y oyentes de todos los artistas (tope de 5.000; 3.282 al 08-11-2026) y letras de las 8.000 canciones más escuchadas.
+- Cobertura: etiquetas y oyentes de todos los artistas (tope de 5.000; 3.282 al 08-11-2026) y letras de las canciones con 3 escuchas o más.
 - Tope de 30 s por consulta a LRCLIB, con reintento: sin él, una conexión que el servidor dejó abierta congeló la descarga (24-10-2026).
 
 ## Portada (`docs/index.html`)
