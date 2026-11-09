@@ -184,7 +184,7 @@ tagList(
 ::: {.callout-note appearance="simple" icon="false"}
 ## En pocas palabras
 
-*Escrito el 24-10-2026, con los datos hasta esa fecha.*
+*Escrito el 08-11-2026, con los datos hasta esa fecha.*
 
 **Guitarras, ruido y oscuridad.** Casi tres cuartos de lo que escucho cae en la dimensión *intensa* del modelo MUSIC (ver más abajo). El género que más pesa es el **post-punk** (14%), seguido de una familia completa de metal: heavy, black, sludge, thrash, death, stoner y doom. También hay mucho post-hardcore y asoma el hip-hop.
 
@@ -2013,7 +2013,7 @@ interactivo(p)
 ```
 
 ::: {.callout-note appearance="simple" icon="false"}
-**¿Qué me dice?** *Escrito el 24-10-2026, con 6.980 letras.* Los ocho temas quedan casi parejos (entre 11% y 16% cada uno): ninguno domina. El más presente es **el amor y la vida en español**, con el voseo del rock chileno y argentino (*quiero, amor, vida, vos, corazón*) y Tenemos Explosivos como ejemplo. A su lado aparece otra forma de hablar de amor en castellano, más de **deseo y noche**, la del lenguaje urbano y tropical (*mami, gusta, dime, noche, calle*), con La Brígida Orquesta. En inglés, el amor queda en **el amor y las despedidas** (*love, feel, heart, baby, stay, hold*), con IDLES. Le siguen **la vida y el paso del tiempo** (*time, life, day, mind, people*), con Fontaines D.C., y un imaginario contemplativo de **luz y oscuridad** (*eyes, night, light, black, sky*), con Type O Negative. Con más letras aparece un tema nuevo, el de **noches, peleas y quiebres** del post-punk (*girl, dance, hands, cut, city*), otra vez con IDLES. El lado más duro está en **la muerte, la sangre y lo sagrado** del metal (*die, death, blood, soul*), con Morbid Angel, y en **la rabia, la calle y el dinero** del hip-hop y el hardcore (*fuck, money, bring*). Los temas se separan primero por idioma, porque las palabras de cada idioma casi nunca se mezclan en una misma canción, y luego por escena: cada género tiene su propio vocabulario, y por eso un mismo gran tema, como el amor, aparece partido en varios.
+**¿Qué me dice?** *Escrito el 08-11-2026, con 6.996 letras.* Los ocho temas quedan casi parejos (entre 11% y 16% cada uno): ninguno domina. El más presente es **el amor y la vida en español**, con el voseo del rock chileno y argentino (*amor, quiero, vida, vos, corazón*) y Tenemos Explosivos como ejemplo. A su lado aparece otra forma de hablar de amor en castellano, más de **deseo y noche**, la del lenguaje urbano y tropical (*mami, gusta, dime, noche, calle*), con La Brígida Orquesta. En inglés, el amor queda en **el amor y las despedidas** (*love, feel, mind, heart, hold*), con IDLES. Le siguen **la vida y el paso del tiempo** (*time, life, day, live, leave*), con Black Country, New Road, y un imaginario contemplativo de **luz y oscuridad** (*eyes, night, light, sun, sky*), con Interpol. Otro tema, **luz, cielo y lo sagrado**, gira sobre todo en torno a Dios, la gente y el cuerpo (*god, people, body, hands*), con Nick Cave. El lado más duro está en **la muerte, la sangre y lo sagrado** del metal y el punk (*die, death, blood, soul, kill*), con Dead Kennedys, y en **la rabia, la calle y el dinero** del hip-hop y el hardcore (*fuck, money, boy*). Los temas se separan primero por idioma, porque las palabras de cada idioma casi nunca se mezclan en una misma canción, y luego por escena: cada género tiene su propio vocabulario, y por eso un mismo gran tema, como el amor, aparece partido en varios.
 :::
 
 :::
@@ -2023,13 +2023,13 @@ interactivo(p)
 ::: {.callout-note appearance="simple" icon="false"}
 ## Lo que dice la investigación sobre gustos como los míos
 
-*Escrito el 24-10-2026. Es una lectura lúdica: los estudios hablan de tendencias promedio en muchas personas, no de diagnósticos individuales.*
+*Escrito el 08-11-2026. Es una lectura lúdica: los estudios hablan de tendencias promedio en muchas personas, no de diagnósticos individuales.*
 
 **Apertura, no rabia.** Con 70% de música *intensa*, mi perfil es casi puro "intenso y rebelde". Rentfrow y Gosling (2003) encontraron que quienes prefieren rock, alternativo y metal puntúan más alto en **apertura a la experiencia** (curiosidad, gusto por ideas nuevas), y que esa preferencia **no** se asocia a más neuroticismo ni a menos amabilidad, contra el estereotipo. North (2008) encontró que los fans del metal se parecen mucho a los de la música clásica: creativos, tranquilos consigo mismos y algo introvertidos.
 
 **La oscuridad como refugio.** Todos mis años caen en el cuadrante *tenso/oscuro*: valencia negativa y energía alta. La investigación sobre la "paradoja de la música triste" (Vuoskoski y otros, 2012) muestra que quienes disfrutan la música triste o sombría tienden a puntuar más alto en **empatía** y apertura. Y en música extrema, Sharman y Dingle (2015) vieron que escucharla después de enojarse no aumenta la rabia: ayuda a procesarla y sube las emociones positivas. Mis días más oscuros (doom de Cathedral, Black Sabbath y Witchfinder General) fueron todos entre 2013 y 2017; los más luminosos, de cumbia con **Chico Trujillo** y **La Floripondio**.
 
-**Bajando las revoluciones.** La energía de lo que escucho cayó de 0,71 en 2013 a 0,41 en 2026, y la valencia subió de −0,43 a cerca de −0,25. Las eras lo muestran: empecé con el doom de Saint Vitus y Godflesh (2013–2014), seguí con el heavy metal de Black Sabbath, mezclado con Tom Waits y Amenra (2015–2018) y desde mediados de 2018 encadeno tres eras de post-punk: la de IDLES, la de Black Country, New Road y la actual de Fontaines D.C. Sigo en lo intenso, pero más melódico y menos extremo.
+**Bajando las revoluciones.** La energía de lo que escucho cayó de 0,71 en 2013 a 0,42 en 2026, y la valencia subió de −0,43 a cerca de −0,25. Las eras lo muestran: empecé con el doom de Saint Vitus y Godflesh (2013–2014), seguí con el heavy metal de Black Sabbath, mezclado con Tom Waits y Amenra (2015–2018) y desde mediados de 2018 encadeno tres eras de post-punk: la de IDLES, la de Black Country, New Road y la actual de Fontaines D.C. Sigo en lo intenso, pero más melódico y menos extremo.
 
 **La música como compañía de la rutina.** Escucho en horario de oficina y durante la pandemia escuché **un tercio menos** (21 escuchas al día, contra 32 antes): la música va pegada a la rutina, a trabajar y moverme, más que al tiempo libre. Después de la pandemia volví con todo, a 56 escuchas al día, y con el **doble de música chilena** (de 16% a 32%).
 

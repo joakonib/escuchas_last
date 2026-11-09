@@ -5,7 +5,7 @@ que se ejecuta (actualizar.bat para el mensual automático; el script nocturno
 para las corridas completas con Claude). Si un paso está aquí y no en el flujo
 efectivo, o al revés, hay que corregirlo.
 
-Última actualización: 24-10-2026
+Última actualización: 08-11-2026
 
 
 HAY DOS FLUJOS
@@ -118,7 +118,8 @@ FASE 4. Publicación
   4.1 git add de lo versionado (docs, R, assets, scripts, qmd, README,
       FUENTES, este archivo). Nunca data/, input/ ni .Renviron.
   4.2 Commit con mensaje descriptivo, pull --rebase y push (4 reintentos).
-  4.3 Apagar el PC si se pidió: shutdown /s /t 120 (cancelar: shutdown /a).
+  4.3 Apagar el PC SOLO con la confirmación expresa de Joaquín en ese momento:
+      shutdown /s /t 120 (cancelar: shutdown /a). Nunca usar --apagar sin ella.
 
 
 CRITERIOS DE DISEÑO (se aplican en cada cambio)
@@ -231,3 +232,9 @@ HISTORIAL DE CAMBIOS DEL FLUJO
               Textos recalculados: post-punk 14 %, peak 2023 22 %, música
               intensa 70 %, temas de letras (nuevo: "Noches, peleas y
               quiebres") y playlists ocultas.
+  08-11-2026  Corrida completa por el cierre de octubre (968 escuchas nuevas,
+              11 artistas, 18 canciones). El modelo de temas de letras se
+              reordena con cualquier cambio en los datos: siempre revisar
+              ese texto (paso 2.3). Para lanzar actualizar.bat a mano, usar
+              %ComSpec% y no "cmd": en este PC "cmd" apunta a Rtools y no
+              ejecuta el .bat, aunque termina sin error.
