@@ -617,7 +617,7 @@ interactivo(p)
 #### Franjas y sesiones
 
 ::: {.callout-tip appearance="simple" icon="false"}
-**Teoría.** La socióloga Tia DeNora, en *Music in Everyday Life* (2000), describe la música como una "tecnología del yo": la usamos para regular el ánimo, la energía y la concentración en la vida cotidiana. Mi patrón de horario de oficina calza con esa idea: la música como compañía para trabajar.
+**Teoría.** La socióloga Tia DeNora, en *Music in Everyday Life* (2000), describe la música como una "tecnología del yo", es decir, algo que utilizamos para regular el ánimo, la energía y la concentración en la vida cotidiana. En este sentido, mi patrón de escucha en horario de oficina resulta coherente con dicha idea, ya que la música aparece principalmente como compañía para trabajar.
 :::
 
 ```{r}
@@ -637,7 +637,7 @@ finde <- mean(escuchas$semana %in% c("sáb", "dom"))
 
 <img src="assets/ciro/ciro_cafe.webp" alt="Ciro, mi gato gris y blanco, con camisa hawaiana de flores y los ojos cerrados de gusto, tomando una taza de café" class="ciro-lateral" width="90" height="115">
 
-Escucho `r pct(filter(franjas, str_starts(franja, "Tarde"))$share)` de mi música en la tarde, `r pct(filter(franjas, str_starts(franja, "Noche"))$share)` en la noche, `r pct(filter(franjas, str_starts(franja, "Mañana"))$share)` en la mañana y `r pct(filter(franjas, str_starts(franja, "Madrugada"))$share)` de madrugada. Los fines de semana concentran el `r pct(finde)` de las escuchas (si fuera parejo, sería un 29%).
+Respecto a los momentos del día, escucho el `r pct(filter(franjas, str_starts(franja, "Tarde"))$share)` de mi música en la tarde, el `r pct(filter(franjas, str_starts(franja, "Mañana"))$share)` en la mañana, el `r pct(filter(franjas, str_starts(franja, "Noche"))$share)` en la noche y el `r pct(filter(franjas, str_starts(franja, "Madrugada"))$share)` de madrugada. Asimismo, los fines de semana concentran el `r pct(finde)` de las escuchas, cuando si fuera parejo correspondería a un 29%, lo cual indica que la música me acompaña sobre todo durante la semana.
 
 ```{r}
 #| label: sesiones
@@ -650,7 +650,7 @@ sesiones <- escuchas %>%
 maraton <- slice_max(sesiones, canciones, n = 1, with_ties = FALSE)
 ```
 
-Si una sesión termina tras 30 minutos sin música, he tenido `r miles(nrow(sesiones))` sesiones. La mediana es de `r median(sesiones$canciones)` canciones. Mi maratón más larga fue el `r fmt_fecha(as_date(maraton$inicio))`: `r maraton$canciones` canciones seguidas durante `r round(maraton$horas, 1)` horas.
+Considerando que una sesión termina tras 30 minutos sin música, he tenido `r miles(nrow(sesiones))` sesiones, con una mediana de `r median(sesiones$canciones)` canciones cada una. Respecto a mi maratón más larga, esta ocurrió el `r fmt_fecha(as_date(maraton$inicio))`, con `r maraton$canciones` canciones seguidas durante `r format(round(maraton$horas, 1), decimal.mark = ",")` horas.
 
 #### Con quién parto y con quién cierro
 
@@ -879,11 +879,11 @@ Respecto a qué tan concentrado está mi gusto, `r which(conc$acum >= 0.5)[1]` a
 #### ¿Soy omnívoro?
 
 ::: {.callout-tip appearance="simple" icon="false"}
-**Teoría.** Bourdieu (1979) veía el gusto como marca de clase: las élites consumían "alta cultura" y despreciaban lo popular. Richard Peterson (1992; Peterson y Kern, 1996) mostró que eso cambió: el nuevo signo de distinción es ser omnívoro, es decir, disfrutar de muchos géneros, cultos y populares a la vez.
+**Teoría.** Bourdieu (1979) entendía el gusto como una marca de clase, en donde las élites consumían "alta cultura" y despreciaban lo popular. Posteriormente, Richard Peterson (1992; Peterson y Kern, 1996) mostró que esto cambió, dado que el nuevo signo de distinción corresponde a ser omnívoro, es decir, disfrutar de muchos géneros, cultos y populares a la vez.
 :::
 
 ::: {.callout-note appearance="simple" icon="false"}
-**¿Cómo se mide?** No basta con contar cuántos géneros escuché: si en un año escuché 50 géneros, pero el 95% fue metal, no soy muy omnívoro. Por eso uso el número efectivo de géneros, una medida de diversidad que viene de la ecología y la teoría de la información (es el exponencial de la entropía de Shannon). Responde a la pregunta: *¿a cuántos géneros, igual de escuchados, equivale mi mezcla real?*
+**¿Cómo se mide?** Contar cuántos géneros escuché no resulta suficiente, ya que si en un año escuché 50 géneros, pero el 95% fue metal, difícilmente se podría hablar de un gusto omnívoro. Por lo tanto, utilizo el número efectivo de géneros, una medida de diversidad que proviene de la ecología y de la teoría de la información (corresponde al exponencial de la entropía de Shannon), la cual responde a cuántos géneros igual de escuchados equivale mi mezcla real.
 
 - Si escuchara **un solo género**, el índice sería **1**.
 - Si repartiera mis escuchas **en partes iguales entre 30 géneros**, sería **30**.
@@ -1160,7 +1160,7 @@ tabla(pandemia, titulo = "Mi música en tres tiempos"
 
 ## 🎭 Mi ánimo musical
 
-Un análisis de sentimiento a partir de las etiquetas de ánimo que la comunidad de Last.fm pone a cada artista ("melancholic", "aggressive", "happy", "chill", "dark"…). Cada etiqueta se ubica en el [modelo circunflejo del afecto de Russell](https://doi.org/10.1037/h0077714): valencia (triste ↔ alegre) y energía (calma ↔ intensidad). Cada artista recibe el promedio de sus etiquetas, ponderado por su peso, y cada período el promedio de lo que escuché. Mide el ánimo de la *música*, no el mío, aunque algo dice.
+Esta sección presenta un análisis de sentimiento a partir de las etiquetas de ánimo que la comunidad de Last.fm asigna a cada artista ("melancholic", "aggressive", "happy", "chill", "dark", entre otras). Cada etiqueta se ubica en el [modelo circunflejo del afecto de Russell](https://doi.org/10.1037/h0077714), que considera la valencia (de triste a alegre) y la energía (de calma a intensidad). Luego, cada artista recibe el promedio de sus etiquetas, ponderado por su peso, y cada período el promedio de lo que escuché. Cabe señalar que se mide el ánimo de la *música* y no el mío, aunque podría decir algo de este.
 
 ```{r}
 #| label: animo-calculo
@@ -1216,7 +1216,7 @@ interactivo(p)
 - 🙂 **Valencia**: qué tan **positiva o negativa** se siente la música. Va de −1 (triste, oscura, melancólica; p. ej. el doom de Black Sabbath) a +1 (alegre, luminosa; p. ej. la cumbia de Chico Trujillo).
 - ⚡ **Energía**: qué tan **activadora o calmada** es. Va de −1 (tranquila, suave; p. ej. ambient o folk) a +1 (intensa, rápida, fuerte; p. ej. hardcore o thrash).
 
-Combinadas dan cuatro estados: eufórica (alegre y enérgica), serena (alegre y calma), melancólica (triste y calma) y tensa (triste y enérgica). Se calculan a partir de las etiquetas de ánimo que los usuarios de Last.fm ponen a cada artista.
+Al combinarlas se obtienen cuatro estados, que corresponden a la música eufórica (alegre y enérgica), serena (alegre y calma), melancólica (triste y calma) y tensa (triste y enérgica), los cuales se calculan a partir de las etiquetas de ánimo que los usuarios de Last.fm asignan a cada artista.
 :::
 
 ```{r}
@@ -1243,7 +1243,7 @@ interactivo(p)
 #### Días extremos
 
 ::: {.callout-note appearance="simple" icon="false"}
-**¿Cómo se leen?** Para cada día con al menos 40 escuchas promedié la valencia de todo lo que escuché ese día (de −1, muy triste u oscuro, a +1, muy alegre). Los días más oscuros son los cinco con el promedio más bajo: jornadas casi enteras de música sombría. Los más luminosos, los cinco con el promedio más alto. El "artista del día" es el que más sonó esa jornada y suele explicar el resultado.
+**¿Cómo se leen?** Para cada día con al menos 40 escuchas promedié la valencia de todo lo que escuché ese día (de −1, muy triste u oscuro, a +1, muy alegre). De esta manera, los días más oscuros corresponden a los cinco con el promedio más bajo, es decir, jornadas casi enteras de música sombría, mientras que los más luminosos corresponden a los cinco con el promedio más alto. Asimismo, el "artista del día" es el que más sonó esa jornada, el cual suele explicar el resultado.
 :::
 
 ```{r}
@@ -1352,7 +1352,7 @@ medias_lluvia <- dias_clima %>% group_by(llovio) %>% summarise(valencia = mean(V
 
 ## 🗺️ Mis eras musicales
 
-`r as.character(ciro("ozzy", "ciro-lateral"))`¿Mi gusto cambió de golpe o de a poco? Para responderlo puse todos mis meses en fila, cada uno descrito por la mezcla de géneros que escuché, y le pedí a un algoritmo que cortara la fila en tramos donde los meses se parecen entre sí. Cada tramo es una era: una etapa con un sonido propio, con inicio y final. El algoritmo decidió solo cuántas eras hay.
+`r as.character(ciro("ozzy", "ciro-lateral"))`¿Mi gusto cambió de golpe o de a poco? Para responder esta pregunta ordené todos mis meses en fila, cada uno descrito por la mezcla de géneros que escuché, y utilicé un algoritmo que corta la fila en tramos donde los meses se parecen entre sí. Cada tramo corresponde a una era, es decir, una etapa con un sonido propio, con inicio y final, y cabe señalar que el propio algoritmo decidió cuántas eras hay.
 
 ```{r}
 #| label: eras-calculo
@@ -1490,7 +1490,7 @@ div(class = "eras-grid"
 
 #### ¿Por qué son eras?
 
-Cada barra es una era y muestra de qué estuvo hecha: qué parte de lo que escuché en esos meses fue de cada género. Si las barras se ven distintas entre sí, el algoritmo hizo bien su trabajo.
+Cada barra corresponde a una era y muestra qué parte de lo que escuché en esos meses fue de cada género. Por lo tanto, mientras más distintas se vean las barras entre sí, mejor se puede decir que el algoritmo separó las etapas.
 
 ```{r}
 #| label: eras-generos
@@ -1645,7 +1645,7 @@ epocas_acm <- filter(categorias_acm, variable == "Época") %>% arrange(categoria
 #### 🎧 Playlists ocultas
 
 ::: {.callout-tip appearance="simple" icon="false"}
-**Teoría.** El modelo de tópicos LDA (*Latent Dirichlet Allocation*, Blei, Ng y Jordan, 2003) se creó para descubrir temas en colecciones de textos: supone que cada documento mezcla varios temas y que cada tema es un conjunto de palabras que aparecen juntas. Aquí cada semana es un "documento" y cada artista, una "palabra". Los "temas" que encuentra son mis playlists ocultas: artistas que tiendo a escuchar en las mismas semanas, aunque nunca haya armado esas listas.
+**Teoría.** El modelo de tópicos LDA (*Latent Dirichlet Allocation*, Blei, Ng y Jordan, 2003) se creó para descubrir temas en colecciones de textos, para lo cual supone que cada documento mezcla varios temas y que cada tema es un conjunto de palabras que aparecen juntas. En este caso, cada semana es un "documento" y cada artista una "palabra", por lo cual los "temas" que encuentra corresponden a mis playlists ocultas, es decir, artistas que tiendo a escuchar en las mismas semanas aunque nunca haya armado esas listas.
 :::
 
 ```{r}
@@ -1935,14 +1935,17 @@ nombres_var <- c(valencia = "la valencia", energia = "la energía", genero = "el
                  ,antiguedad = "cuánto tiempo llevo escuchando al artista")
 principales <- if (!is.null(importancia)) head(unique(na.omit(unname(nombres_var[importancia$variable]))), 3) else character(0)
 
+y_lista <- function(x) if (length(x) <= 1) x else paste(paste(head(x, -1), collapse = ", "), "y", tail(x, 1))
 texto_modelos <- paste0(
-  "Probé cinco técnicas ([comparación en la metodología](metodologia.html#modelos)) y la que mejor adivina es el ", tolower(mejor$modelo), ", que acierta el ", pct(mejor$acierto),
-  " de las veces (", pct(mejor$balanceado), " balanceado, F1 de ", pct(mejor$f1), "), contra un ", pct(comparacion$acierto[1])
-  ," de la línea base (", pct(comparacion$balanceado[1]), " balanceado). "
+  "Probé cinco técnicas ([comparación en la metodología](metodologia.html#modelos)) y la que mejor adivina corresponde al ", tolower(mejor$modelo)
+  ,", con un acierto balanceado de ", pct(mejor$balanceado), " (F1 de ", pct(mejor$f1), ") frente al ", pct(comparacion$balanceado[1])
+  ," de la línea base. Cabe señalar que la línea base siempre adivina el momento más común, por lo cual su acierto simple de "
+  ,pct(comparacion$acierto[1]), " resulta engañoso, ya que nunca reconoce la noche ni el fin de semana. "
   ,if (mejora < 0.05) "En este sentido, casi no se puede adivinar, ya que la música que escucho es muy parecida a cualquier hora y en cualquier día. Por lo tanto, no tengo una \"música de oficina\" y otra de fin de semana, dado que mi gusto me acompaña de igual manera en todos lados."
   else if (mejora < 0.12) "En este sentido, algo se puede adivinar, ya que existen diferencias según el momento, aunque estas son suaves."
   else "En este sentido, el momento sí deja una huella que los modelos logran captar."
-  ,if (length(principales)) paste0(" Las pistas que más usa el modelo son ", paste(principales, collapse = ", "), ".")
+  ,if (length(principales)) paste0(" Respecto a las variables, las que más utiliza el modelo son ", y_lista(principales), ", lo cual indica que el momento se asocia más a "
+                                     ,if (all(head(importancia$variable, 2) %in% c("anio", "antiguedad", "mes_sin", "mes_cos"))) "la etapa de mi vida que a la música misma." else "cómo es la música que a la etapa de mi vida.")
 )
 ```
 
@@ -2310,7 +2313,7 @@ Finalmente, en `r cf$anios` años cambiaron los géneros, aunque Tenemos Explosi
 #### En loop
 
 ::: {.callout-tip appearance="simple" icon="false"}
-**Teoría.** El efecto de mera exposición (Zajonc, 1968) dice que algo nos gusta más mientras más lo vemos o escuchamos. Pero Berlyne (1971) mostró que la relación es una U invertida: el gusto sube con la repetición hasta un punto y después cae por saturación. Las canciones en loop son ese peak; los "amores olvidados", quizás, la bajada.
+**Teoría.** El efecto de mera exposición (Zajonc, 1968) plantea que algo nos gusta más mientras más lo vemos o escuchamos. Sin embargo, Berlyne (1971) mostró que la relación corresponde a una U invertida, ya que el gusto sube con la repetición hasta un punto y después cae por saturación. En este sentido, las canciones en loop podrían representar ese punto más alto, mientras que los "amores olvidados" corresponderían a la bajada.
 :::
 
 ```{r}

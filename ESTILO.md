@@ -11,6 +11,19 @@ Los textos interpretativos de los reportes deben sonar como escribe Joaquín. Es
 - **Prudencia al concluir:** "indica", "da cuenta de", "se asocia a", "podría". Se señalan los límites de los datos.
 - **Primera persona** en este reporte, porque es personal, sin perder ese tono.
 
+## Referencia directa: tesis de magíster (2025)
+
+*Aprovechamiento de paradatos en estadísticas oficiales* (UDP, 2025), en
+`OneDrive - Instituto Nacional de Estadisticas\Tesis Seminario de Grado\Entrega Final UDP`.
+De ahí se toman estos rasgos, que conviene imitar:
+
+- **Describe lo hecho con "se"**: "se presentan", "se realizó", "se aprecia", "se analiza", "se calcularon".
+- **Interpreta con fórmulas propias**: "es posible dar cuenta que", "esto indica que", "esto permite concluir que", "resulta importante destacar", "esto hace sentido ya que", "lo cual, en otras palabras, señala que", "lo cual se ve afectado por".
+- **Encadena con**: "dicho lo anterior", "teniendo en consideración", "en primera instancia", "bajo este eje", "a continuación", "en este contexto", "por ejemplo", "es decir".
+- **Cifras entre paréntesis dentro de la oración** y luego qué significan: "en al menos un 30% de las encuestas (40,5% para el CH y 32,6% en el CUT), evidenciando...".
+- **Explica antes de mostrar**: abre cada sección diciendo qué se presenta y en qué orden.
+- **Cierra con una reflexión prudente**, a veces con una pregunta retórica ("¿qué nos quiere decir esto?") y con lo que queda para después ("podría considerarse").
+
 ## Qué evitar
 
 | Evitar | Referencia |

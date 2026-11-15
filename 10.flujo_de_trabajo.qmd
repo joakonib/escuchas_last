@@ -51,12 +51,12 @@ tagList(navegacion("flujo"), linea_generacion(), boton_volver())
 ```
 
 ::: {.bienvenida}
-👋 Esta página explica cómo se mantienen al día [el reporte general](analisis_escuchas.html), [el reporte mensual](reporte_mensual.html) y [la metodología](metodologia.html): de dónde sale cada dato, en qué orden corre cada script y qué reglas cuidan que nada se pierda ni se duplique. El código está en [GitHub](https://github.com/joakonib/escuchas_last) y el detalle técnico, en `FLUJO_DE_TRABAJO.txt`.
+👋 Esta página explica cómo se mantienen al día [el reporte general](analisis_escuchas.html), [el reporte mensual](reporte_mensual.html) y [la metodología](metodologia.html), considerando de dónde sale cada dato, en qué orden corre cada script y qué reglas cuidan que nada se pierda ni se duplique. El código está en [GitHub](https://github.com/joakonib/escuchas_last) y el detalle técnico, en `FLUJO_DE_TRABAJO.txt`.
 :::
 
 ## 🗺️ El flujo completo
 
-`r as.character(ciro("flujo", "ciro-lateral"))`R es la base de todo el proyecto. Python entra en un solo paso, los embeddings de las letras, ya que esos modelos de lenguaje solo existen en ese ecosistema.
+`r as.character(ciro("flujo", "ciro-lateral"))`R es la base de todo el proyecto, mientras que Python se utiliza en un solo paso, correspondiente a los embeddings de las letras, ya que esos modelos de lenguaje solo se encuentran disponibles en dicho ecosistema.
 
 ::: {.leyenda}
 [Paso en R]{style="--c:#2f7d4a"} [Paso en Python]{style="--c:#7a4fa3"} [Control (solo informa)]{style="--c:#5c5b57"}
@@ -104,7 +104,7 @@ tagList(navegacion("flujo"), linea_generacion(), boton_volver())
 
 ## 🎧 De dónde salen las escuchas
 
-`r as.character(ciro("natural", "ciro-lateral"))`Last.fm registra cada canción que pongo, aunque a veces el *scrobbler* se desconecta. Por eso la base que usan todos los análisis junta dos fuentes:
+`r as.character(ciro("natural", "ciro-lateral"))`Last.fm registra cada canción que pongo, aunque a veces el *scrobbler* se desconecta, por lo cual la base que utilizan todos los análisis junta dos fuentes, tal como se muestra a continuación.
 
 ```{r}
 #| label: tabla-fuentes
@@ -117,7 +117,7 @@ tibble(
 ) %>% knitr::kable(align = c("l", "r", "l"))
 ```
 
-Last.fm manda: una escucha de Spotify solo se suma si Last.fm no registró nada en esos minutos, por lo cual el relleno nunca duplica escuchas. Asimismo, en el mismo paso se unifican los nombres que solo cambian por tildes o mayúsculas (por ejemplo *Arcangel* y *Arcángel*) y se calcula la duración real de cada canción, con el fin de medir horas escuchadas y no estimarlas.
+En este cruce Last.fm es la fuente principal, ya que una escucha de Spotify solo se suma si Last.fm no registró nada en esos minutos, por lo cual el relleno nunca duplica escuchas. Asimismo, en el mismo paso se unifican los nombres que solo cambian por tildes o mayúsculas (por ejemplo *Arcangel* y *Arcángel*) y se calcula la duración real de cada canción, con el fin de medir horas escuchadas y no estimarlas.
 
 ## ⏱️ Dos maneras de correrlo
 

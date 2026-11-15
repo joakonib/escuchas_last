@@ -52,7 +52,7 @@ tagList(navegacion("metodologia"), linea_generacion(), boton_volver())
 <img src="assets/ciro/ciro_encuestas.webp" alt="Ciro, mi gato gris y blanco, con chaleco verde, lápiz y una tablilla que dice «Ciro encuestas»" class="ciro-saludo" width="96" height="126">
 
 ::: {}
-👋 Esta página explica **cómo se construyeron** el [reporte general](analisis_escuchas.html) y el [reporte mensual](reporte_mensual.html): de dónde salen los datos, cómo se limpian y qué hace cada técnica. Cada técnica tiene una explicación **en simple**, para cualquier lector, y otra **en detalle**, con fórmulas, supuestos y limitaciones. Todo el código está en [GitHub](https://github.com/joakonib/escuchas_last) y las referencias, en [FUENTES.md](https://github.com/joakonib/escuchas_last/blob/main/FUENTES.md).
+👋 Esta página explica cómo se construyeron el [reporte general](analisis_escuchas.html) y el [reporte mensual](reporte_mensual.html), considerando de dónde salen los datos, cómo se limpian y qué hace cada técnica. Para ello, cada técnica tiene una explicación en simple, pensada para cualquier lector, y otra en detalle, con fórmulas, supuestos y limitaciones. Todo el código está en [GitHub](https://github.com/joakonib/escuchas_last) y las referencias, en [FUENTES.md](https://github.com/joakonib/escuchas_last/blob/main/FUENTES.md).
 :::
 :::
 
@@ -64,7 +64,7 @@ Los datos pasan por cinco etapas. Cada pestaña explica una.
 
 ### 1. Escuchas
 
-`r as.character(ciro("audifonos", "ciro-lateral"))`Last.fm registra cada canción que pongo (un *scrobble*). Su API (`user.getRecentTracks`, 200 escuchas por página) entrega el historial completo: fecha, artista, canción, álbum y sus identificadores de MusicBrainz.
+`r as.character(ciro("audifonos", "ciro-lateral"))`Last.fm registra cada canción que pongo (un *scrobble*), y su API (`user.getRecentTracks`, 200 escuchas por página) entrega el historial completo con la fecha, el artista, la canción, el álbum y sus identificadores de MusicBrainz.
 
 - **Script:** `scripts/00.descargar_escuchas.R` → `data/escuchas.parquet`.
 - **Cada mes** se pide solo lo posterior a la última escucha guardada. Cuando se quiere revisar todo, se baja **desde cero** y se compara con un respaldo: mismo total, mismas escuchas y mismos meses.
@@ -89,11 +89,11 @@ R procesa todo (`dplyr`, `tidyr`) y Quarto arma los reportes HTML interactivos (
 
 ### 5. Publicación
 
-Cada día 1, una tarea programada de Windows corre `actualizar.bat`: descarga lo nuevo, regenera los reportes, los copia a `docs/` y los publica en GitHub Pages. Cada paso que puede fallar (APIs, render, git) se reintenta, y todo queda registrado en un log con la hora. El detalle del flujo está en `FLUJO_DE_TRABAJO.txt` del repositorio.
+Cada día 1, una tarea programada de Windows ejecuta `actualizar.bat`, el cual descarga lo nuevo, regenera los reportes, los copia a `docs/` y los publica en GitHub Pages. Cada paso que puede fallar (APIs, render, git) se reintenta, y todo queda registrado en un log con la hora. El detalle del flujo está en `FLUJO_DE_TRABAJO.txt` del repositorio.
 
 :::
 
-Los datos se guardan en formato **Parquet**, que conserva los tipos (fechas, números), ocupa varias veces menos que un CSV y se lee mucho más rápido. Todas las descargas son **incrementales**: cada mes solo se pide lo nuevo.
+Los datos se guardan en formato Parquet, el cual conserva los tipos (fechas y números), ocupa varias veces menos que un CSV y se lee mucho más rápido. Asimismo, todas las descargas son incrementales, por lo cual cada mes solo se pide lo nuevo.
 
 ## 🧹 Limpieza y preparación
 
@@ -196,7 +196,7 @@ El peso de una playlist en cada año combina su presencia en cada semana con las
 3. **Agrupación** (R): k-means con 10 temas y 25 inicios. Se probó primero HDBSCAN, que es lo habitual en BERTopic, pero con letras de canciones dejaba entre el 60% y el 70% de las letras sin tema o juntaba todo en dos grupos, ya que los significados forman un continuo y no islas separadas; k-means es la alternativa que el propio BERTopic propone en esos casos.
 4. **Palabras de cada tema**: c-TF-IDF, es decir, qué tan frecuente es una palabra dentro del tema multiplicado por qué tan rara es entre temas.
 
-El peso de un tema en mi vida suma las escuchas de las canciones que pertenecen a él. Los temas se nombran automáticamente comparando sus palabras clave con un diccionario de temas conocidos, con subtemas específicos (por ejemplo, el amor del rock en castellano y el deseo del lenguaje urbano) y temas generales de respaldo. **Cada tema del diccionario se asigna a un solo tópico**: primero el par que mejor calza, luego el siguiente, para que dos tópicos distintos no queden con el mismo nombre. La canción de ejemplo de cada tema es, entre las que escuché 10 veces o más, la más cercana al centro del tema, es decir, la que mejor lo representa.
+El peso de un tema en mi vida suma las escuchas de las canciones que pertenecen a él. Los temas se nombran automáticamente comparando sus palabras clave con un diccionario de temas conocidos, con subtemas específicos (por ejemplo, el amor del rock en castellano y el deseo del lenguaje urbano) y temas generales de respaldo. Cada tema del diccionario se asigna a un solo tópico, partiendo por el par que mejor calza y luego el siguiente, con el fin de que dos tópicos distintos no queden con el mismo nombre. Respecto a la canción de ejemplo de cada tema, se consideran las que escuché 10 veces o más, que están en el idioma principal del tema y dentro del cuarto más cercano a su centro, es decir, las que mejor lo representan; de estas se elige la más escuchada, cuidando que cada tema tenga un artista distinto.
 
 El modelo se guarda (`data/modelo_temas_semanticos.rds`) y las letras nuevas se clasifican sin mover los temas; solo se reentrena si las letras nuevas superan el 15% o con `--reentrenar`. Si faltan los embeddings, el reporte vuelve al modelo anterior, LDA por palabras con 8 temas.
 
@@ -230,9 +230,9 @@ donde $d_i$ son los abandonos en el tiempo $t_i$ y $n_i$ los artistas todavía "
 
 ### Cómo se armó la prueba
 
-Los modelos aprenden con un grupo de escuchas y se evalúan con otro. La división se hace **por artista**: los artistas se ordenan al azar y cada uno queda entero en un grupo, hasta juntar cerca del 70% de las escuchas para entrenar. El 30% restante, de artistas que los modelos nunca vieron, sirve para evaluarlos.
+Los modelos aprenden con un grupo de escuchas y se evalúan con otro, para lo cual la división se hace por artista. Es decir, los artistas se ordenan al azar y cada uno queda entero en un grupo hasta juntar cerca del 70% de las escuchas para entrenar, mientras que el 30% restante, de artistas que los modelos nunca vieron, sirve para evaluarlos.
 
-¿Por qué por artista? Ánimo, género y popularidad son características del artista, y escucho muchas veces a los mismos. Si se separara al azar por escucha, un mismo artista quedaría en los dos grupos y el modelo podría acertar **memorizándolo** (fuga de información), lo que inflaría el acierto.
+¿Por qué por artista? Ánimo, género y popularidad son características del artista, y escucho muchas veces a los mismos. Por lo tanto, si se separara al azar por escucha, un mismo artista quedaría en los dos grupos y el modelo podría acertar memorizándolo (fuga de información), lo cual inflaría el acierto.
 
 ### Las técnicas
 
@@ -272,10 +272,10 @@ tabla(
   ))
 ```
 
-El reporte muestra en detalle solo la ganadora: las reglas si es el árbol, los efectos si es la regresión, o la importancia de cada característica si es el random forest o el gradient boosting.
+El reporte muestra en detalle solo la técnica ganadora, es decir, las reglas si es el árbol, los efectos si es la regresión, o la importancia de cada característica si es el random forest o el gradient boosting.
 
 ::: {.callout-warning appearance="simple" icon="false"}
-**Advertencia.** Las escuchas no son independientes (una misma canción o sesión se repite), así que los valores p de la regresión son optimistas: con decenas de miles de casos casi todo resulta "significativo". Por eso la lectura se centra en el tamaño de los efectos y en el desempeño con artistas nuevos, no en la significancia.
+**Advertencia.** Las escuchas no son independientes (una misma canción o sesión se repite), por lo cual los valores p de la regresión resultan optimistas, ya que con decenas de miles de casos casi todo resulta "significativo". En este sentido, la lectura se centra en el tamaño de los efectos y en el desempeño con artistas nuevos más que en la significancia.
 :::
 
 ## 📆 Análisis del reporte mensual
