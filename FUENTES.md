@@ -11,6 +11,7 @@ Se actualiza cada vez que se agrega una fuente nueva.
 | [API de Last.fm](https://www.last.fm/api) — `artist.getTopTags` | Hasta 30 etiquetas por artista, con su peso (géneros, países, ánimo) | `02.descargar_tags.R` → `data/tags_artistas.parquet` |
 | [API de Last.fm](https://www.last.fm/api) — `artist.getInfo` | Oyentes y reproducciones globales de cada artista | `02.descargar_tags.R` → `data/info_artistas.parquet` |
 | [API pública de Deezer](https://developers.deezer.com/api) — `search/artist`, `search/album` | Fotos de artistas y portadas de discos (solo coincidencias exactas de nombre) | `R/imagenes.R` → `data/imagenes/` |
+| Datos de la cuenta de Spotify (`StreamingHistory_music_*`, 15-10-2025 al 30-10-2026) | Cada reproducción del último año: fin al minuto (UTC), artista, canción y milisegundos escuchados | `R/datos.R` → `leer_spotify()`, desde `data/my_spotify_data.zip` |
 | Historial ampliado de Spotify (*pendiente*) | Cada reproducción con milisegundos escuchados y saltos | Base consolidada con Last.fm (por hacer) |
 
 ## Marcos de análisis
