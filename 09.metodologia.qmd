@@ -58,38 +58,40 @@ tagList(navegacion("metodologia"), linea_generacion(), boton_volver())
 
 ## 🗺️ El recorrido de los datos
 
-Los datos pasan por cinco etapas. Cada pestaña explica una.
+Los datos pasan por cinco etapas, las cuales se explican en cada pestaña. Cabe señalar que R es la base de todo el proceso y que Python se utiliza en un solo paso, correspondiente a los embeddings de las letras, ya que esos modelos de lenguaje solo se encuentran disponibles en dicho ecosistema.
 
 ::: {.panel-tabset}
 
 ### 1. Escuchas
 
-`r as.character(ciro("audifonos", "ciro-lateral"))`Last.fm registra cada canción que pongo (un *scrobble*), y su API (`user.getRecentTracks`, 200 escuchas por página) entrega el historial completo con la fecha, el artista, la canción, el álbum y sus identificadores de MusicBrainz.
+`r as.character(ciro("audifonos", "ciro-lateral"))`Las escuchas provienen de dos fuentes. Por un lado, Last.fm registra cada canción que pongo (un *scrobble*), y su API (`user.getRecentTracks`, 200 escuchas por página) entrega el historial completo con la fecha, el artista, la canción, el álbum y sus identificadores de MusicBrainz. Por otro lado, los datos de mi cuenta de Spotify, que cubren el último año, permiten rellenar los meses en que Last.fm dejó de registrar y conocer la duración real de cada canción.
 
 - **Script:** `scripts/00.descargar_escuchas.R` → `data/escuchas.parquet`.
 - **Cada mes** se pide solo lo posterior a la última escucha guardada. Cuando se quiere revisar todo, se baja **desde cero** y se compara con un respaldo: mismo total, mismas escuchas y mismos meses.
-- **Huecos conocidos:** agosto a octubre de 2018 y julio a septiembre de 2026, cuando el *scrobbler* estuvo desconectado. El de 2026 se rellena con los datos de mi cuenta de Spotify (ver abajo); el de 2018 queda abierto, ya que esos datos solo cubren el último año.
-- **Cruce con Spotify:** `scripts/01.1.consolidar_escuchas.R` → `data/escuchas_consolidadas.parquet`, la base que usan todos los análisis. De Spotify se toman las reproducciones de 30 segundos o más, la misma regla de Last.fm, y como Spotify registra la hora en que termina cada canción, se le resta lo escuchado para tener la hora de inicio. Cada escucha se cruza con Last.fm por artista y título normalizados (sin tildes, signos, paréntesis ni «Remaster»), primero a 10 minutos y luego a 6 horas, para los *scrobbles* que quedaron con la hora corrida. Last.fm manda, por lo cual una escucha de Spotify sin pareja se suma solo si Last.fm no registró nada en esos 10 minutos; si registró algo, casi siempre es la misma canción con otro nombre y se descarta para no duplicarla. Así, `r miles(fuentes["ambas"])` escuchas están en las dos fuentes y `r miles(fuentes["spotify"])` vienen solo de Spotify. Al comparar los meses rellenados (julio a septiembre de 2026) con los vecinos que Last.fm sí registró, el volumen diario, la franja horaria, el largo de las sesiones, los artistas y los géneros son prácticamente los mismos, lo cual indica que el relleno representa bien esos meses. Cabe tener en consideración dos límites: el relleno solo ve lo que escuché en Spotify (en los meses completos, lo registrado desde otras fuentes fue cerca del 3%), y en esos meses la proporción de fin de semana aparece algo más baja (7% contra 11%), lo cual podría deberse a escuchas fuera de Spotify.
+- **Huecos conocidos:** junio de 2016, junio a octubre de 2018 y julio a septiembre de 2026, cuando el *scrobbler* estuvo desconectado. El de 2026 se rellena con los datos de mi cuenta de Spotify (ver abajo), mientras que los de 2016 y 2018 quedan abiertos, ya que esos datos solo cubren el último año; en el gráfico de escuchas por mes aparecen marcados en gris claro.
+- **Cruce con Spotify:** `scripts/01.1.consolidar_escuchas.R` → `data/escuchas_consolidadas.parquet`, la base que usan todos los análisis, incluidas las etiquetas y las letras. De Spotify se toman las reproducciones de 30 segundos o más, la misma regla de Last.fm, y como Spotify registra la hora en que termina cada canción, se le resta lo escuchado para tener la hora de inicio. Cada escucha se cruza con Last.fm por artista y título normalizados (sin tildes, signos, paréntesis ni «Remaster»), primero a 10 minutos y luego a 6 horas, para los *scrobbles* que quedaron con la hora corrida. Last.fm manda, por lo cual una escucha de Spotify sin pareja se suma solo si Last.fm no registró nada en esos 10 minutos; si registró algo, casi siempre es la misma canción con otro nombre y se descarta para no duplicarla. Así, `r miles(fuentes["ambas"])` escuchas están en las dos fuentes y `r miles(fuentes["spotify"])` vienen solo de Spotify. Al comparar los meses rellenados (julio a septiembre de 2026) con los vecinos que Last.fm sí registró, el volumen diario, la franja horaria, el largo de las sesiones, los artistas y los géneros son prácticamente los mismos, lo cual indica que el relleno representa bien esos meses. Cabe tener en consideración dos límites: el relleno solo ve lo que escuché en Spotify (en los meses completos, lo registrado desde otras fuentes fue cerca del 3%), y en esos meses la proporción de fin de semana aparece algo más baja (7% contra 11%), lo cual podría deberse a escuchas fuera de Spotify.
 
 ### 2. Etiquetas
 
-Para **todos los artistas** que he escuchado (`r miles(n_artistas)` hoy, el 100% de mis escuchas) se bajan hasta 30 etiquetas que pone la comunidad (géneros, países, ánimo) y su número de oyentes en Last.fm.
+Para todos los artistas que he escuchado (`r miles(n_artistas)` hoy, el 100% de mis escuchas, sumando los que solo aparecen en Spotify) se descargan hasta 30 etiquetas que pone la comunidad de Last.fm (géneros, países y ánimo), junto con su número de oyentes y reproducciones en esa plataforma.
 
 - **Script:** `scripts/02.descargar_tags.R` → `data/tags_artistas.parquet` y `data/info_artistas.parquet`.
 - De ahí salen el género, el país, el ánimo (valencia y energía) y la popularidad de cada artista.
 
 ### 3. Letras e imágenes
 
-- **Letras:** se buscan las canciones que escuché **`r min_letras` veces o más** (el `r cobertura$pct_grupo`% de mis escuchas). Hoy hay `r miles(cobertura$revisadas)` revisadas y `r miles(cobertura$con_letra)` con letra o instrumentales (el `r cobertura$pct_letra`% de mis escuchas); las canciones nuevas que entren al grupo se suman en las actualizaciones mensuales. Vienen de [LRCLIB](https://lrclib.net). Si una canción no aparece, se busca otra vez con el título limpio (sin «Remastered», «Live», «feat.», paréntesis ni corchetes) y solo el artista principal: así aparecieron 99 letras más. Script `scripts/03.descargar_letras.R` → `data/letras.parquet`. Se usan solo para análisis: el reporte muestra palabras y temas agregados, nunca letras completas.
+- **Letras:** se buscan las canciones que escuché **`r min_letras` veces o más** (el `r cobertura$pct_grupo`% de mis escuchas). Hoy hay `r miles(cobertura$revisadas)` revisadas y `r miles(cobertura$con_letra)` con letra o instrumentales (el `r cobertura$pct_letra`% de mis escuchas); las canciones nuevas que entren al grupo se suman en las actualizaciones mensuales. Las letras provienen de [LRCLIB](https://lrclib.net), y si una canción no aparece se busca otra vez con el título limpio (sin «Remastered», «Live», «feat.», paréntesis ni corchetes) y solo con el artista principal (`scripts/03.descargar_letras.R` → `data/letras.parquet`). Asimismo, `scripts/03.1.sumar_letras_web.R` permite sumar letras buscadas a mano en la web cuando LRCLIB no las tiene, sin reemplazar nunca una letra existente. Cabe señalar que se usan solo para análisis, por lo cual el reporte muestra palabras y temas agregados y nunca letras completas.
+- **Idioma:** se detecta contando palabras frecuentes del español y del inglés, y una letra se considera de otro idioma (francés, portugués o japonés, entre otros) solo si los detectores de Google CLD3 y CLD2 coinciden, ya que cada uno por separado se equivoca en letras cortas.
+- **Embeddings (Python):** `scripts/03.2.embeddings_letras.py` convierte cada letra en un vector de significado con un modelo de lenguaje multilingüe, el cual alimenta los temas de las letras (ver técnicas). Se ejecuta en un entorno propio (`.venv`, Python 3.14) y solo procesa las letras nuevas.
 - **Imágenes:** fotos de artistas y portadas de discos desde la API de Deezer (`R/imagenes.R`), guardadas en `data/imagenes/`.
 
 ### 4. Análisis
 
-R procesa todo (`dplyr`, `tidyr`) y Quarto arma los reportes HTML interactivos (`plotly` para gráficos, `reactable` para tablas). Antes de cada versión completa se revisan los datos y se recalculan las cifras escritas en los textos, para que digan lo mismo que los gráficos.
+R procesa los datos y ajusta todos los modelos (`dplyr`, `tidyr`, `uwot`, `ranger`, `xgboost`, entre otros), mientras que Python solo calcula los embeddings de las letras. Luego, Quarto arma los reportes HTML interactivos (`plotly` para gráficos y `reactable` para tablas). Antes de cada versión completa se revisan los datos, se verifica cada afirmación escrita a mano contra los datos y se comprueba que los textos sigan la guía de estilo, con el fin de que digan lo mismo que los gráficos.
 
 ### 5. Publicación
 
-Cada día 1, una tarea programada de Windows ejecuta `actualizar.bat`, el cual descarga lo nuevo, regenera los reportes, los copia a `docs/` y los publica en GitHub Pages. Cada paso que puede fallar (APIs, render, git) se reintenta, y todo queda registrado en un log con la hora. El detalle del flujo está en `FLUJO_DE_TRABAJO.txt` del repositorio.
+Cada día 1, una tarea programada de Windows ejecuta `actualizar.bat`, el cual descarga lo nuevo, regenera los reportes, los copia a `docs/` y los publica en GitHub Pages. Cada paso que puede fallar (APIs, render y git) se reintenta, y todo queda registrado en un log con la hora. El detalle de cada paso se encuentra en [el flujo de trabajo](flujo.html).
 
 :::
 
@@ -101,6 +103,8 @@ Los datos se guardan en formato Parquet, el cual conserva los tipos (fechas y n�
 |---|---|---|
 | Fechas inválidas | Se excluyen las escuchas con fecha anterior a 2002 | Last.fm guarda algunas escuchas sin fecha válida como 01-01-1970 |
 | Zona horaria | Las fechas se pasan de UTC a hora de Chile (`America/Santiago`) | Para que "las 9 de la mañana" sean mis 9 de la mañana |
+| Nombres unificados | Los artistas y canciones que solo cambian por tildes, mayúsculas o signos se juntan bajo la forma más escuchada (p. ej. *Arcangel* y *Arcángel*) | Para que un mismo artista no quede partido en dos |
+| Meses sin registro | Los meses con menos del 10% de un mes habitual se marcan en el gráfico por mes | Para que un corte del *scrobbler* no se lea como un mes sin música |
 | Horas escuchadas | Suma de la duración de cada canción | La duración sale de Spotify (percentil 90 de lo escuchado, casi siempre la canción completa); para las canciones sin ese dato se usa la mediana de las conocidas, cerca de 3,8 minutos |
 | Género de cada artista | La etiqueta de **mayor peso** del artista, descartando etiquetas genéricas ("seen live", "favorites", décadas, nacionalidades) | Simplifica, pero un artista queda con un solo género |
 | País de cada artista | La etiqueta de nacionalidad de mayor peso, más correcciones a mano (p. ej. Marcel Duchamp, banda punk chilena) | Las etiquetas de nacionalidad no siempre existen o son correctas |
@@ -274,7 +278,7 @@ tabla(
   ))
 ```
 
-El reporte muestra en detalle solo la técnica ganadora, es decir, las reglas si es el árbol, los efectos si es la regresión, o la importancia de cada característica si es el random forest o el gradient boosting.
+El reporte muestra la conclusión de la técnica ganadora junto con las variables que más utiliza, las cuales se obtienen de la importancia por permutación de un random forest entrenado con toda la muestra.
 
 ::: {.callout-warning appearance="simple" icon="false"}
 **Advertencia.** Las escuchas no son independientes (una misma canción o sesión se repite), por lo cual los valores p de la regresión resultan optimistas, ya que con decenas de miles de casos casi todo resulta "significativo". En este sentido, la lectura se centra en el tamaño de los efectos y en el desempeño con artistas nuevos más que en la significancia.
@@ -322,11 +326,11 @@ Los modelos de playlists ocultas (LDA) y de temas de las letras (embeddings con 
 
 ## ⚠️ Limitaciones generales
 
-- **Last.fm y Spotify no son todo lo que escucho**: el corte de julio a septiembre de 2026 se rellena con Spotify, pero el de agosto a octubre de 2018 sigue abierto, y la música fuera de las apps conectadas no queda registrada.
+- **Last.fm y Spotify no son todo lo que escucho**: el corte de julio a septiembre de 2026 se rellena con Spotify, pero los de junio de 2016 y de junio a octubre de 2018 siguen abiertos, y la música fuera de las apps conectadas no queda registrada.
 - **Las etiquetas son de la comunidad**: géneros, países y ánimo dependen de lo que los usuarios de Last.fm ponen a cada artista, con sus sesgos (por ejemplo, "female vocalists" se usa mucho más que "male vocalists").
 - **Solo los artistas y canciones principales** tienen letras (las canciones con `r min_letras` escuchas o más; `r miles(cobertura$con_letra)` con letra o instrumentales, el `r cobertura$pct_letra`% de las escuchas). Las etiquetas ya cubren a todos los artistas, pero las letras no a todas las canciones.
 - **Las interpretaciones psicológicas son lúdicas**: la investigación habla de tendencias promedio en muchas personas, no de diagnósticos individuales.
 
 ## 🛠️ Herramientas
 
-**R** (`dplyr`, `tidyr`, `arrow`, `httr2`, `ggplot2`, `plotly`, `reactable`, `topicmodels`, `survival`, `partykit`, `nnet`, `ranger`, `xgboost`, `ggrepel`, `stopwords`), **Quarto** para los reportes, **Parquet** para los datos, **GitHub Pages** para publicar y el **Programador de tareas de Windows** para la actualización mensual.
+El proyecto se basa en **R** (`dplyr`, `tidyr`, `arrow`, `httr2`, `ggplot2`, `plotly`, `reactable`, `topicmodels`, `uwot`, `survival`, `partykit`, `nnet`, `ranger`, `xgboost`, `ggrepel`, `stopwords`, `cld2` y `cld3`), mientras que **Python** (`sentence-transformers` sobre PyTorch) se utiliza solo para los embeddings de las letras. Asimismo, se usa **Quarto** para los reportes, **Parquet** para los datos, **GitHub Pages** para publicar y el **Programador de tareas de Windows** para la actualización mensual.

@@ -1365,7 +1365,7 @@ medias_lluvia <- dias_clima %>% group_by(llovio) %>% summarise(valencia = mean(V
 
 ## 🗺️ Mis eras musicales
 
-`r as.character(ciro("postpunk", "ciro-lateral"))`¿Mi gusto cambió de golpe o de a poco? Para responder esta pregunta ordené todos mis meses en fila, cada uno descrito por la mezcla de géneros que escuché, y utilicé un algoritmo que corta la fila en tramos donde los meses se parecen entre sí. Cada tramo corresponde a una era, es decir, una etapa con un sonido propio, con inicio y final, y cabe señalar que el propio algoritmo decidió cuántas eras hay.
+`r as.character(ciro("ozzy", "ciro-lateral"))`¿Mi gusto cambió de golpe o de a poco? Para responder esta pregunta ordené todos mis meses en fila, cada uno descrito por la mezcla de géneros que escuché, y utilicé un algoritmo que corta la fila en tramos donde los meses se parecen entre sí. Cada tramo corresponde a una era, es decir, una etapa con un sonido propio, con inicio y final, y cabe señalar que el propio algoritmo decidió cuántas eras hay.
 
 ```{r}
 #| label: eras-calculo

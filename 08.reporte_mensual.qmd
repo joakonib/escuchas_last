@@ -51,6 +51,7 @@ inicio <- if (params$mes == "") {
 fin <- inicio + months(1) - days(1)
 nombre_mes <- paste(meses[month(inicio)], year(inicio))
 Nombre_mes <- paste0(toupper(substr(nombre_mes, 1, 1)), substr(nombre_mes, 2, nchar(nombre_mes)))
+y_lista <- function(x) if (length(x) <= 1) x else paste(paste(head(x, -1), collapse = ", "), "y", tail(x, 1))
 
 todas <- leer_escuchas(zona) %>%
   mutate(dia = as_date(fecha), hora = hour(fecha)
@@ -133,9 +134,9 @@ genero_mes <- if (tiene_tags) {
 
 aviso <- if (dias_con_registro < 10) {
   div(class = "bienvenida"
-      ,p(HTML(paste0("⚠️ <b>Ojo:</b> hay escuchas registradas solo en ", dias_con_registro
-                    ,ifelse(dias_con_registro == 1, " día", " días"), " de este mes, sumando Last.fm y Spotify. "
-                    ,"Puede que el <i>scrobbler</i> haya estado desconectado, así que las cifras subestiman lo escuchado."))))
+      ,p(HTML(paste0("⚠️ Cabe señalar que este mes solo tiene escuchas registradas en ", dias_con_registro
+                    ,ifelse(dias_con_registro == 1, " día", " días"), ", sumando Last.fm y Spotify, lo cual podría deberse a que "
+                    ,"el <i>scrobbler</i> estuvo desconectado, por lo que las cifras subestiman lo escuchado."))))
 }
 
 tagList(
@@ -153,9 +154,9 @@ tagList(
           ,div(class = "hero-sub", paste0(miles(nrow(mes)), " canciones · ", nrow(top_art), " artistas"
                                          ,if (length(genero_mes)) paste0(" · ", tolower(paste(genero_mes, collapse = " y ")))))))
   ,div(class = "bienvenida con-ciro", ciro("postpunk"), div(
-      p(HTML(paste0("👋 Este es el resumen de lo que escuché en <b>", nombre_mes, "</b>, según "
+      p(HTML(paste0("👋 Este reporte resume lo que escuché en <b>", nombre_mes, "</b> a partir de "
                     ,"<a href='https://www.last.fm/user/jgaldamesh'>Last.fm</a>, que registra cada canción que pongo "
-                    ,"(cada registro es un <i>scrobble</i>), completado con mi historial de Spotify cuando el registro se cortó. "
+                    ,"(cada registro es un <i>scrobble</i>), y de mi historial de Spotify en los momentos en que ese registro se cortó. "
                     ,"Si quieres la historia completa, mira "
                     ,"<a href='analisis_escuchas.html'>mi reporte general</a>, y cómo se calcula cada cosa en "
                     ,"<a href='metodologia.html'>cómo está hecho</a>.")))
@@ -229,7 +230,7 @@ conc5 <- sum(head(top_art$n, 5)) / nrow(mes)
 ```
 
 ::: {.callout-note appearance="simple" icon="false"}
-**¿Qué me dice?** **`r top_art$artista[1]`** fue el artista del mes, con el `r pct(top_art$n[1] / nrow(mes))` de mis escuchas. Entre los cinco primeros suman el `r pct(conc5)`: `r if (conc5 > 0.5) "un mes **concentrado** en pocos artistas" else if (conc5 > 0.3) "un mes con favoritos claros, pero repartido" else "un mes **variado**, sin un artista que domine"`.
+**¿Qué me dice?** Con el `r pct(top_art$n[1] / nrow(mes))` de mis escuchas, `r top_art$artista[1]` fue el artista del mes, mientras que los cinco primeros suman el `r pct(conc5)`, lo cual da cuenta de `r if (conc5 > 0.5) "un mes concentrado en pocos artistas" else if (conc5 > 0.3) "un mes con favoritos claros, aunque repartido" else "un mes variado, sin un artista que domine"`.
 :::
 
 #### Discos
@@ -310,10 +311,13 @@ p <- gen_mes %>%
   ggplot(aes(share, fct_reorder(genero, share)
              ,text = paste0("<b>", genero, "</b><br>Este mes: ", pct(share), "<br>Mi promedio: ", pct(share_hist)))) +
   geom_col(fill = verde, width = 0.65) +
-  geom_point(aes(x = share_hist), color = morado, size = 3, shape = 18) +
+  # Mi promedio como marca de referencia (gráfico de bala): gris oscuro con borde claro
+  # para que se vea también cuando cae encima de la barra
+  geom_errorbar(aes(xmin = share_hist, xmax = share_hist), width = 0.85, color = "#fbfaf8", linewidth = 2.6) +
+  geom_errorbar(aes(xmin = share_hist, xmax = share_hist), width = 0.85, color = principal, linewidth = 1.1) +
   scale_x_continuous(labels = pct, expand = expansion(mult = c(0, 0.05))) +
   labs(title = "Los géneros del mes"
-       ,subtitle = "Barras: proporción de este mes. Rombos morados: mi promedio histórico"
+       ,subtitle = "Barras: proporción de este mes. Marca gris: mi promedio histórico"
        ,x = NULL, y = NULL)
 interactivo(p)
 
@@ -322,7 +326,7 @@ mas_que_normal <- gen_mes %>% filter(n >= 10) %>% mutate(dif = share - share_his
 ```
 
 ::: {.callout-note appearance="simple" icon="false"}
-**¿Qué me dice?** `r if (tiene_tags) paste0("El género del mes fue **", g1$genero, "** (", pct(g1$share), " de lo que escuché, contra un ", pct(g1$share_hist), " en mi historia). El que más subió respecto de lo normal fue **", mas_que_normal$genero, "**.") else ""`
+**¿Qué me dice?** `r if (tiene_tags) paste0("El género del mes fue el ", tolower(g1$genero), ", con un ", pct(g1$share), " de lo que escuché frente a un ", pct(g1$share_hist), " en mi historia, mientras que el que más subió respecto de lo habitual fue el ", tolower(mas_que_normal$genero), ".") else ""`
 :::
 
 #### Países
@@ -374,7 +378,7 @@ finde_mes <- mean(mes$semana %in% c("sáb", "dom"))
 ```
 
 ::: {.callout-note appearance="simple" icon="false"}
-**¿Qué me dice?** El momento con más música fue el **`r pico$semana` a las `r pico$hora`:00**. Los fines de semana sumaron el `r pct(finde_mes)` de las escuchas del mes (si fuera parejo, sería un 29%).
+**¿Qué me dice?** El momento con más música fue el `r pico$semana` a las `r pico$hora`:00, y los fines de semana sumaron el `r pct(finde_mes)` de las escuchas del mes, cuando si fuera parejo correspondería a un 29%.
 :::
 
 #### Día a día
@@ -399,7 +403,7 @@ interactivo(p)
 
 ## 🔬 Análisis del mes
 
-Lo que sigue no describe el mes: lo **compara con toda mi historia** desde 2013.
+A continuación, el mes se compara con toda mi historia desde 2013, con el fin de evaluar qué tan distinto fue a lo habitual.
 
 ```{r}
 #| label: analisis-preparacion
@@ -448,10 +452,10 @@ veredicto <- if (percentil >= 0.8) "🌀 un mes muy fuera de lo común" else
   if (percentil >= 0.5) "↗️ un mes algo distinto a lo habitual" else "🏠 un mes bastante típico"
 
 div(class = "bienvenida"
-    ,p(HTML(paste0("Según su mezcla de géneros, <b>", nombre_mes, "</b> fue ", veredicto
-                  ,": más distinto a mi promedio que el <b>", pct(percentil), "</b> de mis meses.")))
-    ,p(HTML(paste0("Escuché <b>más de lo normal</b>: ", paste(subieron, collapse = ", ")
-                  ,". Y <b>menos de lo normal</b>: ", paste(bajaron, collapse = ", "), "."))))
+    ,p(HTML(paste0("Según su mezcla de géneros, ", nombre_mes, " fue <b>", veredicto
+                  ,"</b>, ya que resultó más distinto a mi promedio que el ", pct(percentil), " de mis meses.")))
+    ,p(HTML(paste0("Respecto a los géneros, escuché más de lo habitual ", y_lista(tolower(subieron))
+                  ,", mientras que escuché menos ", y_lista(tolower(bajaron)), "."))))
 ```
 
 ```{r}
@@ -500,7 +504,9 @@ if (nrow(previos) < 300) {
                                           ,"<br>3 meses previos: ", pct(s_prev), " (", n_prev, ")"))) +
     geom_col(width = 0.7) +
     geom_vline(xintercept = 0, color = gris) +
-    scale_fill_manual(values = c(Subió = verde, Bajó = morado), name = NULL) +
+    # Verde para lo que subió (lo nuevo del mes) y gris para lo que bajó; el lado del cero
+    # ya indica la dirección
+    scale_fill_manual(values = c(Subió = verde, Bajó = principal), name = NULL) +
     scale_x_continuous(labels = function(x) paste0(ifelse(x > 0, "+", ""), round(x * 100), " pp")) +
     labs(title = "Quién subió y quién bajó"
          ,subtitle = "Cambio en la proporción de mis escuchas respecto de los 3 meses anteriores (puntos porcentuales)"
@@ -593,9 +599,9 @@ mejor <- slice_max(anteriores, n, n = 1)
 puesto <- sum(anteriores$n > proyectado) + 1
 
 div(class = "bienvenida"
-    ,p(HTML(paste0("🔮 A este ritmo (<b>", round(ritmo), " canciones al día</b> en lo que va de ", anio_actual
-                  ,"), cerraría el año con unas <b>", miles(proyectado), " escuchas</b>: sería mi año número <b>"
-                  ,puesto, "</b> de ", nrow(anteriores) + 1, ". Mi récord sigue siendo ", mejor$anio
+    ,p(HTML(paste0("🔮 A este ritmo, de ", round(ritmo), " canciones al día en lo que va de ", anio_actual
+                  ,", cerraría el año con unas <b>", miles(proyectado), " escuchas</b>, lo cual lo dejaría en el puesto "
+                  ,puesto, " de ", nrow(anteriores) + 1, " de mis años. Cabe señalar que mi récord sigue siendo ", mejor$anio
                   ,", con ", miles(mejor$n), " escuchas."))))
 ```
 
