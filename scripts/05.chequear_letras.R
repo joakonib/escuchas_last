@@ -5,9 +5,10 @@ pacman::p_load(
   tidyverse
   ,arrow
 )
+source("R/datos.R")
 
 # 1. Resumen de las letras ------
-l <- read_parquet("data/letras.parquet"); e <- read_parquet("data/escuchas.parquet")
+l <- read_parquet("data/letras.parquet"); e <- leer_parquet(archivo_escuchas())
 ok <- l %>% filter(!is.na(letra) | instrumental)
 k <- paste(e$artista, e$cancion)
 cat("Letras: filas", nrow(l), "| con letra", sum(!is.na(l$letra)), "| instrumentales", sum(l$instrumental)

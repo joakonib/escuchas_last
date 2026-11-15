@@ -5,7 +5,7 @@ que se ejecuta (actualizar.bat para el mensual automático; el script nocturno
 para las corridas completas con Claude). Si un paso está aquí y no en el flujo
 efectivo, o al revés, hay que corregirlo.
 
-Última actualización: 08-11-2026
+Última actualización: 15-11-2026
 
 
 WORKFLOW COMPLETO (MAPA RÁPIDO)
@@ -20,9 +20,18 @@ raíz del proyecto.
   00  scripts/00.descargar_escuchas.R   Last.fm    -> data/escuchas.parquet
   01  scripts/01.verificar_escuchas.R   compara contra el respaldo; si hay
                                         menos escuchas, se restaura
+  01.1 scripts/01.1.consolidar_escuchas.R Last.fm + Spotify
+                                        -> data/escuchas_consolidadas.parquet
+                                        (base de todo lo que sigue)
   02  scripts/02.descargar_tags.R       Last.fm    -> data/tags_artistas.parquet
                                                       data/info_artistas.parquet
   03  scripts/03.descargar_letras.R     LRCLIB     -> data/letras.parquet
+  03.1 scripts/03.1.sumar_letras_web.R data/letras_web.json -> data/letras.parquet
+                                        (letras buscadas en la web donde LRCLIB
+                                        no tiene; no hace nada si no existe)
+  03.2 scripts/03.2.embeddings_letras.py PYTHON (.venv) -> data/embeddings_letras.parquet
+                                        (único paso en Python; vector multilingüe
+                                        de cada letra; incremental)
   04  scripts/04.descargar_clima.R      Open-Meteo -> data/clima.parquet
 
   CONTROLES (quedan en el log, no detienen el flujo)
@@ -40,6 +49,7 @@ raíz del proyecto.
                                         -> reporte_mensual.html
                                            reportes/reporte_AAAA-MM.html
   09  09.metodologia.qmd                -> metodologia.html
+  10  10.flujo_de_trabajo.qmd           -> flujo.html (este flujo, explicado)
 
   PUBLICACIÓN
       Copiar los tres HTML a docs/, limpiar temporales, commit, pull y push.
@@ -116,13 +126,33 @@ FASE 1. Descargas
       - Verificar contra el respaldo (scripts/01.verificar_escuchas.R): total de
         escuchas no menor, rango de fechas, meses sin escuchas, duplicados. Si
         queda incompleta: restaurar el respaldo y completar en modo incremental.
+  1.1b Base consolidada (scripts/01.1.consolidar_escuchas.R).
+      - Junta Last.fm con los datos de la cuenta de Spotify
+        (data/my_spotify_data.zip, StreamingHistory_music_*, o SPOTIFY_ZIP).
+      - Spotify: solo reproducciones de 30 s o más; su hora es el FIN de la
+        canción en UTC, se resta lo escuchado para tener el inicio.
+      - Cruce uno a uno por artista y título normalizados (sin tildes, signos,
+        paréntesis ni "- Remaster"): primero a 10 min, luego a 6 horas
+        (scrobbles con la hora corrida). Alias de artistas aprendidos de
+        escuchas simultáneas (p. ej. Jorge Ben Jor -> Jorge Ben).
+      - Last.fm manda. Una escucha de Spotify sin pareja se suma solo si
+        Last.fm no registró NADA a 10 min (hueco del scrobbler); si registró
+        algo, se descarta (casi siempre es la misma con otro nombre).
+      - Columna fuente: lastfm / ambas / spotify. Nombre, disco y mbid de las
+        sumadas salen de Last.fm cuando la canción o el artista ya existen.
+      - Etiquetas, letras, chequeos y reportes leen esta base
+        (archivo_escuchas() y leer_escuchas() en R/datos.R).
+      - 15-11-2026: 4.037 escuchas sumadas (jul-sep 2026), 17.845 en ambas,
+        1.509 descartadas; 399 canciones y 35 artistas nuevos.
   1.2 Etiquetas y oyentes de artistas (scripts/02.descargar_tags.R).
       - Cobertura: todos los artistas (tope N_ARTISTAS = 5.000; al 24-10-2026
         son 3.271 = 100 % de las escuchas). Unos 19 min por 2.300 artistas.
       - Usa la misma API que 1.1: no correrlos en paralelo (límite de consultas).
   1.3 Letras de LRCLIB (scripts/03.descargar_letras.R).
-      - Se buscan las canciones con 3 o más escuchas (MIN_ESCUCHAS). Al
-        09-11-2026: 13.009 revisadas, 11.143 con letra = 77 % de las escuchas.
+      - Se buscan las canciones con 2 o más escuchas (MIN_ESCUCHAS). Al
+        15-11-2026 (base consolidada): 14.390 con letra = 82,8 % de las
+        escuchas; quedan ~1.300 canciones de 2 escuchas por revisar (la
+        descarga se cortó a pedido en el lote 39/51; se retoma sola).
       - Lotes de 100 canciones; cada lote toma de 3 a 5 min (hasta 12 si
         LRCLIB está lento): 1.000 canciones nuevas, ~40 min.
       - Cada consulta tiene un tope de 30 s (req_timeout) y se reintenta. Si
@@ -133,6 +163,27 @@ FASE 1. Descargas
         título limpio (sin "Remastered", "Live", "feat.", paréntesis ni
         corchetes) y el artista principal. Una sola vez por canción.
 
+  1.3b Letras de la web (scripts/03.1.sumar_letras_web.R).
+      - Las canciones que LRCLIB no tiene se buscan en Letras.com, Musica.com
+        o Genius desde el navegador (sesión de la app con Brave), con la
+        lista data/letras_web_pendientes.csv (más escuchadas, sin artistas
+        etiquetados como instrumentales).
+      - Se guardan en data/letras_web.json (artista, cancion, letra,
+        instrumental, fuente = URL) y el script las suma con fuente "web",
+        sin pisar nunca una letra de LRCLIB.
+  1.3c Embeddings de letras (scripts/03.2.embeddings_letras.py, Python).
+      - Entorno: .venv con Python 3.14 (torch CPU, sentence-transformers,
+        bertopic). Crear con: python -m venv .venv y pip install torch
+        --index-url https://download.pytorch.org/whl/cpu, luego
+        sentence-transformers bertopic pyarrow pandas.
+      - Modelo paraphrase-multilingual-MiniLM-L12-v2: cada letra en trozos de
+        120 palabras (hasta 6), vector = promedio. ~15 min para 14.000
+        letras en CPU; cada mes solo las nuevas.
+      - El resto del modelo de temas va en R (R/temas_semanticos.R): UMAP
+        (uwot, 5 dimensiones, un hilo para que sea reproducible), k-means
+        con 10 temas y palabras de cada tema con c-TF-IDF. HDBSCAN se probó
+        y se descartó: con letras dejaba 60-70 % sin tema o todo en 2 grupos.
+        Si no existen los embeddings, el reporte vuelve al LDA por palabras.
   1.4 Clima de Santiago (scripts/04.descargar_clima.R, Open-Meteo). Incremental.
 
 FASE 2. Análisis antes del render (el flujo se pausa hasta que termine)
@@ -237,6 +288,11 @@ CRITERIOS DE ANÁLISIS (modelos y técnicas)
   - Con muchas observaciones no independientes (escuchas repetidas), los
     valores p son optimistas: leer tamaños de efecto y desempeño fuera de
     la muestra, no solo significancia.
+  - Cuidado con variables que comparten grupo con otra división: los rasgos
+    de la sesión filtran información aunque se separe por artista (una
+    sesión mezcla artistas de ambos grupos). Probar siempre con datos cuyo
+    grupo completo (artista, sesión, semana) nunca se vio (15-11-2026: las
+    variables de sesión pasaban de 42% a 48% y en sesiones nuevas, a 40%).
   - Semilla fija para que los resultados sean reproducibles.
   - Cada decisión de diseño (división, parámetros, umbrales) queda explicada
     en 09.metodologia.qmd.
@@ -244,10 +300,9 @@ CRITERIOS DE ANÁLISIS (modelos y técnicas)
 
 PENDIENTES / PRÓXIMOS PASOS
 ---------------------------
-  - Spotify: cuando llegue el ZIP del historial ampliado a input/, cruzarlo
-    con Last.fm (reproducciones de 30 s o más; ventana de tiempo; columna
-    fuente) en data/escuchas_consolidadas.parquet, y que todo el flujo
-    (etiquetas, letras, reportes, actualizar.bat) parta de esa base.
+  - Spotify: si llega el historial ampliado (Streaming_History_Audio_*,
+    todo el historial con hora al segundo), sumarlo a leer_spotify() para
+    cubrir los años previos a oct-2025 con la misma regla de huecos.
   - Regla vigente: actualizar.bat SOLO en ASCII (sin tildes ni eñes): cmd.exe
     con chcp 65001 lee mal los saltos goto/call si hay caracteres UTF-8.
   - Portada: complementar "Sobre mí".
@@ -315,3 +370,32 @@ HISTORIAL DE CAMBIOS DEL FLUJO
               transiciones de género, huella mundial, discos, flechazos,
               reencuentros y aperturas de sesión. Código al estilo simel_eme
               (pacman, %>%, purrr, títulos numerados) y archivos numerados.
+  15-11-2026  Spotify: llegan los datos de la cuenta (último año). Nuevo paso
+              01.1.consolidar_escuchas.R (base consolidada con columna
+              fuente) en los dos flujos; etiquetas, letras, chequeos y
+              reportes parten de esa base. Rellena el hueco de jul-sep 2026.
+              Validación del relleno contra abr-jun y oct: mismo volumen
+              diario, franjas, sesiones, artistas y géneros (fin de semana
+              7 % vs 11 %, anotado en la metodología). Letras desde 2
+              escuchas (MIN_ESCUCHAS = 2) y paso 03.1 para letras buscadas en
+              la web (data/letras_web.json). Letras.com responde 403 a
+              consultas automáticas: no se usa desde la terminal, solo desde
+              el navegador. Eras, MUSIC, playlists y temas de letras no
+              cambian con la base consolidada.
+  15-11-2026  (tarde) Mejoras de procesamiento y técnicas:
+              - Nombres unificados en 01.1 (tildes, mayúsculas, signos: 15
+                variantes, p. ej. Arcangel/Arcángel) para artistas y canciones.
+              - Duración real de cada canción desde Spotify (percentil 90 de lo
+                escuchado) en data/duraciones.parquet; leer_escuchas() agrega
+                minutos y las horas escuchadas se suman (antes 3,5 min fijos).
+              - Idioma de las letras: además de español e inglés, "Otro idioma"
+                cuando cld3 y cld2 coinciden (francés, portugués, japonés...).
+              - Clasificador: temporada y antigüedad del artista, pesos por
+                clase y xgboost ajustado con validación cruzada agrupada por
+                artista. Las variables de sesión se probaron y se descartaron
+                por fuga de información (ver criterios de análisis).
+              - Temas de las letras por significado (embeddings multilingües +
+                UMAP + k-means + c-TF-IDF), Python solo para los embeddings.
+              - Python 3.14.10 instalado (winget) y entorno .venv (fuera de git).
+              - Nueva página flujo.html (10.flujo_de_trabajo.qmd) en la barra
+                de navegación y en ambos flujos.

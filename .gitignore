@@ -11,3 +11,5 @@ data/
 input/
 reportes/
 GUIA_HERRAMIENTAS.html
+/.venv/
+/flujo.html

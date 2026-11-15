@@ -10,9 +10,10 @@ Se actualiza cada vez que se agrega una fuente nueva.
 | [API de Last.fm](https://www.last.fm/api) — `user.getRecentTracks` | Historial completo de escuchas (fecha, artista, canción, álbum) | `00.descargar_escuchas.R` → `data/escuchas.parquet` |
 | [API de Last.fm](https://www.last.fm/api) — `artist.getTopTags` | Hasta 30 etiquetas por artista, con su peso (géneros, países, ánimo) | `02.descargar_tags.R` → `data/tags_artistas.parquet` |
 | [API de Last.fm](https://www.last.fm/api) — `artist.getInfo` | Oyentes y reproducciones globales de cada artista | `02.descargar_tags.R` → `data/info_artistas.parquet` |
+| [Letras.com](https://www.letras.com), [Musica.com](https://www.musica.com), [Genius](https://genius.com) (búsqueda en el navegador) | Letras de las canciones más escuchadas que LRCLIB no tiene | `03.1.sumar_letras_web.R`, desde `data/letras_web.json` → `data/letras.parquet` (fuente `web`) |
 | [API pública de Deezer](https://developers.deezer.com/api) — `search/artist`, `search/album` | Fotos de artistas y portadas de discos (solo coincidencias exactas de nombre) | `R/imagenes.R` → `data/imagenes/` |
-| Datos de la cuenta de Spotify (`StreamingHistory_music_*`, 15-10-2025 al 30-10-2026) | Cada reproducción del último año: fin al minuto (UTC), artista, canción y milisegundos escuchados | `R/datos.R` → `leer_spotify()`, desde `data/my_spotify_data.zip` |
-| Historial ampliado de Spotify (*pendiente*) | Cada reproducción con milisegundos escuchados y saltos | Base consolidada con Last.fm (por hacer) |
+| Datos de la cuenta de Spotify (`StreamingHistory_music_*`, 15-10-2025 al 30-10-2026) | Cada reproducción del último año: fin al minuto (UTC), artista, canción y milisegundos escuchados | `R/datos.R` → `leer_spotify()`; `01.1.consolidar_escuchas.R` la cruza con Last.fm y rellena sus huecos → `data/escuchas_consolidadas.parquet` |
+| Historial ampliado de Spotify (*pendiente*) | Todo el historial, con hora al segundo | Rellenar huecos de años anteriores |
 
 ## Marcos de análisis
 
@@ -34,7 +35,13 @@ Se actualiza cada vez que se agrega una fuente nueva.
 | Zajonc (1968), efecto de mera exposición; Berlyne (1971), *Aesthetics and Psychobiology* | Repetición y gusto, curva en U invertida | Pestaña "En loop" |
 | Krumhansl y Zupnick (2013), *Cascading reminiscence bumps in popular music*, Psychological Science | Pico de reminiscencia musical | Pestaña "Ranking año a año" |
 | Grimm (1987), *CONISS: a FORTRAN 77 program for stratigraphically constrained cluster analysis*, Computers & Geosciences | Clustering jerárquico con restricción de contigüidad (Ward) | Sección "Mis eras musicales" |
-| Blei, Ng y Jordan (2003), *Latent Dirichlet Allocation*, Journal of Machine Learning Research | Modelo de tópicos | Laboratorio: "Playlists ocultas" y tópicos de las letras |
+| Blei, Ng y Jordan (2003), *Latent Dirichlet Allocation*, Journal of Machine Learning Research | Modelo de tópicos | Laboratorio: "Playlists ocultas" (y respaldo de los temas de las letras) |
+| Grootendorst (2022), *BERTopic: Neural topic modeling with a class-based TF-IDF procedure*, arXiv:2203.05794 | Enfoque de temas por significado: embeddings, reducción, agrupación y c-TF-IDF | Temas de las letras (`R/temas_semanticos.R`) |
+| Reimers y Gurevych (2019; 2020), *Sentence-BERT* y *Making monolingual sentence embeddings multilingual using knowledge distillation*, EMNLP | Modelo `paraphrase-multilingual-MiniLM-L12-v2` (sentence-transformers) | Embeddings de las letras (`03.2.embeddings_letras.py`, Python) |
+| McInnes, Healy y Melville (2018), *UMAP: Uniform Manifold Approximation and Projection*, arXiv:1802.03426 (`uwot`) | Reducción de los embeddings a 5 dimensiones | Temas de las letras |
+| MacQueen (1967); Hartigan y Wong (1979), k-means | Agrupación de las letras en 10 temas | Temas de las letras |
+| Detectores de idioma de Google, CLD3 y CLD2 (paquetes `cld3` y `cld2`) | Idioma de cada letra (otro idioma solo si ambos coinciden) | Sección "¿Canto en español o en inglés?" |
+| Chen y Guestrin (2016), *XGBoost*, KDD | Gradient boosting, ajustado con validación cruzada agrupada por artista | Laboratorio: "¿Puede una máquina adivinar cuándo escucho?" |
 | Shannon (1948); número efectivo de categorías (exponencial de la entropía) | Medida de diversidad de géneros | Pestaña "¿Soy omnívoro?" |
 | Hothorn, Hornik y Zeileis (2006), *Unbiased Recursive Partitioning: A Conditional Inference Framework*, Journal of Computational and Graphical Statistics (`partykit`) | Árbol de inferencia condicional | Laboratorio: "¿Puede una máquina adivinar cuándo escucho?" |
 | Venables y Ripley (2002), *Modern Applied Statistics with S* (`nnet`) | Regresión logística multinomial | Laboratorio: "¿Puede una máquina adivinar cuándo escucho?" |
@@ -75,7 +82,7 @@ Se actualiza cada vez que se agrega una fuente nueva.
 |---|---|---|
 | `proyecto_cv/datos/cv.yml` (mi CV) | Perfil breve y enlace a LinkedIn (sin teléfono ni correo, porque la página es pública) | Sección «Sobre mí» |
 | Foto propia de Ciro (`ciro_tatu1.jpg`) | Imagen de la portada | `docs/img/ciro.jpg` |
-| Ilustraciones de Ciro (stickers generados con IA a partir de fotos propias; originales en `input/ciro_ilustraciones/`, prompt en `input/prompt_ciro.md`) | Mascota: natural, metalero, post-punk, rapero, encuestador y con café y camisa hawaiana. Fondo quitado y azules pasados a verde con `scripts/ciro_sin_fondo.py` | `assets/ciro/` (saludos y secciones de los reportes) y `docs/img/` (portada) |
+| Ilustraciones de Ciro (stickers generados con IA a partir de fotos propias; originales en `input/ciro_ilustraciones/`, prompt en `input/prompt_ciro.md`) | Mascota: natural, metalero, post-punk, rapero, encuestador, con café y camisa hawaiana, hardcore, Ozzy, con audífonos, ingeniero del flujo y detective de letras. Las nuevas se hicieron con Gemini a partir de las fotos de `input/ciro_referencias/` y de las ilustraciones anteriores como referencia de estilo, revisando cada una contra las fotos. Fondo quitado y azules pasados a verde con `scripts/ciro_sin_fondo.py` (opción `fondo-blanco` para las de fondo blanco liso) | `assets/ciro/` (saludos y secciones de los reportes) y `docs/img/` (portada) |
 | Skill de visualización de datos (dataviz) de Claude Code | Validación de la paleta para daltonismo y contraste; separación blanca de 1,5 px entre barras | `R/visual.R` (`interactivo()`) |
 
 ## Diseño y accesibilidad

@@ -1,0 +1,170 @@
+---
+title: "🔄 Flujo de trabajo"
+subtitle: "Cómo se actualizan los datos y los reportes, paso a paso"
+lang: es
+format:
+  html:
+    output-file: flujo.html
+    theme: cosmo
+    toc: true
+    toc-location: left
+    toc-title: "Contenido"
+    toc-depth: 2
+    embed-resources: true
+    css: assets/estilo.css
+    include-before-body: assets/saltar.html
+execute:
+  echo: false
+  warning: false
+  message: false
+---
+
+```{r}
+#| label: setup
+pacman::p_load(htmltools, tidyverse, arrow)
+source("R/visual.R")
+source("R/datos.R")
+escuchas <- leer_parquet(archivo_escuchas())
+fuentes <- if ("fuente" %in% names(escuchas)) count(escuchas, fuente) %>% deframe() else c(lastfm = nrow(escuchas))
+miles <- function(x) format(coalesce(unname(x), 0L), big.mark = ".", decimal.mark = ",")
+letras <- if (file.exists("data/letras.parquet")) leer_parquet("data/letras.parquet") else tibble(letra = character())
+tagList(navegacion("flujo"), linea_generacion(), boton_volver())
+```
+
+```{=html}
+<style>
+.flujo { display: grid; gap: 14px; margin: 1.2rem 0 2rem; }
+.etapa { border: 1px solid #c9c8c2; border-radius: 10px; padding: 12px 14px; background: #f4f3f0; color: #1f1f1d; }
+.etapa h4 { margin: 0 0 8px; font-size: 1rem; color: #27613a; }
+.pasos { display: flex; flex-wrap: wrap; gap: 8px; }
+.paso { flex: 1 1 210px; border: 1px solid #d9d8d3; border-left: 4px solid #2f7d4a; background: #ffffff; color: #1f1f1d; border-radius: 6px; padding: 8px 10px; font-size: .9rem; }
+.paso b { display: block; font-size: .92rem; color: #1f1f1d; }
+.paso code { font-size: .78rem; color: #27613a; background: none; padding: 0; }
+.paso.python { border-left-color: #7a4fa3; }
+.paso.python code { color: #5e3a85; }
+.paso.control { border-left-color: #5c5b57; }
+.paso.control code { color: #3a3a37; }
+.flecha { text-align: center; color: #3a3a37; font-size: 1.3rem; line-height: 1; }
+.leyenda { display: flex; flex-wrap: wrap; gap: 14px; font-size: .88rem; color: #1f1f1d; }
+.leyenda span::before { content: ""; display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; background: var(--c); }
+</style>
+```
+
+::: {.bienvenida}
+👋 Esta página explica cómo se mantienen al día [el reporte general](analisis_escuchas.html), [el reporte mensual](reporte_mensual.html) y [la metodología](metodologia.html): de dónde sale cada dato, en qué orden corre cada script y qué reglas cuidan que nada se pierda ni se duplique. El código está en [GitHub](https://github.com/joakonib/escuchas_last) y el detalle técnico, en `FLUJO_DE_TRABAJO.txt`.
+:::
+
+## 🗺️ El flujo completo
+
+```{r}
+#| label: ciro-flujo
+ciro("flujo", "ciro-lateral")
+```
+
+R es la base de todo el proyecto. Python entra en un solo paso, los embeddings de las letras, ya que esos modelos de lenguaje solo existen en ese ecosistema.
+
+::: {.leyenda}
+[Paso en R]{style="--c:#2f7d4a"} [Paso en Python]{style="--c:#7a4fa3"} [Control (solo informa)]{style="--c:#5c5b57"}
+:::
+
+```{=html}
+<div class="flujo" role="list" aria-label="Etapas del flujo de trabajo">
+  <div class="etapa" role="listitem"><h4>0. Antes de empezar</h4><div class="pasos">
+    <div class="paso"><b>Candado</b>data/flujo.lock impide que corran dos flujos a la vez</div>
+    <div class="paso"><b>Respaldo</b>copia de las escuchas en data/respaldo/</div>
+  </div></div>
+  <div class="flecha" aria-hidden="true">↓</div>
+  <div class="etapa" role="listitem"><h4>1. Escuchas</h4><div class="pasos">
+    <div class="paso"><b>00 · Descargar de Last.fm</b><code>00.descargar_escuchas.R</code><br>Solo lo nuevo desde la última escucha</div>
+    <div class="paso control"><b>01 · Verificar</b><code>01.verificar_escuchas.R</code><br>Si quedaron menos que en el respaldo, se restaura</div>
+    <div class="paso"><b>01.1 · Consolidar con Spotify</b><code>01.1.consolidar_escuchas.R</code><br>Rellena los huecos del scrobbler, unifica nombres y calcula la duración real de cada canción</div>
+  </div></div>
+  <div class="flecha" aria-hidden="true">↓</div>
+  <div class="etapa" role="listitem"><h4>2. Enriquecer</h4><div class="pasos">
+    <div class="paso"><b>02 · Etiquetas y oyentes</b><code>02.descargar_tags.R</code><br>Géneros, países y ánimo de cada artista (Last.fm)</div>
+    <div class="paso"><b>03 · Letras</b><code>03.descargar_letras.R</code><br>LRCLIB, canciones con 2 escuchas o más</div>
+    <div class="paso"><b>03.1 · Letras de la web</b><code>03.1.sumar_letras_web.R</code><br>Completa lo que LRCLIB no tiene</div>
+    <div class="paso python"><b>03.2 · Embeddings de letras</b><code>03.2.embeddings_letras.py</code><br>Cada letra pasa a un vector de significado multilingüe</div>
+    <div class="paso"><b>04 · Clima</b><code>04.descargar_clima.R</code><br>Clima diario de Santiago (Open-Meteo)</div>
+  </div></div>
+  <div class="flecha" aria-hidden="true">↓</div>
+  <div class="etapa" role="listitem"><h4>3. Controles</h4><div class="pasos">
+    <div class="paso control"><b>05 · Chequeo de letras</b><code>05.chequear_letras.R</code><br>Cobertura, duplicadas y vacías</div>
+    <div class="paso control"><b>06 · Chequeo de estilo</b><code>06.chequear_estilo.R</code><br>Que los textos sigan ESTILO.md</div>
+  </div></div>
+  <div class="flecha" aria-hidden="true">↓</div>
+  <div class="etapa" role="listitem"><h4>4. Reportes</h4><div class="pasos">
+    <div class="paso"><b>07 · Reporte general</b><code>07.analisis_escuchas.qmd</code><br>Todos los análisis y modelos</div>
+    <div class="paso"><b>08 · Reporte mensual</b><code>08.generar_reporte_mensual.R</code><br>El mes anterior (o el que se pida)</div>
+    <div class="paso"><b>09 · Metodología</b><code>09.metodologia.qmd</code></div>
+    <div class="paso"><b>10 · Este flujo</b><code>10.flujo_de_trabajo.qmd</code></div>
+  </div></div>
+  <div class="flecha" aria-hidden="true">↓</div>
+  <div class="etapa" role="listitem"><h4>5. Publicación</h4><div class="pasos">
+    <div class="paso"><b>Copiar a docs/</b>GitHub Pages publica esa carpeta</div>
+    <div class="paso"><b>Commit, pull y push</b>Si un render falla, no se publica nada</div>
+  </div></div>
+</div>
+```
+
+## 🎧 De dónde salen las escuchas
+
+Last.fm registra cada canción que pongo, aunque a veces el *scrobbler* se desconecta. Por eso la base que usan todos los análisis junta dos fuentes:
+
+```{r}
+#| label: tabla-fuentes
+tibble(
+  Fuente = c("Last.fm y Spotify", "Solo Last.fm", "Solo Spotify")
+  ,Escuchas = miles(c(fuentes["ambas"], fuentes["lastfm"], fuentes["spotify"]))
+  ,`Qué significa` = c("La misma escucha en las dos fuentes; se cuenta una sola vez"
+                      ,"Todo lo anterior a octubre de 2025 y lo que no pasó por Spotify"
+                      ,"Momentos en que Last.fm no registró nada (sobre todo julio a septiembre de 2026)")
+) %>% knitr::kable(align = c("l", "r", "l"))
+```
+
+Last.fm manda: una escucha de Spotify solo se suma si Last.fm no registró nada en esos minutos, por lo cual el relleno nunca duplica escuchas. Asimismo, en el mismo paso se unifican los nombres que solo cambian por tildes o mayúsculas (por ejemplo *Arcangel* y *Arcángel*) y se calcula la duración real de cada canción, con el fin de medir horas escuchadas y no estimarlas.
+
+## ⏱️ Dos maneras de correrlo
+
+| | Mensual automático | Corrida completa |
+|---|---|---|
+| **Cómo se lanza** | `actualizar.bat`, tarea programada de Windows el día 1 a las 10:00 | `bash scripts/flujo_nocturno.sh --mes AAAA-MM`, con Claude |
+| **Qué hace** | Descarga lo nuevo, renderiza y publica | Todo lo anterior, más una pausa para revisar datos y textos antes del render |
+| **Reintentos** | 4 para lo que depende de la red, 2 para los renders | Igual |
+| **Registro** | `data/actualizacion.log` | `data/noche.log` |
+| **Opciones** | — | `--desde-cero`, `--reentrenar`, `--apagar` (solo con confirmación) |
+
+## 🛡️ Reglas que cuidan los datos
+
+- **Nada se pisa a medias:** cada archivo se guarda primero en uno temporal y luego se reemplaza, de modo que un corte no daña la versión anterior.
+- **Todo es incremental:** cada script retoma donde quedó, por lo cual reintentar no duplica nada.
+- **Si falla un render, no se publica:** así nunca se sube un HTML viejo como si fuera nuevo.
+- **Un solo flujo a la vez:** el candado `data/flujo.lock` lo asegura.
+- **Las cifras de los textos se calculan:** solo las interpretaciones se escriben a mano, y se revisan en cada corrida completa.
+
+## 🧠 Cuándo se reentrenan los modelos
+
+| Modelo | Se reentrena si… |
+|---|---|
+| Playlists ocultas (LDA sobre semanas) | Las semanas nuevas superan el 15%, o con `--reentrenar` |
+| Temas de las letras (embeddings + UMAP + k-means) | Las letras nuevas superan el 15%, o con `--reentrenar` |
+| Clasificadores (cinco técnicas) | Las escuchas crecen más de 5%, o con `--reentrenar` |
+
+Fuera de esos casos, lo nuevo se clasifica con el modelo guardado, sin moverlo. De esta manera los temas y las playlists no cambian de un mes a otro y sus textos siguen siendo válidos.
+
+## 📦 Hoy en la base
+
+```{r}
+#| label: ciro-natural
+ciro("natural", "ciro-lateral")
+```
+
+```{r}
+#| label: cifras-base
+tibble(
+  Dato = c("Escuchas", "Artistas", "Canciones con letra", "Desde", "Hasta")
+  ,Valor = c(miles(nrow(escuchas)), miles(n_distinct(escuchas$artista)), miles(sum(!is.na(letras$letra)))
+            ,format(as.Date(as.POSIXct(min(escuchas$uts[escuchas$uts > 1e9]), origin = "1970-01-01")), "%d-%m-%Y")
+            ,format(as.Date(as.POSIXct(max(escuchas$uts), origin = "1970-01-01")), "%d-%m-%Y"))
+) %>% knitr::kable(align = c("l", "r"))
+```

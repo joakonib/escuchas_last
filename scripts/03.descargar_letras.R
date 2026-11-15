@@ -10,10 +10,10 @@ source("R/datos.R")
 # 1. Configuración ------
 #### MIN_ESCUCHAS define qué canciones se buscan
 n_canciones <- as.integer(Sys.getenv("N_CANCIONES", "20000"))  # tope; se puede bajar para cortar antes
-min_escuchas <- as.integer(Sys.getenv("MIN_ESCUCHAS", "3"))    # solo canciones escuchadas al menos estas veces
+min_escuchas <- as.integer(Sys.getenv("MIN_ESCUCHAS", "2"))    # solo canciones escuchadas al menos estas veces
 archivo <- "data/letras.parquet"
 
-top <- leer_parquet("data/escuchas.parquet") %>%
+top <- leer_parquet(archivo_escuchas()) %>%
   count(artista, cancion, sort = TRUE) %>%
   filter(n >= min_escuchas) %>%
   slice_head(n = n_canciones)
@@ -92,19 +92,7 @@ previas <- reduce(seq_along(lotes), function(acumulado, i) {
 }, .init = previas)
 
 # 4. Segunda pasada con título y artista limpios ------
-limpiar_titulo <- function(x) {
-  x %>%
-    str_remove_all("\\s*[\\(\\[][^\\)\\]]*[\\)\\]]") %>%
-    str_remove(regex("\\s+-\\s+.*(remaster|live|version|versión|mix|edit|mono|stereo|demo|acoustic|bonus|deluxe|en vivo|single).*$", ignore_case = TRUE)) %>%
-    str_remove(regex("\\s+(feat\\.?|ft\\.?|featuring)\\s.*$", ignore_case = TRUE)) %>%
-    str_squish()
-}
-limpiar_artista <- function(x) {
-  x %>%
-    str_remove(regex("\\s*(\\bfeat\\.?|\\bft\\.?|\\bfeaturing|&|,|\\sx\\s).*$", ignore_case = TRUE)) %>%
-    str_squish()
-}
-
+#### limpiar_titulo() y limpiar_artista() están en R/datos.R
 por_limpiar <- previas %>%
   filter(is.na(letra), !instrumental, is.na(fuente)) %>%
   mutate(cancion_limpia = limpiar_titulo(cancion), artista_limpio = limpiar_artista(artista)) %>%

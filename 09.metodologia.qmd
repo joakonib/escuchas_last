@@ -23,8 +23,28 @@ execute:
 
 ```{r}
 #| label: setup
-pacman::p_load(htmltools)
+pacman::p_load(htmltools, tidyverse, arrow)
 source("R/visual.R")
+source("R/datos.R")
+#### cuántas escuchas aporta cada fuente a la base consolidada
+fuentes <- leer_parquet(archivo_escuchas())
+fuentes <- if ("fuente" %in% names(fuentes)) count(fuentes, fuente) %>% deframe() else c(lastfm = nrow(fuentes))
+#### cobertura de las letras sobre la base consolidada
+min_letras <- 2
+canciones <- leer_parquet(archivo_escuchas()) %>% count(artista, cancion)
+letras <- leer_parquet("data/letras.parquet") %>%
+  mutate(con_letra = !is.na(letra) | instrumental) %>%
+  select(artista, cancion, con_letra)
+n_artistas <- n_distinct(canciones$artista)
+cobertura <- canciones %>%
+  left_join(letras, by = c("artista", "cancion")) %>%
+  summarise(
+    pct_grupo = round(100 * sum(n[n >= min_letras]) / sum(n))
+    ,pct_letra = round(100 * sum(n[con_letra %in% TRUE]) / sum(n))
+    ,revisadas = sum(!is.na(con_letra))
+    ,con_letra = sum(con_letra, na.rm = TRUE)
+  )
+miles <- function(x) format(coalesce(unname(x), 0L), big.mark = ".", decimal.mark = ",")
 tagList(navegacion("metodologia"), linea_generacion(), boton_volver())
 ```
 
@@ -44,22 +64,28 @@ Los datos pasan por cinco etapas. Cada pestaña explica una.
 
 ### 1. Escuchas
 
+```{r}
+#| label: ciro-audifonos
+ciro("audifonos", "ciro-lateral")
+```
+
 Last.fm registra cada canción que pongo (un *scrobble*). Su API (`user.getRecentTracks`, 200 escuchas por página) entrega el historial completo: fecha, artista, canción, álbum y sus identificadores de MusicBrainz.
 
 - **Script:** `scripts/00.descargar_escuchas.R` → `data/escuchas.parquet`.
 - **Cada mes** se pide solo lo posterior a la última escucha guardada. Cuando se quiere revisar todo, se baja **desde cero** y se compara con un respaldo: mismo total, mismas escuchas y mismos meses.
-- **Huecos conocidos:** agosto a octubre de 2018 y agosto–septiembre de 2026, cuando el *scrobbler* estuvo desconectado. Se llenarán al cruzar con el historial de Spotify.
+- **Huecos conocidos:** agosto a octubre de 2018 y julio a septiembre de 2026, cuando el *scrobbler* estuvo desconectado. El de 2026 se rellena con los datos de mi cuenta de Spotify (ver abajo); el de 2018 queda abierto, ya que esos datos solo cubren el último año.
+- **Cruce con Spotify:** `scripts/01.1.consolidar_escuchas.R` → `data/escuchas_consolidadas.parquet`, la base que usan todos los análisis. De Spotify se toman las reproducciones de 30 segundos o más, la misma regla de Last.fm, y como Spotify registra la hora en que termina cada canción, se le resta lo escuchado para tener la hora de inicio. Cada escucha se cruza con Last.fm por artista y título normalizados (sin tildes, signos, paréntesis ni «Remaster»), primero a 10 minutos y luego a 6 horas, para los *scrobbles* que quedaron con la hora corrida. Last.fm manda, por lo cual una escucha de Spotify sin pareja se suma solo si Last.fm no registró nada en esos 10 minutos; si registró algo, casi siempre es la misma canción con otro nombre y se descarta para no duplicarla. Así, `r miles(fuentes["ambas"])` escuchas están en las dos fuentes y `r miles(fuentes["spotify"])` vienen solo de Spotify. Al comparar los meses rellenados (julio a septiembre de 2026) con los vecinos que Last.fm sí registró, el volumen diario, la franja horaria, el largo de las sesiones, los artistas y los géneros son prácticamente los mismos, lo cual indica que el relleno representa bien esos meses. Cabe tener en consideración dos límites: el relleno solo ve lo que escuché en Spotify (en los meses completos, lo registrado desde otras fuentes fue cerca del 3%), y en esos meses la proporción de fin de semana aparece algo más baja (7% contra 11%), lo cual podría deberse a escuchas fuera de Spotify.
 
 ### 2. Etiquetas
 
-Para **todos los artistas** que he escuchado (3.282 al 08-11-2026, el 100% de mis escuchas) se bajan hasta 30 etiquetas que pone la comunidad (géneros, países, ánimo) y su número de oyentes en Last.fm.
+Para **todos los artistas** que he escuchado (`r miles(n_artistas)` hoy, el 100% de mis escuchas) se bajan hasta 30 etiquetas que pone la comunidad (géneros, países, ánimo) y su número de oyentes en Last.fm.
 
 - **Script:** `scripts/02.descargar_tags.R` → `data/tags_artistas.parquet` y `data/info_artistas.parquet`.
 - De ahí salen el género, el país, el ánimo (valencia y energía) y la popularidad de cada artista.
 
 ### 3. Letras e imágenes
 
-- **Letras:** se buscan las canciones que escuché **3 veces o más** (cerca del 88% de mis escuchas). Al 09-11-2026 hay 13.009 revisadas y 11.143 con letra (77% de mis escuchas); las canciones nuevas que entren al grupo se suman en las actualizaciones mensuales. Vienen de [LRCLIB](https://lrclib.net). Si una canción no aparece, se busca otra vez con el título limpio (sin «Remastered», «Live», «feat.», paréntesis ni corchetes) y solo el artista principal: así aparecieron 99 letras más. Script `scripts/03.descargar_letras.R` → `data/letras.parquet`. Se usan solo para análisis: el reporte muestra palabras y temas agregados, nunca letras completas.
+- **Letras:** se buscan las canciones que escuché **`r min_letras` veces o más** (el `r cobertura$pct_grupo`% de mis escuchas). Hoy hay `r miles(cobertura$revisadas)` revisadas y `r miles(cobertura$con_letra)` con letra o instrumentales (el `r cobertura$pct_letra`% de mis escuchas); las canciones nuevas que entren al grupo se suman en las actualizaciones mensuales. Vienen de [LRCLIB](https://lrclib.net). Si una canción no aparece, se busca otra vez con el título limpio (sin «Remastered», «Live», «feat.», paréntesis ni corchetes) y solo el artista principal: así aparecieron 99 letras más. Script `scripts/03.descargar_letras.R` → `data/letras.parquet`. Se usan solo para análisis: el reporte muestra palabras y temas agregados, nunca letras completas.
 - **Imágenes:** fotos de artistas y portadas de discos desde la API de Deezer (`R/imagenes.R`), guardadas en `data/imagenes/`.
 
 ### 4. Análisis
@@ -80,7 +106,7 @@ Los datos se guardan en formato **Parquet**, que conserva los tipos (fechas, nú
 |---|---|---|
 | Fechas inválidas | Se excluyen las escuchas con fecha anterior a 2002 | Last.fm guarda algunas escuchas sin fecha válida como 01-01-1970 |
 | Zona horaria | Las fechas se pasan de UTC a hora de Chile (`America/Santiago`) | Para que "las 9 de la mañana" sean mis 9 de la mañana |
-| Horas escuchadas | Escuchas × 3,5 minutos | Last.fm no entrega la duración; 3,5 min es un promedio razonable |
+| Horas escuchadas | Suma de la duración de cada canción | La duración sale de Spotify (percentil 90 de lo escuchado, casi siempre la canción completa); para las canciones sin ese dato se usa la mediana de las conocidas, cerca de 3,8 minutos |
 | Género de cada artista | La etiqueta de **mayor peso** del artista, descartando etiquetas genéricas ("seen live", "favorites", décadas, nacionalidades) | Simplifica, pero un artista queda con un solo género |
 | País de cada artista | La etiqueta de nacionalidad de mayor peso, más correcciones a mano (p. ej. Marcel Duchamp, banda punk chilena) | Las etiquetas de nacionalidad no siempre existen o son correctas |
 | Imágenes | Se acepta una foto de Deezer solo si el nombre coincide exactamente; entre homónimos se elige el de más seguidores | Para no mostrar la foto de otro artista ("Idles" ≠ "IDLES") |
@@ -146,22 +172,40 @@ $$\Delta(a,b) = \frac{n_a\,n_b}{n_a+n_b}\,\lVert \bar{x}_a-\bar{x}_b\rVert^2.$$
 
 Cada artista con al menos 20 escuchas se describe con ocho variables categóricas: familia de género, origen, popularidad, ánimo, momento de escucha respecto a mi promedio, permanencia, intensidad e idioma predominante de sus letras. El análisis se calcula mediante la descomposición en valores singulares de la matriz indicadora, y las categorías sin dato o con menos de 10 artistas no participan en la construcción de los ejes. El porcentaje de información corresponde a la tasa modificada de Benzécri, ya que la inercia bruta de este análisis subestima el peso de los primeros ejes. La época de llegada se proyecta como variable suplementaria, por lo cual no influye en los ejes. Las familias se obtienen con conglomerados de Ward sobre los tres primeros ejes, considerando cinco grupos.
 
-#### 🎧 Playlists ocultas y temas de las letras (LDA)
+#### 🎧 Playlists ocultas (LDA)
 
 ::: {.callout-note appearance="simple" icon="false"}
-**En simple.** Un algoritmo que, sin saber nada de géneros, descubre grupos de cosas que suelen aparecer juntas: artistas que escucho en las mismas semanas, o palabras que aparecen en las mismas canciones.
+**En simple.** Un algoritmo que, sin saber nada de géneros, descubre grupos de artistas que suelen sonar juntos en las mismas semanas.
 :::
 
-**En detalle.** *Latent Dirichlet Allocation* (Blei, Ng y Jordan, 2003). Supone que cada documento es una mezcla de $K$ temas y que cada tema es una distribución sobre palabras. Se estima por muestreo de Gibbs (500 iteraciones de calentamiento y 1.500 de muestreo para los artistas; 300 y 1.000 para las letras; semilla fija).
+**En detalle.** *Latent Dirichlet Allocation* (Blei, Ng y Jordan, 2003). Supone que cada documento es una mezcla de $K$ temas y que cada tema es una distribución sobre palabras. Se estima por muestreo de Gibbs (500 iteraciones de calentamiento y 1.500 de muestreo; semilla fija).
 
 | | Documento | Palabra | Temas |
 |---|---|---|---|
 | Playlists ocultas | Una semana (≥ 50 escuchas) | Un artista (top 300) | 6 |
-| Temas de las letras | Una canción | Una palabra (que aparece en ≥ 5 letras) | 8 |
 
-El peso de un tema en mi vida combina la mezcla de temas de cada canción con las veces que la escuché. Los temas de las letras se nombran automáticamente comparando sus palabras clave con un diccionario de temas conocidos, con subtemas específicos (por ejemplo, el amor del rock en castellano y el deseo del lenguaje urbano) y temas generales de respaldo. **Cada tema del diccionario se asigna a un solo tópico**: primero el par que mejor calza, luego el siguiente, para que dos tópicos distintos no queden con el mismo nombre. La canción de ejemplo de cada tema es, entre las que tratan claramente de él (al menos 50% de su letra) y escuché 10 veces o más, la que más escuché; elegir solo por peso favorecía letras cortas o raras.
+El peso de una playlist en cada año combina su presencia en cada semana con las escuchas de esa semana.
 
-**Limitaciones.** $K$ es una decisión propia. Los temas pueden cambiar levemente cuando entran datos nuevos. En las letras los temas tienden a separarse por idioma.
+**Limitaciones.** $K$ es una decisión propia y las playlists pueden cambiar levemente cuando se reentrenan.
+
+#### 📝 Temas de las letras (embeddings multilingües)
+
+::: {.callout-note appearance="simple" icon="false"}
+**En simple.** Cada letra se convierte en una lista de números que resume de qué habla, con un modelo de lenguaje que entiende más de 50 idiomas. Así, una canción de amor en español y otra en inglés quedan cerca aunque no compartan palabras, y los temas se arman por significado y no por idioma.
+:::
+
+**En detalle.** Es el enfoque de BERTopic (Grootendorst, 2022), armado por partes:
+
+1. **Embeddings** (`scripts/03.2.embeddings_letras.py`, el único paso en Python): modelo `paraphrase-multilingual-MiniLM-L12-v2` de *sentence-transformers* (Reimers y Gurevych, 2019; 2020). Cada letra se corta en trozos de 120 palabras (hasta 6), y su vector de 384 números es el promedio de los trozos.
+2. **Reducción** (R, `uwot`): UMAP (McInnes, Healy y Melville, 2018) lleva los 384 números a 5, con distancia coseno y 15 vecinos.
+3. **Agrupación** (R): k-means con 10 temas y 25 inicios. Se probó primero HDBSCAN, que es lo habitual en BERTopic, pero con letras de canciones dejaba entre el 60% y el 70% de las letras sin tema o juntaba todo en dos grupos, ya que los significados forman un continuo y no islas separadas; k-means es la alternativa que el propio BERTopic propone en esos casos.
+4. **Palabras de cada tema**: c-TF-IDF, es decir, qué tan frecuente es una palabra dentro del tema multiplicado por qué tan rara es entre temas.
+
+El peso de un tema en mi vida suma las escuchas de las canciones que pertenecen a él. Los temas se nombran automáticamente comparando sus palabras clave con un diccionario de temas conocidos, con subtemas específicos (por ejemplo, el amor del rock en castellano y el deseo del lenguaje urbano) y temas generales de respaldo. **Cada tema del diccionario se asigna a un solo tópico**: primero el par que mejor calza, luego el siguiente, para que dos tópicos distintos no queden con el mismo nombre. La canción de ejemplo de cada tema es, entre las que escuché 10 veces o más, la más cercana al centro del tema, es decir, la que mejor lo representa.
+
+El modelo se guarda (`data/modelo_temas_semanticos.rds`) y las letras nuevas se clasifican sin mover los temas; solo se reentrena si las letras nuevas superan el 15% o con `--reentrenar`. Si faltan los embeddings, el reporte vuelve al modelo anterior, LDA por palabras con 8 temas.
+
+**Limitaciones.** El número de temas (10) es una decisión propia. Cada canción queda en un solo tema, aunque una letra pueda tocar varios. Las palabras características siguen dependiendo del idioma, por lo cual un tema mixto muestra sobre todo palabras en inglés, que es la mayoría de mis letras.
 
 #### ⏳ Supervivencia (Kaplan-Meier)
 
@@ -178,13 +222,15 @@ donde $d_i$ son los abandonos en el tiempo $t_i$ y $n_i$ los artistas todavía "
 ## 🤖 ¿Puede una máquina adivinar cuándo escucho? {#modelos}
 
 ::: {.callout-note appearance="simple" icon="false"}
-**En simple.** Cinco técnicas intentan adivinar en qué momento escuché cada canción sabiendo solo cómo es la música. Se ponen a prueba con artistas que nunca vieron y el reporte muestra solo la que mejor adivina.
+**En simple.** Cinco técnicas intentan adivinar en qué momento escuché cada canción sabiendo cómo es la música, la temporada y hace cuánto escucho al artista, pero nunca la hora ni el día. Se ponen a prueba con artistas que nunca vieron y el reporte muestra solo la que mejor adivina.
 :::
 
 ### Qué se adivina y con qué
 
 - **Lo que se adivina:** el momento de cada escucha, en tres clases. *Horario laboral* (lunes a viernes, de 9 a 18 h), *noche o madrugada* (lunes a viernes, fuera de ese horario) y *fin de semana*.
-- **Con qué:** valencia y energía (ánimo), género (los 10 principales y "otro"), popularidad del artista (logaritmo de sus oyentes) y año.
+- **Con qué:** de la música, valencia y energía (ánimo), género (los 10 principales y "otro"), popularidad del artista (logaritmo de sus oyentes) y año; además, la temporada (mes, como seno y coseno para que diciembre quede junto a enero) y cuánto tiempo llevo escuchando al artista. Ninguna variable usa la hora ni el día de la semana, ya que eso es lo que se adivina.
+- **Variables descartadas por fuga:** se probaron rasgos de la sesión (largo, duración, variedad de artistas y repetición). Con la división por artista subían el acierto balanceado de 42% a 48%, pero una misma sesión mezcla artistas de entrenamiento y de prueba, y al evaluar solo con sesiones que el modelo nunca vio la mejora se reducía a un punto (39% contra 40%). Es decir, el modelo reconocía sesiones ya vistas en vez de aprender algo general, por lo cual se descartaron.
+- **Pesos por clase:** cada momento pesa lo mismo al entrenar (el horario laboral es la mitad de las escuchas), con el fin de que los modelos no se limiten a adivinar la clase más común. Se aplica a la regresión, al random forest y al gradient boosting.
 - **Muestra:** 40.000 escuchas al azar, con semilla fija para que el resultado se pueda repetir.
 
 ### Cómo se armó la prueba
@@ -201,9 +247,9 @@ Los modelos aprenden con un grupo de escuchas y se evalúan con otro. La divisi�
 | **Regresión logística multinomial** | Mide cuánto empuja cada característica hacia cada momento (razón de probabilidades) | Referencia: horario laboral; variables continuas en desviaciones estándar. Paquete `nnet` |
 | **Árbol de inferencia condicional** (Hothorn, Hornik y Zeileis, 2006) | Aprende reglas legibles. A diferencia del árbol clásico (CART), elige cada corte con pruebas estadísticas, sin favorecer variables con muchos cortes posibles, y no corta si la diferencia no es significativa | α = 0,01; máximo 4 niveles; hojas de 300 escuchas o más. Paquete `partykit` |
 | **Random forest** (Breiman, 2001) | Promedia cientos de árboles independientes | 300 árboles; importancia por permutación. Paquete `ranger` |
-| **Gradient boosting** (Friedman, 2001; Chen y Guestrin, 2016) | Suma árboles chicos, cada uno corrigiendo los errores de los anteriores | 300 rondas; tasa 0,05; profundidad 4; submuestreo de 80%. Paquete `xgboost` |
+| **Gradient boosting** (Friedman, 2001; Chen y Guestrin, 2016) | Suma árboles chicos, cada uno corrigiendo los errores de los anteriores | Profundidad, peso mínimo por hoja y número de rondas elegidos con validación cruzada de 5 grupos de artistas dentro del entrenamiento (con parada temprana); tasa 0,03; submuestreo de 80%. Paquete `xgboost` |
 
-Los parámetros son valores estándar y no se ajustaron mirando el grupo de prueba, para no sobreajustar.
+Los parámetros de la regresión, el árbol y el random forest son valores estándar. Los del gradient boosting se ajustan con validación cruzada agrupada por artista, siempre dentro del grupo de entrenamiento, de modo que el grupo de prueba nunca se mira para ajustar y la comparación sigue siendo justa.
 
 ### Cómo se comparan
 
@@ -279,9 +325,9 @@ Los modelos LDA de temas y playlists se entrenan una vez y se guardan en `data/`
 
 ## ⚠️ Limitaciones generales
 
-- **Last.fm no es todo lo que escucho**: hay meses en que el registro se cortó (agosto y septiembre de 2026), y la música fuera de las apps conectadas no queda registrada.
+- **Last.fm y Spotify no son todo lo que escucho**: el corte de julio a septiembre de 2026 se rellena con Spotify, pero el de agosto a octubre de 2018 sigue abierto, y la música fuera de las apps conectadas no queda registrada.
 - **Las etiquetas son de la comunidad**: géneros, países y ánimo dependen de lo que los usuarios de Last.fm ponen a cada artista, con sus sesgos (por ejemplo, "female vocalists" se usa mucho más que "male vocalists").
-- **Solo los artistas y canciones principales** tienen letras (las canciones con 3 escuchas o más; 11.143 con letra, el 77% de las escuchas). Las etiquetas ya cubren a todos los artistas, pero las letras no a todas las canciones.
+- **Solo los artistas y canciones principales** tienen letras (las canciones con `r min_letras` escuchas o más; `r miles(cobertura$con_letra)` con letra o instrumentales, el `r cobertura$pct_letra`% de las escuchas). Las etiquetas ya cubren a todos los artistas, pero las letras no a todas las canciones.
 - **Las interpretaciones psicológicas son lúdicas**: la investigación habla de tendencias promedio en muchas personas, no de diagnósticos individuales.
 
 ## 🛠️ Herramientas

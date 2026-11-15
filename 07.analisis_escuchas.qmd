@@ -38,8 +38,6 @@ source("R/visual.R")
 
 # Zona horaria para analizar horas y días (los datos vienen en UTC)
 zona <- "America/Santiago"
-# Duración promedio supuesta de una canción, para estimar horas escuchadas
-minutos_por_cancion <- 3.5
 
 if (!file.exists("data/escuchas.parquet")) {
   stop("No existe data/escuchas.parquet: primero corre Rscript scripts/00.descargar_escuchas.R")
@@ -111,7 +109,7 @@ if (tiene_tags) {
 #| label: cifras
 #| echo: false
 total       <- nrow(escuchas)
-horas       <- total * minutos_por_cancion / 60
+horas       <- sum(escuchas$minutos) / 60
 n_artistas  <- n_distinct(escuchas$artista)
 n_canciones <- n_distinct(paste(escuchas$artista, escuchas$cancion))
 primer_dia  <- min(escuchas$dia)
@@ -155,7 +153,8 @@ tagList(
       p(HTML("👋 <b>¡Hola!</b> Soy Joaquín, sociólogo y amante de los datos. Desde "
              ,format(primer_dia, "%Y"), " uso <a href='https://www.last.fm/user/jgaldamesh'>Last.fm</a>, "
              ,"un servicio que registra automáticamente cada canción que escucho en Spotify u otras apps "
-             ,"(a cada registro se le llama <i>scrobble</i>). Este reporte convierte esos "
+             ,"(a cada registro se le llama <i>scrobble</i>), y los meses en que se desconectó los relleno "
+             ,"con el historial de mi cuenta de Spotify. Este reporte convierte esos "
              ,anios_hist, " años de registros en una radiografía de mis gustos."))
       ,p(HTML("🖱️ <b>Cómo leerlo:</b> pasa el mouse (o toca, en el celular) sobre los gráficos para ver los valores, "
              ,"cambia de pestaña dentro de cada sección y ordena las tablas haciendo clic en sus columnas. "
@@ -284,6 +283,11 @@ div(class = "grafico"
 :::
 
 ## 🔀 De un género a otro
+
+```{r}
+#| label: ciro-hardcore
+ciro("hardcore", "ciro-lateral")
+```
 
 Dentro de una misma sesión analicé qué familia de género suena inmediatamente después de otra, considerando solo los cambios de artista. Cada cruce se compara con lo esperado si las transiciones ocurrieran al azar según cuánto escucho cada familia, por lo cual un valor sobre 1 indica que ese paso ocurre más de lo esperado.
 
@@ -1352,6 +1356,11 @@ medias_lluvia <- dias_clima %>% group_by(llovio) %>% summarise(valencia = mean(V
 
 ## 🗺️ Mis eras musicales
 
+```{r}
+#| label: ciro-ozzy
+ciro("ozzy", "ciro-lateral")
+```
+
 ¿Mi gusto cambió de golpe o de a poco? Para responderlo puse todos mis meses en fila, cada uno descrito por la mezcla de géneros que escuché, y le pedí a un algoritmo que cortara la fila en tramos donde los meses se parecen entre sí. Cada tramo es una era: una etapa con un sonido propio, con inicio y final. El algoritmo decidió solo cuántas eras hay.
 
 ```{r}
@@ -1717,7 +1726,7 @@ tabla(select(playlists, nombre, artistas), titulo = "Qué hay en cada playlist o
 ```
 
 ::: {.callout-note appearance="simple" icon="false"}
-**¿Qué me dice?** El modelo no tiene información respecto a géneros ni fechas, ya que solo observa qué artistas comparten semana. Aun así, cada playlist oculta corresponde a una etapa de mi vida, dado que aparece, domina un par de años y luego se apaga para dar paso a la siguiente, lo cual confirma con otra técnica lo que mostraron las eras. En este sentido, resultan interesantes las mezclas que arma el modelo, las cuales juntan artistas de géneros muy distintos que escuché en la misma época, tal como ocurre con Tom Waits junto a Charly García y Neurosis, o con IDLES junto a Napalm Death y C. Tangana.
+**¿Qué me dice?** El modelo no tiene información respecto a géneros ni fechas, ya que solo observa qué artistas comparten semana. Aun así, cada playlist oculta corresponde a una etapa de mi vida, dado que aparece, domina un par de años y luego se apaga para dar paso a la siguiente, lo cual confirma con otra técnica lo que mostraron las eras. En este sentido, resultan interesantes las mezclas que arma el modelo, las cuales juntan artistas de géneros muy distintos que escuché en la misma época, tal como ocurre con Tom Waits junto a Charly García y Neurosis, o con IDLES junto a Los Tres y Asamblea Internacional del Fuego.
 :::
 
 #### ⏳ ¿Cuánto dura un amor musical?
@@ -1769,7 +1778,7 @@ interactivo(p)
 #### 🤖 ¿Puede una máquina adivinar cuándo escucho?
 
 ::: {.callout-tip appearance="simple" icon="false"}
-**Teoría.** Probé cinco técnicas de clasificación para adivinar en qué momento escuché cada canción (horario laboral, noche o fin de semana) a partir solo de cómo es la música. Cada una se evalúa con artistas que no vio durante el entrenamiento, con el fin de que no pueda acertar memorizándolos. El detalle de cada técnica se encuentra en la [metodología](metodologia.html#modelos).
+**Teoría.** Probé cinco técnicas de clasificación para adivinar en qué momento escuché cada canción (horario laboral, noche o fin de semana) a partir de cómo es la música, la temporada y cuánto tiempo llevo escuchando a cada artista, sin usar nunca la hora ni el día. Cada una se evalúa con artistas que no vio durante el entrenamiento, con el fin de que no pueda acertar memorizándolos. El detalle de cada técnica se encuentra en la [metodología](metodologia.html#modelos).
 :::
 
 ```{r}
@@ -1787,8 +1796,20 @@ reusar_modelos <- !is.null(previo_modelos$n_escuchas) && Sys.getenv("REENTRENAR_
 if (reusar_modelos) {
   comparacion <- previo_modelos$comparacion
 } else {
+  # Además de la música: la temporada y cuánto tiempo llevo escuchando al artista.
+  # Se probaron rasgos de la sesión (largo, variedad, repetición), pero una misma sesión
+  # mezcla artistas de entrenamiento y de prueba, y el modelo terminaba reconociendo
+  # sesiones ya vistas: en sesiones nuevas no mejoraban nada, por lo cual se descartaron
+  antiguedad_artista <- escuchas %>%
+    group_by(artista) %>%
+    mutate(antiguedad = log1p((uts - min(uts)) / 86400)) %>%
+    ungroup() %>%
+    distinct(uts, artista, cancion, .keep_all = TRUE) %>%
+    select(uts, artista, cancion, antiguedad)
+
   datos_modelo <- escuchas_animo %>%
     left_join(info, by = "artista") %>%
+    inner_join(antiguedad_artista, by = c("uts", "artista", "cancion")) %>%
     filter(!is.na(oyentes), !is.na(genero)) %>%
     mutate(
       momento = case_when(
@@ -1799,8 +1820,10 @@ if (reusar_modelos) {
       ,momento = relevel(factor(momento), ref = "Horario laboral")
       ,genero = relevel(factor(ifelse(genero %in% head(generos_top, 10), genero, "Otro")), ref = "Otro")
       ,popularidad = log10(oyentes)
+      ,mes_sin = sin(2 * pi * month(fecha) / 12)
+      ,mes_cos = cos(2 * pi * month(fecha) / 12)
     ) %>%
-    select(artista, momento, valencia, energia, genero, popularidad, anio) %>%
+    select(artista, momento, valencia, energia, genero, popularidad, anio, mes_sin, mes_cos, antiguedad) %>%
     slice_sample(n = 40000)
 
   # Entrenamiento y prueba separados por artista: cada artista queda entero en uno de los
@@ -1809,8 +1832,15 @@ if (reusar_modelos) {
   orden_artistas <- datos_modelo %>% count(artista) %>% slice_sample(prop = 1) %>%
     mutate(acumulado = cumsum(n) / sum(n))
   entrena <- which(datos_modelo$artista %in% orden_artistas$artista[orden_artistas$acumulado <= 0.7])
+  artista_entrena <- datos_modelo$artista[entrena]
   datos_modelo <- select(datos_modelo, -artista)
   prueba <- datos_modelo[-entrena, ]
+
+  # Pesos por clase: cada momento pesa lo mismo, así el modelo no se limita a
+  # adivinar el horario laboral, que es la mitad de las escuchas
+  frecuencia <- table(datos_modelo$momento[entrena])
+  peso_clase <- as.numeric(1 / frecuencia[as.character(datos_modelo$momento[entrena])])
+  peso_clase <- peso_clase / mean(peso_clase)
 
   # Indicadores: acierto; acierto balanceado (promedio del acierto en cada momento, así no
   # gana quien solo adivina el momento más común) y F1 promedio (equilibra precisión y
@@ -1829,25 +1859,45 @@ if (reusar_modelos) {
 
   # Regresión logística multinomial; las variables continuas van en desviaciones estándar
   # (calculadas con los datos de entrenamiento) para comparar sus efectos entre sí
-  continuas <- c("valencia", "energia", "popularidad", "anio")
+  continuas <- c("valencia", "energia", "popularidad", "anio", "mes_sin", "mes_cos", "antiguedad")
   medias <- sapply(datos_modelo[entrena, continuas], mean)
   desv   <- sapply(datos_modelo[entrena, continuas], sd)
   estandarizar <- function(d) mutate(d, across(all_of(continuas), function(x) (x - medias[[cur_column()]]) / desv[[cur_column()]]))
-  logit <- nnet::multinom(momento ~ ., data = estandarizar(datos_modelo[entrena, ]), trace = FALSE, maxit = 300)
+  logit <- nnet::multinom(momento ~ ., data = estandarizar(datos_modelo[entrena, ]), weights = peso_clase
+                          ,trace = FALSE, maxit = 300)
 
   arbol <- ctree(momento ~ ., data = datos_modelo[entrena, ]
                  ,control = ctree_control(alpha = 0.01, maxdepth = 4, minbucket = 300))
   bosque <- ranger::ranger(momento ~ ., data = datos_modelo[entrena, ], num.trees = 300
+                           ,class.weights = as.numeric(1 / frecuencia / sum(1 / frecuencia))
                            ,importance = "permutation", seed = 2026)
 
   # Gradient boosting (xgboost): árboles chicos que se suman uno a uno, cada uno corrigiendo
-  # los errores de los anteriores. Necesita las variables como números (género en columnas 0/1)
+  # los errores de los anteriores. Necesita las variables como números (género en columnas 0/1).
+  # Sus parámetros se eligen con validación cruzada de 5 grupos de artistas, solo dentro del
+  # entrenamiento: el grupo de prueba no se mira para ajustarlo
   matriz <- function(d) model.matrix(momento ~ . - 1, d)
+  k_clases <- nlevels(datos_modelo$momento)
+  datos_xgb <- xgboost::xgb.DMatrix(matriz(datos_modelo[entrena, ]), label = as.integer(datos_modelo$momento[entrena]) - 1
+                                    ,weight = peso_clase)
+  artistas_cv <- unique(artista_entrena)
+  grupo_cv <- sample(rep(1:5, length.out = length(artistas_cv)))
+  folds_cv <- map(1:5, function(g) which(artista_entrena %in% artistas_cv[grupo_cv == g]))
+  base_xgb <- list(objective = "multi:softprob", num_class = k_clases, subsample = 0.8, colsample_bytree = 0.8
+                   ,nthread = 4, eval_metric = "mlogloss")
+  ajuste_xgb <- expand_grid(max_depth = c(4, 7), eta = 0.03, min_child_weight = c(1, 10)) %>%
+    pmap_dfr(function(max_depth, eta, min_child_weight) {
+      cv <- xgboost::xgb.cv(params = c(base_xgb, list(max_depth = max_depth, eta = eta, min_child_weight = min_child_weight))
+                            ,data = datos_xgb, nrounds = 800, folds = folds_cv, early_stopping_rounds = 30, verbose = 0)
+      tibble(max_depth, eta, min_child_weight
+             ,rondas = cv$early_stop$best_iteration %||% nrow(cv$evaluation_log)
+             ,logloss = min(cv$evaluation_log$test_mlogloss_mean))
+    }) %>%
+    slice_min(logloss, n = 1, with_ties = FALSE)
   boost <- xgboost::xgb.train(
-    params = list(objective = "multi:softprob", num_class = nlevels(datos_modelo$momento), eta = 0.05
-                  ,max_depth = 4, subsample = 0.8, colsample_bytree = 0.8, nthread = 2, seed = 2026)
-    ,data = xgboost::xgb.DMatrix(matriz(datos_modelo[entrena, ]), label = as.integer(datos_modelo$momento[entrena]) - 1)
-    ,nrounds = 300, verbose = 0)
+    params = c(base_xgb, list(max_depth = ajuste_xgb$max_depth, eta = ajuste_xgb$eta
+                              ,min_child_weight = ajuste_xgb$min_child_weight, seed = 2026))
+    ,data = datos_xgb, nrounds = ajuste_xgb$rondas, verbose = 0)
   prob_boost <- predict(boost, xgboost::xgb.DMatrix(matriz(prueba)))
   if (is.null(dim(prob_boost))) prob_boost <- matrix(prob_boost, ncol = nlevels(datos_modelo$momento), byrow = TRUE)
   pred_boost <- levels(datos_modelo$momento)[max.col(prob_boost)]
@@ -1856,7 +1906,7 @@ if (reusar_modelos) {
     tipo    = c("base", "logit", "arbol", "bosque", "boost")
     ,modelo  = c("Línea base (siempre el momento más común)", "Regresión logística multinomial"
                 ,"Árbol de inferencia condicional", "Random forest (300 árboles)"
-                ,"Gradient boosting (xgboost, 300 rondas)")
+                ,"Gradient boosting (xgboost, ajustado por validación cruzada)")
     ,legible = c("—", "Sí: efecto de cada variable", "Sí: reglas", "No", "No")
   ) %>%
     bind_cols(as_tibble(do.call(rbind, list(
@@ -1867,8 +1917,12 @@ if (reusar_modelos) {
       ,medir(pred_boost)
     ))))
   # La tabla con los indicadores de todas las técnicas se muestra en la metodología
+  # Importancia de cada variable en el random forest
+  importancia <- enframe(bosque$variable.importance, "variable", "importancia") %>%
+    arrange(desc(importancia))
   saveRDS(list(comparacion = comparacion, mejor = (comparacion[-1, ] %>% slice_max(balanceado, n = 1, with_ties = FALSE))$modelo
-               ,n_entrena = length(entrena), n_prueba = nrow(prueba), n_escuchas = nrow(escuchas_animo))
+               ,n_entrena = length(entrena), n_prueba = nrow(prueba), n_escuchas = nrow(escuchas_animo)
+               ,ajuste_xgb = ajuste_xgb, importancia = importancia)
           ,"data/modelos.rds")
 }
 
@@ -1882,13 +1936,22 @@ mejor_tipo <- mejor$tipo
 #| eval: !expr exists("mejor_tipo")
 # Lectura de los resultados
 mejora <- mejor$balanceado - comparacion$balanceado[1]
+
+# Variables que más usa el modelo, según la importancia en el random forest
+importancia <- if (exists("importancia")) importancia else previo_modelos$importancia
+nombres_var <- c(valencia = "la valencia", energia = "la energía", genero = "el género"
+                 ,popularidad = "la popularidad", anio = "el año", mes_sin = "la temporada", mes_cos = "la temporada"
+                 ,antiguedad = "cuánto tiempo llevo escuchando al artista")
+principales <- if (!is.null(importancia)) head(unique(na.omit(unname(nombres_var[importancia$variable]))), 3) else character(0)
+
 texto_modelos <- paste0(
   "Probé cinco técnicas ([comparación en la metodología](metodologia.html#modelos)) y la que mejor adivina es el ", tolower(mejor$modelo), ", que acierta el ", pct(mejor$acierto),
   " de las veces (", pct(mejor$balanceado), " balanceado, F1 de ", pct(mejor$f1), "), contra un ", pct(comparacion$acierto[1])
   ," de la línea base (", pct(comparacion$balanceado[1]), " balanceado). "
   ,if (mejora < 0.05) "En este sentido, casi no se puede adivinar, ya que la música que escucho es muy parecida a cualquier hora y en cualquier día. Por lo tanto, no tengo una \"música de oficina\" y otra de fin de semana, dado que mi gusto me acompaña de igual manera en todos lados."
   else if (mejora < 0.12) "En este sentido, algo se puede adivinar, ya que existen diferencias según el momento, aunque estas son suaves."
-  else "En este sentido, la música cambia según el momento y los modelos logran captarlo."
+  else "En este sentido, el momento sí deja una huella que los modelos logran captar."
+  ,if (length(principales)) paste0(" Las pistas que más usa el modelo son ", paste(principales, collapse = ", "), ".")
 )
 ```
 
@@ -1900,7 +1963,10 @@ texto_modelos <- paste0(
 
 ## 📝 Lo que dicen mis canciones
 
-<img src="assets/ciro/ciro_rapero.webp" alt="Ciro, mi gato gris y blanco, con buzo verde y jockey, micrófono en mano, como rapero de Kneecap" class="ciro-lateral" width="90" height="118">
+```{r}
+#| label: ciro-letras
+ciro("letras", "ciro-lateral")
+```
 
 Bajé las letras de mis canciones más escuchadas desde [LRCLIB](https://lrclib.net), una base abierta de letras, para ver de qué hablan. Por derechos de autor aquí solo muestro palabras y temas agregados, nunca letras completas.
 
@@ -1929,6 +1995,11 @@ if (tiene_letras) {
 #### 🌎 ¿En qué idioma?
 
 ```{r}
+#| label: ciro-rapero
+ciro("rapero", "ciro-lateral")
+```
+
+```{r}
 #| label: letras-idioma
 #| eval: !expr tiene_letras
 #| fig-height: 4
@@ -1945,7 +2016,7 @@ p <- ggplot(idioma_anual, aes(factor(anio_corto(anio)), share, fill = idioma
                               ,text = paste0("<b>", anio, "</b><br>", idioma, ": ", pct(share)))) +
   geom_col(width = 0.75) +
   geom_hline(yintercept = 0.5, color = "white", linetype = "dashed") +
-  scale_fill_manual(values = c(Español = verde, Inglés = morado), name = NULL) +
+  scale_fill_manual(values = c(Español = verde, Inglés = morado, `Otro idioma` = "#8a8984"), name = NULL) +
   scale_y_continuous(labels = pct, expand = c(0, 0)) +
   labs(title = "¿Canto en español o en inglés?"
        ,subtitle = "Idioma de las canciones escuchadas cada año (solo canciones con letra descargada)"
@@ -2026,33 +2097,47 @@ tabla(palabras_epoca, titulo = "Las palabras propias de cada época"
 
 #### 🧩 Los temas de mis canciones
 
+
 ::: {.callout-tip appearance="simple" icon="false"}
-**Teoría.** Es el mismo modelo de tópicos LDA de las playlists ocultas, ahora en su uso original: textos. Cada letra es un documento y el modelo encuentra grupos de palabras que suelen aparecer juntas en una misma canción. Cada grupo es un tema. Una canción puede mezclar varios temas, y el peso de un tema en mi vida depende de cuántas veces escuché las canciones que hablan de él.
+**Teoría.** Cada letra se convierte en un vector de significado con un modelo de lenguaje multilingüe, siguiendo el enfoque de BERTopic (Grootendorst, 2022). Gracias a ello una canción de amor en español y otra en inglés quedan cerca aunque no compartan palabras, por lo cual los temas se arman por lo que dicen las canciones y no por su idioma. Luego las letras se agrupan en diez temas y cada uno se describe con sus palabras más características. El peso de un tema en mi vida depende de cuántas veces escuché las canciones que hablan de él.
 :::
 
 ```{r}
 #| label: letras-topicos
 #| eval: !expr tiene_letras
 #| fig-height: 4.8
-conteo_letras <- tokens %>% count(cancion_id, palabra)
-vocab_letras <- conteo_letras %>% count(palabra) %>% filter(n >= 5) %>% pull(palabra)
-conteo_letras <- filter(conteo_letras, palabra %in% vocab_letras)
-
-k_letras <- 8
-modelo_letras <- lda_estable(transmute(conteo_letras, doc = cancion_id, term = palabra, n)
-                             ,"data/modelo_letras.rds", k = k_letras, burnin = 300, iter = 1000)
+# Temas por significado (embeddings multilingües, al estilo BERTopic) si están los
+# embeddings de scripts/03.2.embeddings_letras.py; si no, el LDA por palabras
+temas_por_significado <- file.exists("data/embeddings_letras.parquet")
+if (temas_por_significado) {
+  source("R/temas_semanticos.R")
+  embeddings_letras <- leer_parquet("data/embeddings_letras.parquet") %>%
+    semi_join(letras, by = c("artista", "cancion"))
+  semanticos <- temas_estables(embeddings_letras, "data/modelo_temas_semanticos.rds")
+  gamma_letras <- semanticos$asignacion
+  palabras_letras <- palabras_tema(tokens, gamma_letras)
+  k_letras <- nrow(palabras_letras)
+  terminos_letras <- do.call(cbind, map(palabras_letras$terminos, function(x) x[1:15]))
+} else {
+  conteo_letras <- tokens %>% count(cancion_id, palabra)
+  vocab_letras <- conteo_letras %>% count(palabra) %>% filter(n >= 5) %>% pull(palabra)
+  conteo_letras <- filter(conteo_letras, palabra %in% vocab_letras)
+  k_letras <- 8
+  modelo_letras <- lda_estable(transmute(conteo_letras, doc = cancion_id, term = palabra, n)
+                               ,"data/modelo_letras.rds", k = k_letras, burnin = 300, iter = 1000)
+  terminos_letras <- terms(modelo_letras, 15)
+  # Peso de cada tema en cada canción
+  gamma_letras <- as_tibble(modelo_letras@gamma, .name_repair = function(x) as.character(seq_along(x))) %>%
+    mutate(cancion_id = modelo_letras@documents) %>%
+    pivot_longer(-cancion_id, names_to = "tema", values_to = "peso") %>%
+    mutate(tema = as.integer(tema))
+}
 
 # Nombre y descripción de cada tema según sus palabras clave (diccionario en R/letras.R)
 temas <- tibble(tema = seq_len(k_letras)
-                ,palabras = apply(terms(modelo_letras, 8), 2, paste, collapse = ", ")) %>%
-  left_join(describir_temas(terms(modelo_letras, 15)), by = "tema") %>%
+                ,palabras = apply(terminos_letras[1:8, , drop = FALSE], 2, function(x) paste(na.omit(x), collapse = ", "))) %>%
+  left_join(describir_temas(terminos_letras), by = "tema") %>%
   mutate(nombre = tema_nombre)
-
-# Peso de cada tema en mis escuchas: tema de cada canción × veces que la escuché
-gamma_letras <- as_tibble(modelo_letras@gamma, .name_repair = function(x) as.character(seq_along(x))) %>%
-  mutate(cancion_id = modelo_letras@documents) %>%
-  pivot_longer(-cancion_id, names_to = "tema", values_to = "peso") %>%
-  mutate(tema = as.integer(tema))
 
 tema_cancion <- letras %>%
   transmute(cancion_id = paste(artista, cancion, sep = " — "), artista, cancion) %>%
@@ -2074,6 +2159,9 @@ ejemplo_tema <- tema_cancion %>%
   filter(veces >= 10) %>%
   group_by(tema) %>%
   arrange(desc(peso >= 0.5), desc(if_else(peso >= 0.5, veces, 0L)), desc(peso), .by_group = TRUE) %>%
+  # con los temas por significado cada canción tiene un solo tema: se elige la más cercana
+  # al centro del tema, que es la que mejor lo representa
+  {if ("cercania" %in% names(.)) arrange(., desc(cercania), .by_group = TRUE) else .} %>%
   slice_head(n = 1) %>%
   ungroup() %>%
   transmute(tema, ejemplo = str_remove(cancion_id, regex(" - (\\d{4} )?remaster(ed)?.*$", ignore_case = TRUE)))
@@ -2110,7 +2198,7 @@ temas_anio <- escuchas %>%
   left_join(temas, by = "tema") %>%
   mutate(nombre = factor(nombre, levels = peso_temas$nombre))
 
-colores_temas <- c("#163f25", verde, "#a7cbb0", morado, "#c3a9e0", rosado, "#e8a3c2", "#8a8984")
+colores_temas <- c("#163f25", verde, "#a7cbb0", morado, "#c3a9e0", rosado, "#e8a3c2", "#8a8984", "#4a4a47", "#cfcdc6")
 p <- ggplot(temas_anio, aes(factor(anio_corto(anio)), share, fill = nombre
                             ,text = paste0("<b>", anio, "</b><br>", nombre, ": ", pct(share)))) +
   geom_col(width = 0.8) +
@@ -2123,7 +2211,7 @@ interactivo(p)
 ```
 
 ::: {.callout-note appearance="simple" icon="false"}
-**¿Qué me dice?** Los ocho temas quedan bastante parejos, con entre un `r pct(min(peso_temas$share))` y un `r pct(max(peso_temas$share))` cada uno, por lo cual ninguno domina. El más presente corresponde al amor y la vida en español, con el voseo del rock chileno y argentino (*amor, quiero, vida, vos, corazón*), siendo Tenemos Explosivos su ejemplo más claro. Asimismo, aparece otra forma de hablar de amor en castellano, más cercana al deseo y la noche, propia del lenguaje urbano y tropical (*quiero, noche, dime, mami, calle*), en donde destaca La Brígida Orquesta. En inglés, el amor se encuentra en el tema de las despedidas (*love, feel, heart, baby, hold*), con Pentagram, y en otro más íntimo sobre quedarse y esperar (*stay, waiting, leave, house*), con IDLES. Le siguen la vida y el paso del tiempo (*time, life, day, mind, people*), con Black Country, New Road, y un imaginario de luz y oscuridad (*eyes, light, sun, sky, dark*), con Carcass. Respecto al lado más duro, este se observa en la muerte, la sangre y lo sagrado (*die, dead, death, blood, god*), con Volbeat, y en la rabia, la calle y el dinero del hip-hop (*fuck, money, rock*), con Nas. Cabe señalar que los temas se separan primero por idioma, ya que las palabras de cada idioma casi nunca se mezclan en una misma canción, y luego por escena, dado que cada género tiene su propio vocabulario. Por lo cual, un mismo gran tema como el amor aparece dividido en varios.
+**¿Qué me dice?** Los diez temas quedan bastante parejos, con entre un `r pct(min(peso_temas$share))` y un `r pct(max(peso_temas$share))` cada uno, por lo cual ninguno domina. A diferencia del modelo anterior, que separaba las canciones primero por idioma, aquí se agrupan por lo que dicen, de modo que el amor en inglés y en castellano termina en un mismo tema. El más presente corresponde al amor y las despedidas (*love, feel, amor, heart, quiero*), con Nick Cave & the Bad Seeds como ejemplo, seguido de las canciones de días, noches y salidas a bailar (*baby, time, dance, colors*), con Tyler, The Creator. En castellano se mantienen dos registros propios, por un lado el deseo y la noche del lenguaje urbano y tropical (*quiero, mami, noche, gusta*), con Bomba Estéreo, y por otro el amor y la vida del rock chileno y argentino (*amor, vida, corazón, vos*), con Lucybell. Respecto a lo más oscuro, este se reparte entre la muerte y la sangre del metal (*death, god, dead, blood*), con Full of Hell, la pérdida y la guerra del punk (*kill, war, fight*), con Discharge, y la rabia, la calle y el dinero del hip-hop (*fuck, money*). Asimismo, el imaginario de luz y oscuridad se divide en dos, uno más espiritual (*love, night, light, eyes*), con Ghost, y otro más contemplativo (*light, sun, dark, sky*), con Cathedral, a lo cual se suma la vida y el paso del tiempo (*time, feel, life, mind*), con Interpol. Cabe tener en consideración que las palabras de cada tema salen mayormente en inglés, dado que es el idioma de la mayoría de mis letras, aunque las canciones de cada grupo incluyen ambos idiomas.
 :::
 
 #### 🎭 Lo que dice y cómo suena

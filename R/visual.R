@@ -119,13 +119,14 @@ interactivo <- function(p, tooltip = "text") {
 }
 
 # 4. Navegación ------
-navegacion <- function(actual = c("general", "mensual", "metodologia")) {
+navegacion <- function(actual = c("general", "mensual", "metodologia", "flujo")) {
   actual <- match.arg(actual)
   paginas <- list(
     portada     = c("index.html", "🏠 Portada")
     ,general     = c("analisis_escuchas.html", "📈 General")
     ,mensual     = c("reporte_mensual.html", "📆 Del mes")
     ,metodologia = c("metodologia.html", "🔧 Metodología")
+    ,flujo       = c("flujo.html", "🔄 Flujo")
   )
   htmltools::tags$nav(class = "nav-reportes", `aria-label` = "Reportes"
            ,lapply(names(paginas), function(id) {
@@ -148,14 +149,26 @@ linea_generacion <- function(zona = "America/Santiago") {
 }
 
 # 5. Ciro, la mascota ------
-ciro <- function(cual = c("metal", "postpunk", "rapero", "encuestas", "natural", "cafe")) {
+#### si la imagen aún no existe no se muestra nada (los Ciros nuevos se suman al llegar)
+ciro <- function(cual = c("metal", "postpunk", "rapero", "encuestas", "natural", "cafe"
+                          ,"audifonos", "flujo", "letras", "hardcore", "ozzy"), clase = "ciro-saludo") {
   cual <- match.arg(cual)
+  archivo <- paste0("assets/ciro/ciro_", cual, ".webp")
+  if (!file.exists(archivo)) return(NULL)
   alt <- c(metal    = "Ciro, mi gato gris y blanco, con muñequeras de púas y una guitarra de black metal"
            ,postpunk = "Ciro, mi gato gris y blanco, con chaqueta de pana, chapitas y un ramo de flores, cara de post-punk"
            ,rapero   = "Ciro, mi gato gris y blanco, con buzo verde y jockey, micrófono en mano, como rapero de Kneecap"
            ,encuestas = "Ciro, mi gato gris y blanco, con chaleco verde, lápiz y una tablilla que dice «Ciro encuestas»"
            ,natural  = "Ciro, mi gato gris y blanco de pelo largo, parado en dos patas"
-           ,cafe     = "Ciro, mi gato gris y blanco, con camisa hawaiana de flores y los ojos cerrados de gusto, tomando una taza de café")[[cual]]
-  htmltools::tags$img(src = paste0("assets/ciro/ciro_", cual, ".webp"), alt = alt, class = "ciro-saludo"
-                      ,width = 96, height = 126)
+           ,cafe     = "Ciro, mi gato gris y blanco, con camisa hawaiana de flores y los ojos cerrados de gusto, tomando una taza de café"
+           ,audifonos = "Ciro, mi gato gris y blanco, con audífonos verdes y polerón, sentado sobre un vinilo con un café, disfrutando la música con los ojos cerrados"
+           ,flujo    = "Ciro, mi gato gris y blanco, con casco de obra y chaleco verde, cuidando una máquina de tubos que convierte notas y vinilos en un gráfico de barras"
+           ,letras   = "Ciro, mi gato gris y blanco, de detective con sombrero, gabardina y lupa, revisando un cuaderno de partituras"
+           ,hardcore = "Ciro, mi gato gris y blanco, gritando al micrófono con polera negra con una dinamita, bandana y muñequera de tachas, como cantante de hardcore"
+           ,ozzy     = "Ciro, mi gato gris y blanco, como Ozzy Osbourne: peluca negra, lentes redondos morados, cruz plateada, chaqueta con flecos y un murciélago en el hombro")[[cual]]
+  #### ancho/alto de cada imagen en assets/ciro (todas miden 360 px de alto)
+  proporcion <- c(metal = 286, postpunk = 265, rapero = 275, encuestas = 284, natural = 282, cafe = 282
+                  ,audifonos = 349, flujo = 351, letras = 342, hardcore = 321, ozzy = 323)[[cual]] / 360
+  ancho <- if (clase == "ciro-saludo") 96 else 90
+  htmltools::tags$img(src = archivo, alt = alt, class = clase, width = ancho, height = round(ancho / proporcion))
 }

@@ -95,8 +95,13 @@ else
     cp "$S/escuchas_respaldo.parquet" data/escuchas.parquet
   fi
 fi
+# Base consolidada: Last.fm + Spotify en los huecos del scrobbler
+"$R" scripts/01.1.consolidar_escuchas.R >> "$LOG" 2>&1 && log "Base consolidada con Spotify"
 reintentar 4 "Etiquetas" "$R" scripts/02.descargar_tags.R
 reintentar 4 "Letras" "$R" scripts/03.descargar_letras.R
+"$R" scripts/03.1.sumar_letras_web.R >> "$LOG" 2>&1   # letras buscadas en la web, donde LRCLIB no tiene
+# Embeddings de las letras: único paso en Python (entorno .venv), incremental
+[ -x .venv/Scripts/python.exe ] && reintentar 2 "Embeddings de letras" .venv/Scripts/python.exe scripts/03.2.embeddings_letras.py
 reintentar 4 "Clima" "$R" scripts/04.descargar_clima.R
 
 # 2. Chequeo de letras
@@ -118,12 +123,13 @@ ok=1
 reintentar 2 "Render reporte general" "$Q" render 07.analisis_escuchas.qmd || ok=0
 reintentar 2 "Render reporte mensual ($MES)" "$R" scripts/08.generar_reporte_mensual.R "$MES" || ok=0
 reintentar 2 "Render metodología" "$Q" render 09.metodologia.qmd || ok=0
+reintentar 2 "Render flujo de trabajo" "$Q" render 10.flujo_de_trabajo.qmd || ok=0
 if [ "$ok" = 0 ]; then
   log "==== Un render falló: NO se publica. Revisar el log. ===="
   apagar
   exit 1
 fi
-cp analisis_escuchas.html reporte_mensual.html metodologia.html docs/ && log "Reportes copiados a docs/"
+cp analisis_escuchas.html reporte_mensual.html metodologia.html flujo.html docs/ && log "Reportes copiados a docs/"
 
 # 5. Limpieza (paso 4.0 del flujo) y publicación
 rm -rf .Rhistory ./*_files ./*.knit.md ./*.rmarkdown; log "Limpieza de temporales hecha"

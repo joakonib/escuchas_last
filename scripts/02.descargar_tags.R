@@ -13,7 +13,7 @@ if (api_key == "") stop("Falta LASTFM_API_KEY en .Renviron")
 
 n_artistas <- as.integer(Sys.getenv("N_ARTISTAS", "5000"))  # tope; 5000 cubre a todos los artistas (3.282 al 08-11-2026)
 
-top <- leer_parquet("data/escuchas.parquet") %>%
+top <- leer_parquet(archivo_escuchas()) %>%
   count(artista, sort = TRUE) %>%
   slice_head(n = n_artistas)
 

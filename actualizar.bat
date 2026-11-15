@@ -37,8 +37,14 @@ if errorlevel 1 (
   echo [%time%] Escuchas: menos que el respaldo, se restaura >> %LOG%
   copy /Y data\respaldo\escuchas_respaldo.parquet data\escuchas.parquet > nul
 )
+rem Base consolidada (paso 1.2): Last.fm + Spotify en los huecos del scrobbler
+%RSCRIPT% scripts\01.1.consolidar_escuchas.R >> %LOG% 2>&1
 call :reintentar "Etiquetas" %RSCRIPT% scripts\02.descargar_tags.R
 call :reintentar "Letras" %RSCRIPT% scripts\03.descargar_letras.R
+rem Letras buscadas en la web (data\letras_web.json), solo donde LRCLIB no tiene
+%RSCRIPT% scripts\03.1.sumar_letras_web.R >> %LOG% 2>&1
+rem Embeddings de las letras (unico paso en Python, entorno .venv); incremental
+if exist .venv\Scripts\python.exe call :reintentar "Embeddings" .venv\Scripts\python.exe scripts\03.2.embeddings_letras.py
 call :reintentar "Clima" %RSCRIPT% scripts\04.descargar_clima.R
 rem Chequeo de letras (paso 2.1): queda en el log
 %RSCRIPT% scripts\05.chequear_letras.R >> %LOG% 2>&1
@@ -53,6 +59,8 @@ call :reintentar "Reporte mensual" %RSCRIPT% scripts\08.generar_reporte_mensual.
 if errorlevel 1 set FALLO=1
 call :reintentar "Metodologia" %QUARTO% render 09.metodologia.qmd
 if errorlevel 1 set FALLO=1
+call :reintentar "Flujo" %QUARTO% render 10.flujo_de_trabajo.qmd
+if errorlevel 1 set FALLO=1
 if defined FALLO (
   echo [%time%] Un render fallo: NO se publica. Revisar el log. >> %LOG%
   echo Fin con errores: %date% %time% >> %LOG%
@@ -64,6 +72,7 @@ rem 3. Publicacion en GitHub Pages y subida de cambios
 copy /Y analisis_escuchas.html docs\analisis_escuchas.html >> %LOG% 2>&1
 copy /Y reporte_mensual.html docs\reporte_mensual.html >> %LOG% 2>&1
 copy /Y metodologia.html docs\metodologia.html >> %LOG% 2>&1
+copy /Y flujo.html docs\flujo.html >> %LOG% 2>&1
 del /q 07.analisis_escuchas.knit.md 07.analisis_escuchas.rmarkdown > nul 2>&1
 git add docs >> %LOG% 2>&1
 git commit -m "Actualizacion mensual de los reportes" >> %LOG% 2>&1

@@ -39,7 +39,6 @@ source("R/visual.R")
 source("R/etiquetas.R")
 
 zona <- "America/Santiago"
-minutos_por_cancion <- 3.5
 meses <- c("enero", "febrero", "marzo", "abril", "mayo", "junio", "julio"
            ,"agosto", "septiembre", "octubre", "noviembre", "diciembre")
 
@@ -134,9 +133,9 @@ genero_mes <- if (tiene_tags) {
 
 aviso <- if (dias_con_registro < 10) {
   div(class = "bienvenida"
-      ,p(HTML(paste0("⚠️ <b>Ojo:</b> Last.fm registró escuchas solo en ", dias_con_registro
-                    ,ifelse(dias_con_registro == 1, " día", " días"), " de este mes. Puede que el "
-                    ,"<i>scrobbler</i> haya estado desconectado, así que las cifras subestiman lo escuchado."))))
+      ,p(HTML(paste0("⚠️ <b>Ojo:</b> hay escuchas registradas solo en ", dias_con_registro
+                    ,ifelse(dias_con_registro == 1, " día", " días"), " de este mes, sumando Last.fm y Spotify. "
+                    ,"Puede que el <i>scrobbler</i> haya estado desconectado, así que las cifras subestiman lo escuchado."))))
 }
 
 tagList(
@@ -156,14 +155,15 @@ tagList(
   ,div(class = "bienvenida con-ciro", ciro("postpunk"), div(
       p(HTML(paste0("👋 Este es el resumen de lo que escuché en <b>", nombre_mes, "</b>, según "
                     ,"<a href='https://www.last.fm/user/jgaldamesh'>Last.fm</a>, que registra cada canción que pongo "
-                    ,"(cada registro es un <i>scrobble</i>). Si quieres la historia completa, mira "
+                    ,"(cada registro es un <i>scrobble</i>), completado con mi historial de Spotify cuando el registro se cortó. "
+                    ,"Si quieres la historia completa, mira "
                     ,"<a href='analisis_escuchas.html'>mi reporte general</a>, y cómo se calcula cada cosa en "
                     ,"<a href='metodologia.html'>cómo está hecho</a>.")))
       ,p(HTML("🖱️ <b>Cómo leerlo:</b> pasa el mouse (o toca, en el celular) sobre los gráficos, cambia de pestaña en cada sección y ordena las tablas haciendo clic en sus columnas."))))
   ,aviso
   ,div(class = "tiles"
     ,tile("🎵", miles(nrow(mes)), "canciones escuchadas", variacion)
-    ,tile("⏱️", miles(round(nrow(mes) * minutos_por_cancion / 60)), "horas de música")
+    ,tile("⏱️", miles(round(sum(mes$minutos) / 60)), "horas de música")
     ,tile("🎤", miles(n_distinct(mes$artista)), "artistas")
     ,tile("💿", miles(n_distinct(paste(mes$artista, mes$cancion))), "canciones distintas")
     ,tile("✨", nrow(nuevos), ifelse(nrow(nuevos) == 1, "artista nuevo", "artistas nuevos")

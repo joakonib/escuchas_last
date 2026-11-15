@@ -2,6 +2,8 @@
 pacman::p_load(
   tidyverse
   ,stopwords
+  ,cld2
+  ,cld3
 )
 
 # 1. Palabras vacías ------
@@ -19,10 +21,16 @@ detectar_idioma <- function(texto) {
   palabras <- str_split(str_to_lower(texto), "[^\\p{L}']+")
   es <- c("que", "de", "el", "la", "y", "en", "no", "me", "se", "los", "por", "un", "una", "mi", "con", "para")
   en <- c("the", "and", "you", "i", "to", "a", "of", "it", "me", "my", "in", "is", "that", "we", "your", "on")
-  vapply(palabras, function(p) {
+  base <- vapply(palabras, function(p) {
     n_es <- sum(p %in% es); n_en <- sum(p %in% en)
     if (n_es + n_en < 5) NA_character_ else if (n_es > n_en) "Español" else "Inglés"
   }, "")
+  #### otro idioma solo si los dos detectores de Google (cld3 y cld2) coinciden:
+  #### cada uno por separado se equivoca en letras cortas o raras
+  a <- cld3::detect_language(texto)
+  b <- cld2::detect_language(texto)
+  otro <- !is.na(a) & !is.na(b) & a == b & !a %in% c("es", "en")
+  if_else(otro, "Otro idioma", base)
 }
 
 ## 2.2 Una fila por palabra y canción ------
@@ -79,6 +87,8 @@ temas_conocidos <- tibble::tribble(
   ,c("baby", "tonight", "girl", "cut", "break", "fight", "sleep", "stand", "run", "broken")
   ,"Días, noches y recuerdos", "Días y noches que pasan, recuerdos, salir a bailar y andar: la vida que se mueve."
   ,c("day", "night", "days", "remember", "dance", "ride", "living", "tonight", "girl", "summer")
+  ,"Salir, bailar y los amigos", "La gente, los amigos, una chica y una noche para bailar: canciones de salir y estar con otros."
+  ,c("people", "friend", "friends", "dance", "tonight", "girl", "alright", "party", "care", "fun")
   ,"Luz, cielo y lo sagrado", "Luz, sol, cielo, ojos y manos, y a veces Dios: un imaginario luminoso y espiritual."
   ,c("light", "god", "sun", "sky", "eyes", "hands", "hand", "hold", "heaven", "pray")
   ,"Abrazos, frío y espera", "Esperar, quedarse, abrazar y el frío de afuera: canciones íntimas de cercanía y distancia."

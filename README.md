@@ -1,6 +1,6 @@
 # escuchas_last
 
-Proyecto en donde se descarga mi historial de escuchas de [Last.fm](https://www.last.fm/user/jgaldamesh), se enriquece con géneros, países, ánimo, popularidad, imágenes, letras y clima, y se generan reportes interactivos en HTML sobre lo que escucho desde 2013.
+Proyecto en donde se descarga mi historial de escuchas de [Last.fm](https://www.last.fm/user/jgaldamesh), se completa con el historial de mi cuenta de Spotify en los meses en que el registro se cortó, se enriquece con géneros, países, ánimo, popularidad, imágenes, letras y clima, y se generan reportes interactivos en HTML sobre lo que escucho desde 2013.
 
 ## 🌐 Ver los reportes
 
@@ -16,9 +16,13 @@ Los archivos se numeran según el orden en que corren.
 ```
 Last.fm API ─► scripts/00.descargar_escuchas.R ─► data/escuchas.parquet
                       01.verificar_escuchas.R     (compara contra el respaldo)
+Spotify (ZIP) ─► scripts/01.1.consolidar_escuchas.R ► data/escuchas_consolidadas.parquet
+                                                  (Last.fm + huecos con Spotify; base de todo lo que sigue)
 Last.fm API ─► scripts/02.descargar_tags.R ─────► data/tags_artistas.parquet
                                                   data/info_artistas.parquet
 LRCLIB API ──► scripts/03.descargar_letras.R ───► data/letras.parquet
+Navegador ───► data/letras_web.json ─► 03.1.sumar_letras_web.R ─► data/letras.parquet
+Python (.venv) ► scripts/03.2.embeddings_letras.py ─► data/embeddings_letras.parquet
 Open-Meteo ──► scripts/04.descargar_clima.R ────► data/clima.parquet
                       05.chequear_letras.R y 06.chequear_estilo.R (controles en el log)
 Deezer API ──► R/imagenes.R ────────────────────► data/imagenes/
@@ -27,6 +31,7 @@ Deezer API ──► R/imagenes.R ───────────────�
 07.analisis_escuchas.qmd ──────────────────────► analisis_escuchas.html ──► docs/
 08.generar_reporte_mensual.R + 08.reporte_mensual.qmd ► reporte_mensual.html ──► docs/
 09.metodologia.qmd ────────────────────────────► metodologia.html ──► docs/
+10.flujo_de_trabajo.qmd ───────────────────────► flujo.html ──► docs/
 ```
 
 ## Estructura
@@ -53,8 +58,11 @@ No se suben a GitHub (`.gitignore`): `data/`, `reportes/`, `input/`, `.Renviron`
 |---|---|
 | `00.descargar_escuchas.R` | Baja las escuchas con `user.getRecentTracks`. Incremental: solo pide lo posterior a la última escucha guardada. |
 | `01.verificar_escuchas.R` | Compara la base con un respaldo (total no menor, rango, meses sin escuchas y duplicados). Si hay menos escuchas, se restaura el respaldo. |
+| `01.1.consolidar_escuchas.R` | Junta Last.fm con los datos de la cuenta de Spotify (`data/my_spotify_data.zip`): reproducciones de 30 s o más, cruce uno a uno por artista y título, y suma solo las que Last.fm no registró. Columna `fuente`: lastfm, ambas o spotify. |
 | `02.descargar_tags.R` | Baja hasta 30 etiquetas, oyentes y reproducciones globales de cada artista. Incremental, guarda cada 200 artistas (tope con `N_ARTISTAS`). |
-| `03.descargar_letras.R` | Baja de LRCLIB las letras de las canciones con 3 escuchas o más (`MIN_ESCUCHAS`). Incremental, guarda cada 100 canciones; con una segunda pasada de títulos limpios. |
+| `03.descargar_letras.R` | Baja de LRCLIB las letras de las canciones con 2 escuchas o más (`MIN_ESCUCHAS`). Incremental, guarda cada 100 canciones; con una segunda pasada de títulos limpios. |
+| `03.1.sumar_letras_web.R` | Suma las letras buscadas en la web (`data/letras_web.json`) donde LRCLIB no tiene, sin pisar ninguna. |
+| `03.2.embeddings_letras.py` | Único paso en Python (entorno `.venv`): convierte cada letra en un vector de significado multilingüe (`paraphrase-multilingual-MiniLM-L12-v2`). Incremental. El resto del modelo de temas (UMAP, k-means, c-TF-IDF) está en `R/temas_semanticos.R`. |
 | `04.descargar_clima.R` | Baja de Open-Meteo el clima diario de Santiago. Incremental. |
 | `05.chequear_letras.R` | Resume las letras: filas, % encontradas, instrumentales, duplicadas, vacías y % de escuchas con letra. |
 | `06.chequear_estilo.R` | Revisa que los textos del reporte sigan `ESTILO.md`. Solo informa. |
