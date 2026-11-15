@@ -47,6 +47,8 @@ temas_estables <- function(embeddings, archivo, umbral = 0.15) {
   modelo <- if (entrenar) {
     m <- agrupar_embeddings(matriz)
     m$ids <- ids
+    #### save_uwot() no sobrescribe: el reductor anterior se reemplaza por el recién entrenado
+    if (file.exists(archivo_umap)) unlink(archivo_umap, recursive = TRUE)
     save_uwot(m$reductor, archivo_umap)
     saveRDS(m, archivo)
     message("Temas semánticos entrenados y guardados: ", archivo)

@@ -167,7 +167,7 @@ ciro <- function(cual = c("metal", "postpunk", "rapero", "encuestas", "natural",
            ,hardcore = "Ciro, mi gato gris y blanco, gritando al micrófono con polera negra con una dinamita, bandana y muñequera de tachas, como cantante de hardcore"
            ,ozzy     = "Ciro, mi gato gris y blanco, como Ozzy Osbourne: peluca negra, lentes redondos morados, cruz plateada, chaqueta con flecos y un murciélago en el hombro")[[cual]]
   #### ancho/alto de cada imagen en assets/ciro (todas miden 360 px de alto)
-  proporcion <- c(metal = 286, postpunk = 265, rapero = 275, encuestas = 284, natural = 282, cafe = 282
+  proporcion <- c(metal = 286, postpunk = 266, rapero = 275, encuestas = 284, natural = 283, cafe = 282
                   ,audifonos = 349, flujo = 351, letras = 342, hardcore = 321, ozzy = 323)[[cual]] / 360
   ancho <- if (clase == "ciro-saludo") 96 else 90
   htmltools::tags$img(src = archivo, alt = alt, class = clase, width = ancho, height = round(ancho / proporcion))

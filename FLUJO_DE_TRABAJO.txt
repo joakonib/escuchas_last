@@ -399,3 +399,11 @@ HISTORIAL DE CAMBIOS DEL FLUJO
               - Python 3.14.10 instalado (winget) y entorno .venv (fuera de git).
               - Nueva página flujo.html (10.flujo_de_trabajo.qmd) en la barra
                 de navegación y en ambos flujos.
+  15-11-2026  (noche) Corrida completa con reentrenamiento: datos al 15-11
+              (197.437 escuchas consolidadas), eras y playlists estables,
+              clasificador xgboost 43 % balanceado. El reductor UMAP se guarda
+              con save_uwot() (con saveRDS pierde su índice); como no
+              sobrescribe, se borra el anterior antes de guardar. Textos
+              reescritos con el estilo de la tesis de Joaquín (ver ESTILO.md)
+              y verificados contra los datos. Ciros nuevos (metal, post-punk,
+              encuestas); el natural nuevo queda sin publicar por ahora.

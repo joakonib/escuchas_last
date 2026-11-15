@@ -104,7 +104,7 @@ tagList(navegacion("flujo"), linea_generacion(), boton_volver())
 
 ## 🎧 De dónde salen las escuchas
 
-`r as.character(ciro("natural", "ciro-lateral"))`Last.fm registra cada canción que pongo, aunque a veces el *scrobbler* se desconecta, por lo cual la base que utilizan todos los análisis junta dos fuentes, tal como se muestra a continuación.
+Last.fm registra cada canción que pongo, aunque a veces el *scrobbler* se desconecta, por lo cual la base que utilizan todos los análisis junta dos fuentes, tal como se muestra a continuación.
 
 ```{r}
 #| label: tabla-fuentes

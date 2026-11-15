@@ -5,6 +5,8 @@
 #   sin-azul:     pasa los azules a verde
 #   fondo-blanco: el fondo es blanco liso (no damero); se rellena el blanco que toca los
 #                 bordes hasta la línea oscura que rodea el sticker
+#   umbral=N:     luz desde la que un pixel cuenta como blanco (228 por defecto); subirlo
+#                 (p. ej. 245) cuando los cuadros claros del damero son casi blancos
 # Originales en input/ciro_ilustraciones/, resultados en assets/ciro/ (y copia en docs/img/).
 import sys
 from PIL import Image, ImageDraw, ImageFilter
@@ -19,7 +21,8 @@ if "sin-azul" in opciones:
     hsv[..., 0][azul] = 103
     im = Image.fromarray(hsv.astype("uint8"), "HSV").convert("RGB")
 # Máscara: 255 = blanco (borde del sticker), 0 = no blanco
-m = im.convert("L").point(lambda v: 255 if v >= 228 else 0)
+umbral = next((int(o.split("=")[1]) for o in opciones if o.startswith("umbral=")), 228)
+m = im.convert("L").point(lambda v: 255 if v >= umbral else 0)
 # Con damero se rellena lo que no es blanco; con fondo blanco, el blanco que toca los bordes
 fondo = 255 if "fondo-blanco" in opciones else 0
 for x in range(0, w, 4):
