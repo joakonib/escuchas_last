@@ -10,7 +10,8 @@ archivo <- if (length(args) > 0) args[1] else "07.analisis_escuchas.qmd"
 lineas <- readLines(archivo, encoding = "UTF-8", warn = FALSE)
 cerca <- cumsum(str_starts(lineas, "```")) %% 2 == 1
 prosa <- lineas[!cerca & !str_starts(lineas, "```|:::|#|<|- |---") & str_length(lineas) > 80]
-prosa <- str_remove_all(prosa, "`r [^`]*`")
+#### también la cursiva que rodea a una cifra calculada (*`r ...`*), que no es negrita
+prosa <- str_remove_all(prosa, "[*]?`r [^`]*`[*]?")
 prosa <- str_remove(prosa, "^\\*\\*[^*]+\\*\\* ?")
 
 # 2. Métricas ------

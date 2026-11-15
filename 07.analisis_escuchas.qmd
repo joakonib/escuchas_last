@@ -159,8 +159,9 @@ tagList(
       ,p(HTML("🖱️ <b>Cómo leerlo:</b> pasa el mouse (o toca, en el celular) sobre los gráficos para ver los valores, "
              ,"cambia de pestaña dentro de cada sección y ordena las tablas haciendo clic en sus columnas. "
              ,"El índice (a la izquierda en el computador) te lleva a cada parte. 📅 También puedes ver "
-             ,"<a href='reporte_mensual.html'>mi reporte del último mes</a> y "
-             ,"<a href='metodologia.html'>cómo está hecho</a>."))))
+             ,"<a href='reporte_mensual.html'>mi reporte del último mes</a>, "
+             ,"<a href='metodologia.html'>cómo está hecho</a> y "
+             ,"<a href='flujo.html'>el flujo de trabajo</a> con que se actualiza."))))
   ,div(class = "tiles"
     ,tile("🎵", miles(total), "canciones escuchadas", paste("desde el", fmt_fecha(primer_dia)))
     ,tile("⏱️", miles(round(horas)), "horas de música", paste0("≈ ", round(horas / 24), " días sin parar"))
@@ -211,7 +212,7 @@ if (tiene_tags) {
 
 Respecto a lo que escucho, el género con mayor peso corresponde al post-punk, con un `r pct(cf$pp_total)` de mis escuchas, seguido por una familia completa de metal que va desde el heavy hasta el black, el sludge, el thrash, el death, el stoner y el doom. Asimismo, el post-hardcore tiene una presencia importante y el hip-hop comienza a asomar, mientras que la mayor parte de mi música corresponde a géneros intensos, tal como se revisa en la lectura psicológica.
 
-En cuanto a la evolución, entre 2013 y 2015 predominaban el metal y el hardcore, con artistas como Godflesh, Black Sabbath y Amenra, y con el punk de Attaque 77 de por medio. El post-punk, que en 2013 no tenía presencia alguna, alcanzó su punto más alto en `r cf$pp_peak_anio` con un `r pct(cf$pp_peak)` de mis escuchas y actualmente se ubica en torno al `r pct(cf$pp_hoy)`, lo cual se explica en gran medida por la ola británica e irlandesa. En este sentido, IDLES fue mi artista del año en `r cf$idles` ocasiones, seguido por Fontaines D.C. y Black Country, New Road. Durante los últimos dos años mi escucha se abrió hacia lo más melódico, tal como lo muestra La Brígida Orquesta, que fue mi artista de 2025.
+En cuanto a la evolución, entre 2013 y 2015 predominaban el metal y el hardcore, con artistas como Black Sabbath, Type O Negative y Godflesh, y con el punk de Attaque 77 de por medio. El post-punk, que en 2013 no tenía presencia alguna, alcanzó su punto más alto en `r cf$pp_peak_anio` con un `r pct(cf$pp_peak)` de mis escuchas y actualmente se ubica en torno al `r pct(cf$pp_hoy)`, lo cual se explica en gran medida por la ola británica e irlandesa. En este sentido, IDLES fue mi artista del año en `r cf$idles` ocasiones, seguido por Fontaines D.C. y Black Country, New Road. Durante los últimos dos años mi escucha se abrió hacia lo más melódico, tal como lo muestra La Brígida Orquesta, que fue mi artista de 2025.
 
 Por otro lado, mi escucha es bastante local, ya que el `r pct(cf$chile)` de las escuchas de artistas con país identificado corresponde a artistas chilenos, cifra que sube a un `r pct(cf$cono)` si se suma Argentina. Mi artista número uno de todos los tiempos es Tenemos Explosivos, que está presente en los `r cf$anios` años del historial, y dentro de la escena local lo acompañan La Brígida Orquesta, Macha y el Bloque Depresivo, Fiskales Ad-Hok, Yajaira y Los Tres.
 
@@ -284,12 +285,7 @@ div(class = "grafico"
 
 ## 🔀 De un género a otro
 
-```{r}
-#| label: ciro-hardcore
-ciro("hardcore", "ciro-lateral")
-```
-
-Dentro de una misma sesión analicé qué familia de género suena inmediatamente después de otra, considerando solo los cambios de artista. Cada cruce se compara con lo esperado si las transiciones ocurrieran al azar según cuánto escucho cada familia, por lo cual un valor sobre 1 indica que ese paso ocurre más de lo esperado.
+`r as.character(ciro("hardcore", "ciro-lateral"))`Dentro de una misma sesión analicé qué familia de género suena inmediatamente después de otra, considerando solo los cambios de artista. Cada cruce se compara con lo esperado si las transiciones ocurrieran al azar según cuánto escucho cada familia, por lo cual un valor sobre 1 indica que ese paso ocurre más de lo esperado.
 
 ```{r}
 #| label: info-artistas
@@ -770,7 +766,7 @@ galeria(imagen_disco(top_disc$artista, top_disc$album), top_disc$album
 #### Ranking año a año
 
 ::: {.callout-tip appearance="simple" icon="false"}
-**Teoría.** El pico de reminiscencia (*reminiscence bump*) es la tendencia a recordar con más cariño la música que escuchamos entre los 10 y los 30 años (Krumhansl y Zupnick, 2013). Los artistas que aparecen en el ranking todos los años, como Tenemos Explosivos o Black Sabbath, son candidatos a ser esa banda sonora fundacional.
+**Teoría.** El pico de reminiscencia (*reminiscence bump*) es la tendencia a recordar con más cariño la música que escuchamos entre los 10 y los 30 años (Krumhansl y Zupnick, 2013). Los artistas que vuelven al ranking año tras año, como Tenemos Explosivos, que está entre mis diez más escuchados en diez de los catorce años, o Black Sabbath, son candidatos a ser esa banda sonora fundacional.
 :::
 
 ```{r}
@@ -1356,12 +1352,7 @@ medias_lluvia <- dias_clima %>% group_by(llovio) %>% summarise(valencia = mean(V
 
 ## 🗺️ Mis eras musicales
 
-```{r}
-#| label: ciro-ozzy
-ciro("ozzy", "ciro-lateral")
-```
-
-¿Mi gusto cambió de golpe o de a poco? Para responderlo puse todos mis meses en fila, cada uno descrito por la mezcla de géneros que escuché, y le pedí a un algoritmo que cortara la fila en tramos donde los meses se parecen entre sí. Cada tramo es una era: una etapa con un sonido propio, con inicio y final. El algoritmo decidió solo cuántas eras hay.
+`r as.character(ciro("ozzy", "ciro-lateral"))`¿Mi gusto cambió de golpe o de a poco? Para responderlo puse todos mis meses en fila, cada uno descrito por la mezcla de géneros que escuché, y le pedí a un algoritmo que cortara la fila en tramos donde los meses se parecen entre sí. Cada tramo es una era: una etapa con un sonido propio, con inicio y final. El algoritmo decidió solo cuántas eras hay.
 
 ```{r}
 #| label: eras-calculo
@@ -1726,7 +1717,7 @@ tabla(select(playlists, nombre, artistas), titulo = "Qué hay en cada playlist o
 ```
 
 ::: {.callout-note appearance="simple" icon="false"}
-**¿Qué me dice?** El modelo no tiene información respecto a géneros ni fechas, ya que solo observa qué artistas comparten semana. Aun así, cada playlist oculta corresponde a una etapa de mi vida, dado que aparece, domina un par de años y luego se apaga para dar paso a la siguiente, lo cual confirma con otra técnica lo que mostraron las eras. En este sentido, resultan interesantes las mezclas que arma el modelo, las cuales juntan artistas de géneros muy distintos que escuché en la misma época, tal como ocurre con Tom Waits junto a Charly García y Neurosis, o con IDLES junto a Los Tres y Asamblea Internacional del Fuego.
+**¿Qué me dice?** El modelo no tiene información respecto a géneros ni fechas, ya que solo observa qué artistas comparten semana. Aun así, cada playlist oculta corresponde a una etapa de mi vida, dado que aparece, domina un par de años y luego se apaga para dar paso a la siguiente, lo cual confirma con otra técnica lo que mostraron las eras. En este sentido, resultan interesantes las mezclas que arma el modelo, las cuales juntan artistas de géneros muy distintos que escuché en la misma época, tal como ocurre con Tom Waits junto a Charly García y Judas Priest, o con Tenemos Explosivos junto a IDLES, Napalm Death y C. Tangana.
 :::
 
 #### ⏳ ¿Cuánto dura un amor musical?
@@ -1963,12 +1954,7 @@ texto_modelos <- paste0(
 
 ## 📝 Lo que dicen mis canciones
 
-```{r}
-#| label: ciro-letras
-ciro("letras", "ciro-lateral")
-```
-
-Bajé las letras de mis canciones más escuchadas desde [LRCLIB](https://lrclib.net), una base abierta de letras, para ver de qué hablan. Por derechos de autor aquí solo muestro palabras y temas agregados, nunca letras completas.
+`r as.character(ciro("letras", "ciro-lateral"))`Bajé las letras de mis canciones más escuchadas desde [LRCLIB](https://lrclib.net), una base abierta de letras, para ver de qué hablan. Por derechos de autor aquí solo muestro palabras y temas agregados, nunca letras completas.
 
 ```{r}
 #| label: letras-preparacion
@@ -1993,11 +1979,6 @@ if (tiene_letras) {
 ::: {.panel-tabset}
 
 #### 🌎 ¿En qué idioma?
-
-```{r}
-#| label: ciro-rapero
-ciro("rapero", "ciro-lateral")
-```
 
 ```{r}
 #| label: letras-idioma
@@ -2026,7 +2007,7 @@ interactivo(p)
 ```
 
 ::: {.callout-note appearance="simple" icon="false"}
-**¿Qué me dice?** En total, el `r if (tiene_letras) pct(total_es) else "—"` de lo que escucho (entre las canciones con letra) está en español. Respecto a su evolución, esta sigue a las eras, ya que en 2014, en plena era del metal, el español era apenas un 6%, y desde entonces fue subiendo hasta ubicarse entre un 33% y un 40% durante los últimos años, lo cual se explica por la escena chilena y argentina.
+**¿Qué me dice?** `r as.character(ciro("rapero", "ciro-lateral"))`En total, el `r if (tiene_letras) pct(total_es) else "—"` de lo que escucho (entre las canciones con letra) está en español. Respecto a su evolución, esta sigue a las eras, ya que en 2014, en plena era del metal, el español era apenas un 6%, y desde entonces fue subiendo hasta ubicarse entre un 33% y un 40% durante los últimos años, lo cual se explica por la escena chilena y argentina.
 :::
 
 #### 🔤 Palabras más cantadas
@@ -2151,22 +2132,44 @@ peso_temas <- escuchas %>%
   left_join(temas, by = "tema")
 
 # Canción más representativa de cada tema (entre las que escuché al menos 10 veces)
-# Canción de ejemplo de cada tema: entre las que tratan claramente de ese tema (al menos
-# 50% de su letra) y escuché 10 veces o más, la que más escuché. Si ninguna llega al 50%,
-# la de mayor peso. Elegir solo por peso favorece letras cortas o raras.
-ejemplo_tema <- tema_cancion %>%
-  inner_join(escuchas_cancion, by = c("artista", "cancion")) %>%
-  filter(veces >= 10) %>%
-  group_by(tema) %>%
-  arrange(desc(peso >= 0.5), desc(if_else(peso >= 0.5, veces, 0L)), desc(peso), .by_group = TRUE) %>%
-  # con los temas por significado cada canción tiene un solo tema: se elige la más cercana
-  # al centro del tema, que es la que mejor lo representa
-  {if ("cercania" %in% names(.)) arrange(., desc(cercania), .by_group = TRUE) else .} %>%
-  slice_head(n = 1) %>%
-  ungroup() %>%
-  transmute(tema, ejemplo = str_remove(cancion_id, regex(" - (\\d{4} )?remaster(ed)?.*$", ignore_case = TRUE)))
+# Canción de ejemplo de cada tema. Con el LDA: entre las que tratan claramente de ese tema
+# (al menos 50% de su letra) y escuché 10 veces o más, la que más escuché.
+ejemplo_tema <- if ("cercania" %in% names(tema_cancion)) {
+  # Temas por significado: candidatas entre el cuarto de canciones más cercanas al centro
+  # del tema y en su idioma principal; se elige la más escuchada, con un artista distinto
+  # para cada tema (se reparte primero a los temas más grandes)
+  idioma_cancion <- transmute(letras, artista, cancion, idioma)
+  candidatas <- tema_cancion %>%
+    inner_join(escuchas_cancion, by = c("artista", "cancion")) %>%
+    left_join(idioma_cancion, by = c("artista", "cancion")) %>%
+    filter(veces >= 10) %>%
+    group_by(tema) %>%
+    mutate(idioma_tema = names(which.max(table(idioma)))) %>%
+    filter(cercania >= quantile(cercania, 0.75), idioma == idioma_tema) %>%
+    arrange(desc(veces), .by_group = TRUE) %>%
+    ungroup()
+  orden_temas <- peso_temas %>% arrange(desc(share)) %>% pull(tema)
+  reduce(orden_temas, function(elegidas, t) {
+    opcion <- candidatas %>% filter(tema == t, !artista %in% elegidas$artista) %>% slice_head(n = 1)
+    bind_rows(elegidas, opcion)
+  }, .init = candidatas[0, ]) %>%
+    transmute(tema, ejemplo = str_remove(cancion_id, regex(" - (\\d{4} )?remaster(ed)?.*$", ignore_case = TRUE)))
+} else {
+  tema_cancion %>%
+    inner_join(escuchas_cancion, by = c("artista", "cancion")) %>%
+    filter(veces >= 10) %>%
+    group_by(tema) %>%
+    arrange(desc(peso >= 0.5), desc(if_else(peso >= 0.5, veces, 0L)), desc(peso), .by_group = TRUE) %>%
+    slice_head(n = 1) %>%
+    ungroup() %>%
+    transmute(tema, ejemplo = str_remove(cancion_id, regex(" - (\\d{4} )?remaster(ed)?.*$", ignore_case = TRUE)))
+}
 
 peso_temas <- left_join(peso_temas, ejemplo_tema, by = "tema") %>% arrange(desc(share))
+
+# Para el texto: artista de ejemplo y palabras clave de cada tema, calculados
+artista_tema <- function(nombre) str_remove(peso_temas$ejemplo[peso_temas$nombre == nombre][1], " — .*$")
+palabras_de <- function(nombre, n = 4) paste(head(str_split_1(peso_temas$palabras[peso_temas$nombre == nombre][1], ", "), n), collapse = ", ")
 
 # Tarjetas en vez de tabla: el contenido es casi todo texto y una tabla de cinco
 # columnas obliga a deslizar de lado en el celular
@@ -2211,7 +2214,7 @@ interactivo(p)
 ```
 
 ::: {.callout-note appearance="simple" icon="false"}
-**¿Qué me dice?** Los diez temas quedan bastante parejos, con entre un `r pct(min(peso_temas$share))` y un `r pct(max(peso_temas$share))` cada uno, por lo cual ninguno domina. A diferencia del modelo anterior, que separaba las canciones primero por idioma, aquí se agrupan por lo que dicen, de modo que el amor en inglés y en castellano termina en un mismo tema. El más presente corresponde al amor y las despedidas (*love, feel, amor, heart, quiero*), con Nick Cave & the Bad Seeds como ejemplo, seguido de las canciones de días, noches y salidas a bailar (*baby, time, dance, colors*), con Tyler, The Creator. En castellano se mantienen dos registros propios, por un lado el deseo y la noche del lenguaje urbano y tropical (*quiero, mami, noche, gusta*), con Bomba Estéreo, y por otro el amor y la vida del rock chileno y argentino (*amor, vida, corazón, vos*), con Lucybell. Respecto a lo más oscuro, este se reparte entre la muerte y la sangre del metal (*death, god, dead, blood*), con Full of Hell, la pérdida y la guerra del punk (*kill, war, fight*), con Discharge, y la rabia, la calle y el dinero del hip-hop (*fuck, money*). Asimismo, el imaginario de luz y oscuridad se divide en dos, uno más espiritual (*love, night, light, eyes*), con Ghost, y otro más contemplativo (*light, sun, dark, sky*), con Cathedral, a lo cual se suma la vida y el paso del tiempo (*time, feel, life, mind*), con Interpol. Cabe tener en consideración que las palabras de cada tema salen mayormente en inglés, dado que es el idioma de la mayoría de mis letras, aunque las canciones de cada grupo incluyen ambos idiomas.
+**¿Qué me dice?** Los diez temas quedan bastante parejos, con entre un `r pct(min(peso_temas$share))` y un `r pct(max(peso_temas$share))` cada uno, por lo cual ninguno domina. A diferencia del modelo anterior, que separaba las canciones primero por idioma, aquí se agrupan por lo que dicen, de modo que el amor en inglés y en castellano termina en un mismo tema. Los más presentes corresponden al amor y las despedidas (*`r palabras_de("Amor y despedidas", 5)`*), con `r artista_tema("Amor y despedidas")` como ejemplo, y a las canciones de días, noches y salidas a bailar (*`r palabras_de("Días, noches y recuerdos")`*), con `r artista_tema("Días, noches y recuerdos")`. En castellano se mantienen dos registros propios, por un lado el deseo y la noche del lenguaje urbano y tropical (*`r palabras_de("Deseo y noche, urbano y tropical")`*), y por otro el amor y la vida del rock chileno y argentino (*`r palabras_de("El amor y la vida, en rock chileno y argentino")`*), con `r artista_tema("El amor y la vida, en rock chileno y argentino")`. Respecto a lo más oscuro, este se reparte entre la muerte y la sangre del metal (*`r palabras_de("Muerte, sangre y lo sagrado")`*), con `r artista_tema("Muerte, sangre y lo sagrado")`, la pérdida y la guerra (*`r palabras_de("Pérdida, miedo y oscuridad", 3)`*), con `r artista_tema("Pérdida, miedo y oscuridad")`, y la rabia, la calle y el dinero del hip-hop. Asimismo, el imaginario de luz y oscuridad se divide en dos, uno más espiritual (*`r palabras_de("Luz, cielo y lo sagrado")`*) y otro más contemplativo (*`r palabras_de("Luz y oscuridad")`*), a lo cual se suma la vida y el paso del tiempo (*`r palabras_de("La vida y el paso del tiempo")`*). Cabe tener en consideración que las palabras de cada tema salen mayormente en inglés, dado que es el idioma de la mayoría de mis letras, aunque las canciones de cada grupo incluyen ambos idiomas.
 :::
 
 #### 🎭 Lo que dice y cómo suena

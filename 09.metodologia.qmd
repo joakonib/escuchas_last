@@ -64,12 +64,7 @@ Los datos pasan por cinco etapas. Cada pestaña explica una.
 
 ### 1. Escuchas
 
-```{r}
-#| label: ciro-audifonos
-ciro("audifonos", "ciro-lateral")
-```
-
-Last.fm registra cada canción que pongo (un *scrobble*). Su API (`user.getRecentTracks`, 200 escuchas por página) entrega el historial completo: fecha, artista, canción, álbum y sus identificadores de MusicBrainz.
+`r as.character(ciro("audifonos", "ciro-lateral"))`Last.fm registra cada canción que pongo (un *scrobble*). Su API (`user.getRecentTracks`, 200 escuchas por página) entrega el historial completo: fecha, artista, canción, álbum y sus identificadores de MusicBrainz.
 
 - **Script:** `scripts/00.descargar_escuchas.R` → `data/escuchas.parquet`.
 - **Cada mes** se pide solo lo posterior a la última escucha guardada. Cuando se quiere revisar todo, se baja **desde cero** y se compara con un respaldo: mismo total, mismas escuchas y mismos meses.
@@ -321,7 +316,7 @@ Se comparan mis escuchas con las reproducciones y oyentes de cada artista inform
 
 ### Modelos estables
 
-Los modelos LDA de temas y playlists se entrenan una vez y se guardan en `data/`. Los documentos nuevos se clasifican con el modelo guardado, sin modificar sus temas, y solo se reentrena si los documentos nuevos superan el 15% o si se solicita con `--reentrenar`. De esta manera los temas no cambian con cada actualización y sus textos siguen siendo válidos.
+Los modelos de playlists ocultas (LDA) y de temas de las letras (embeddings con UMAP y k-means) se entrenan una vez y se guardan en `data/`. Los documentos nuevos se clasifican con el modelo guardado, sin modificar sus temas, y solo se reentrena si los documentos nuevos superan el 15% o si se solicita con `--reentrenar`. De esta manera los temas no cambian con cada actualización y sus textos siguen siendo válidos.
 
 ## ⚠️ Limitaciones generales
 
