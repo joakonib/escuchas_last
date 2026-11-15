@@ -548,12 +548,25 @@ tagList(
 por_mes <- escuchas %>% count(mes)
 record  <- slice_max(por_mes, n, n = 1, with_ties = FALSE)
 
+# Meses sin registro: menos del 10% de un mes habitual (sin contar el primero ni el último,
+# que están incompletos). Corresponden a cortes del scrobbler que Spotify no alcanza a cubrir
+habitual <- median(por_mes$n)
+sin_registro <- tibble(mes = seq(min(por_mes$mes), max(por_mes$mes), by = "month")) %>%
+  left_join(por_mes, by = "mes") %>%
+  mutate(n = coalesce(n, 0L)) %>%
+  filter(n < 0.1 * habitual, mes > min(mes), mes < max(mes))
+
 p <- ggplot(por_mes, aes(mes, n, text = paste0("<b>", format(mes, "%m-%Y"), "</b><br>", miles(n), " escuchas"))) +
+  geom_col(data = sin_registro, aes(mes, habitual
+                                    ,text = paste0("<b>", format(mes, "%m-%Y"), "</b><br>Sin registro: el <i>scrobbler</i> estuvo desconectado<br>"
+                                                   ,miles(n), " escuchas registradas"))
+           ,fill = "#e4e3de", width = 25, inherit.aes = FALSE) +
   geom_col(aes(fill = mes == record$mes), width = 25) +
   scale_fill_manual(values = c(`TRUE` = verde, `FALSE` = principal), guide = "none") +
   scale_y_continuous(labels = miles, expand = expansion(mult = c(0, 0.05))) +
   labs(title = "Escuchas por mes"
-       ,subtitle = paste0("En verde, el mes récord: ", format(record$mes, "%m-%Y"), " (", miles(record$n), " escuchas)")
+       ,subtitle = paste0("En verde, el mes récord: ", format(record$mes, "%m-%Y"), " (", miles(record$n), " escuchas)"
+                         ,if (nrow(sin_registro)) ". En gris claro, los meses sin registro" else "")
        ,x = NULL, y = NULL)
 interactivo(p)
 ```
@@ -1352,7 +1365,7 @@ medias_lluvia <- dias_clima %>% group_by(llovio) %>% summarise(valencia = mean(V
 
 ## 🗺️ Mis eras musicales
 
-`r as.character(ciro("ozzy", "ciro-lateral"))`¿Mi gusto cambió de golpe o de a poco? Para responder esta pregunta ordené todos mis meses en fila, cada uno descrito por la mezcla de géneros que escuché, y utilicé un algoritmo que corta la fila en tramos donde los meses se parecen entre sí. Cada tramo corresponde a una era, es decir, una etapa con un sonido propio, con inicio y final, y cabe señalar que el propio algoritmo decidió cuántas eras hay.
+`r as.character(ciro("postpunk", "ciro-lateral"))`¿Mi gusto cambió de golpe o de a poco? Para responder esta pregunta ordené todos mis meses en fila, cada uno descrito por la mezcla de géneros que escuché, y utilicé un algoritmo que corta la fila en tramos donde los meses se parecen entre sí. Cada tramo corresponde a una era, es decir, una etapa con un sonido propio, con inicio y final, y cabe señalar que el propio algoritmo decidió cuántas eras hay.
 
 ```{r}
 #| label: eras-calculo
@@ -1817,103 +1830,95 @@ if (reusar_modelos) {
     select(artista, momento, valencia, energia, genero, popularidad, anio, mes_sin, mes_cos, antiguedad) %>%
     slice_sample(n = 40000)
 
-  # Entrenamiento y prueba separados por artista: cada artista queda entero en uno de los
-  # dos grupos, hasta juntar cerca del 70% de las escuchas para entrenar. Si se separara por
-  # escucha, el mismo artista (y sus etiquetas) estaría en ambos y el acierto se inflaría.
-  orden_artistas <- datos_modelo %>% count(artista) %>% slice_sample(prop = 1) %>%
-    mutate(acumulado = cumsum(n) / sum(n))
-  entrena <- which(datos_modelo$artista %in% orden_artistas$artista[orden_artistas$acumulado <= 0.7])
-  artista_entrena <- datos_modelo$artista[entrena]
+  # Validación cruzada de 5 grupos de artistas: cada artista queda entero en un grupo y cada
+  # grupo sirve una vez de prueba, mientras las técnicas aprenden con los otros cuatro. Si se
+  # separara por escucha, el mismo artista (y sus etiquetas) estaría en ambos lados y el
+  # acierto se inflaría; y con una sola división el resultado depende de qué artistas caen en
+  # la prueba (variaba cerca de 4 puntos), por eso se promedian los cinco grupos
+  artistas_cv <- unique(datos_modelo$artista)
+  grupo_artista <- setNames(sample(rep(1:5, length.out = length(artistas_cv))), artistas_cv)
+  grupo_escucha <- grupo_artista[datos_modelo$artista]
+  artista_escucha <- datos_modelo$artista
   datos_modelo <- select(datos_modelo, -artista)
-  prueba <- datos_modelo[-entrena, ]
-
-  # Pesos por clase: cada momento pesa lo mismo, así el modelo no se limita a
-  # adivinar el horario laboral, que es la mitad de las escuchas
-  frecuencia <- table(datos_modelo$momento[entrena])
-  peso_clase <- as.numeric(1 / frecuencia[as.character(datos_modelo$momento[entrena])])
-  peso_clase <- peso_clase / mean(peso_clase)
+  niveles <- levels(datos_modelo$momento)
+  continuas <- c("valencia", "energia", "popularidad", "anio", "mes_sin", "mes_cos", "antiguedad")
+  matriz <- function(d) model.matrix(momento ~ . - 1, d)
+  base_xgb <- list(objective = "multi:softprob", num_class = length(niveles), max_depth = 4, eta = 0.03
+                   ,min_child_weight = 1, subsample = 0.8, colsample_bytree = 0.8, nthread = 4
+                   ,eval_metric = "mlogloss", seed = 2026)
 
   # Indicadores: acierto; acierto balanceado (promedio del acierto en cada momento, así no
   # gana quien solo adivina el momento más común) y F1 promedio (equilibra precisión y
   # exhaustividad en cada momento)
-  medir <- function(pred) {
-    pred <- factor(as.character(pred), levels = levels(prueba$momento))
-    real <- prueba$momento
-    f1 <- sapply(levels(real), function(m) {
+  medir <- function(pred, real) {
+    pred <- factor(as.character(pred), levels = niveles)
+    f1 <- sapply(niveles, function(m) {
       precision <- if (any(pred == m)) mean(real[pred == m] == m) else 0
       exhaustividad <- mean(pred[real == m] == m)
       if (precision + exhaustividad == 0) 0 else 2 * precision * exhaustividad / (precision + exhaustividad)
     })
     c(acierto = mean(pred == real), balanceado = mean(tapply(pred == real, real, mean)), f1 = mean(f1))
   }
-  mas_comun <- names(which.max(table(datos_modelo$momento[entrena])))
 
-  # Regresión logística multinomial; las variables continuas van en desviaciones estándar
-  # (calculadas con los datos de entrenamiento) para comparar sus efectos entre sí
-  continuas <- c("valencia", "energia", "popularidad", "anio", "mes_sin", "mes_cos", "antiguedad")
-  medias <- sapply(datos_modelo[entrena, continuas], mean)
-  desv   <- sapply(datos_modelo[entrena, continuas], sd)
-  estandarizar <- function(d) mutate(d, across(all_of(continuas), function(x) (x - medias[[cur_column()]]) / desv[[cur_column()]]))
-  logit <- nnet::multinom(momento ~ ., data = estandarizar(datos_modelo[entrena, ]), weights = peso_clase
-                          ,trace = FALSE, maxit = 300)
-
-  arbol <- ctree(momento ~ ., data = datos_modelo[entrena, ]
-                 ,control = ctree_control(alpha = 0.01, maxdepth = 4, minbucket = 300))
-  bosque <- ranger::ranger(momento ~ ., data = datos_modelo[entrena, ], num.trees = 300
-                           ,class.weights = as.numeric(1 / frecuencia / sum(1 / frecuencia))
-                           ,importance = "permutation", seed = 2026)
-
-  # Gradient boosting (xgboost): árboles chicos que se suman uno a uno, cada uno corrigiendo
-  # los errores de los anteriores. Necesita las variables como números (género en columnas 0/1).
-  # Sus parámetros se eligen con validación cruzada de 5 grupos de artistas, solo dentro del
-  # entrenamiento: el grupo de prueba no se mira para ajustarlo
-  matriz <- function(d) model.matrix(momento ~ . - 1, d)
-  k_clases <- nlevels(datos_modelo$momento)
-  datos_xgb <- xgboost::xgb.DMatrix(matriz(datos_modelo[entrena, ]), label = as.integer(datos_modelo$momento[entrena]) - 1
-                                    ,weight = peso_clase)
-  artistas_cv <- unique(artista_entrena)
-  grupo_cv <- sample(rep(1:5, length.out = length(artistas_cv)))
-  folds_cv <- map(1:5, function(g) which(artista_entrena %in% artistas_cv[grupo_cv == g]))
-  base_xgb <- list(objective = "multi:softprob", num_class = k_clases, subsample = 0.8, colsample_bytree = 0.8
-                   ,nthread = 4, eval_metric = "mlogloss")
-  ajuste_xgb <- expand_grid(max_depth = c(4, 7), eta = 0.03, min_child_weight = c(1, 10)) %>%
-    pmap_dfr(function(max_depth, eta, min_child_weight) {
-      cv <- xgboost::xgb.cv(params = c(base_xgb, list(max_depth = max_depth, eta = eta, min_child_weight = min_child_weight))
-                            ,data = datos_xgb, nrounds = 800, folds = folds_cv, early_stopping_rounds = 30, verbose = 0)
-      tibble(max_depth, eta, min_child_weight
-             ,rondas = cv$early_stop$best_iteration %||% nrow(cv$evaluation_log)
-             ,logloss = min(cv$evaluation_log$test_mlogloss_mean))
-    }) %>%
-    slice_min(logloss, n = 1, with_ties = FALSE)
-  boost <- xgboost::xgb.train(
-    params = c(base_xgb, list(max_depth = ajuste_xgb$max_depth, eta = ajuste_xgb$eta
-                              ,min_child_weight = ajuste_xgb$min_child_weight, seed = 2026))
-    ,data = datos_xgb, nrounds = ajuste_xgb$rondas, verbose = 0)
-  prob_boost <- predict(boost, xgboost::xgb.DMatrix(matriz(prueba)))
-  if (is.null(dim(prob_boost))) prob_boost <- matrix(prob_boost, ncol = nlevels(datos_modelo$momento), byrow = TRUE)
-  pred_boost <- levels(datos_modelo$momento)[max.col(prob_boost)]
+  # Las cinco técnicas en un grupo: aprenden con los otros cuatro y se prueban en este
+  evaluar_grupo <- function(g) {
+    entrena <- datos_modelo[grupo_escucha != g, ]
+    prueba <- datos_modelo[grupo_escucha == g, ]
+    # Pesos por clase: cada momento pesa lo mismo, así el modelo no se limita a
+    # adivinar el horario laboral, que es la mitad de las escuchas
+    frecuencia <- table(entrena$momento)
+    peso <- as.numeric(1 / frecuencia[as.character(entrena$momento)])
+    peso <- peso / mean(peso)
+    # Regresión: variables continuas en desviaciones estándar del entrenamiento
+    medias <- sapply(entrena[continuas], mean)
+    desv <- sapply(entrena[continuas], sd)
+    estandarizar <- function(d) mutate(d, across(all_of(continuas), function(x) (x - medias[[cur_column()]]) / desv[[cur_column()]]))
+    logit <- nnet::multinom(momento ~ ., data = estandarizar(entrena), weights = peso, trace = FALSE, maxit = 300)
+    arbol <- ctree(momento ~ ., data = entrena, control = ctree_control(alpha = 0.01, maxdepth = 4, minbucket = 300))
+    bosque <- ranger::ranger(momento ~ ., data = entrena, num.trees = 300, seed = 2026
+                             ,class.weights = as.numeric(1 / frecuencia / sum(1 / frecuencia)))
+    # Gradient boosting: el número de rondas se elige con un 20% de los artistas del propio
+    # entrenamiento (parada temprana), nunca con el grupo de prueba
+    art_entrena <- artista_escucha[grupo_escucha != g]
+    validacion <- art_entrena %in% sample(unique(art_entrena), round(0.2 * n_distinct(art_entrena)))
+    dmat <- function(filtro) xgboost::xgb.DMatrix(matriz(entrena[filtro, ]), label = as.integer(entrena$momento[filtro]) - 1, weight = peso[filtro])
+    rondas <- xgboost::xgb.train(params = base_xgb, data = dmat(!validacion), nrounds = 800, verbose = 0
+                                 ,evals = list(validacion = dmat(validacion)), early_stopping_rounds = 30)
+    rondas <- rondas$best_iteration %||% xgboost::xgb.attr(rondas, "best_iteration") %||% 300
+    boost <- xgboost::xgb.train(params = base_xgb, data = dmat(rep(TRUE, nrow(entrena))), nrounds = as.integer(rondas) + 1, verbose = 0)
+    prob <- predict(boost, xgboost::xgb.DMatrix(matriz(prueba)))
+    if (is.null(dim(prob))) prob <- matrix(prob, ncol = length(niveles), byrow = TRUE)
+    mas_comun <- names(which.max(frecuencia))
+    tibble(tipo = c("base", "logit", "arbol", "bosque", "boost"), grupo = g) %>%
+      bind_cols(as_tibble(do.call(rbind, list(
+        medir(rep(mas_comun, nrow(prueba)), prueba$momento)
+        ,medir(predict(logit, estandarizar(prueba)), prueba$momento)
+        ,medir(predict(arbol, prueba), prueba$momento)
+        ,medir(predict(bosque, prueba)$predictions, prueba$momento)
+        ,medir(niveles[max.col(prob)], prueba$momento)
+      ))))
+  }
+  por_grupo <- map(1:5, evaluar_grupo) %>% list_rbind()
 
   comparacion <- tibble(
     tipo    = c("base", "logit", "arbol", "bosque", "boost")
     ,modelo  = c("Línea base (siempre el momento más común)", "Regresión logística multinomial"
                 ,"Árbol de inferencia condicional", "Random forest (300 árboles)"
-                ,"Gradient boosting (xgboost, ajustado por validación cruzada)")
+                ,"Gradient boosting (xgboost)")
     ,legible = c("—", "Sí: efecto de cada variable", "Sí: reglas", "No", "No")
   ) %>%
-    bind_cols(as_tibble(do.call(rbind, list(
-      medir(rep(mas_comun, nrow(prueba)))
-      ,medir(predict(logit, estandarizar(prueba)))
-      ,medir(predict(arbol, prueba))
-      ,medir(predict(bosque, prueba)$predictions)
-      ,medir(pred_boost)
-    ))))
+    left_join(por_grupo %>% group_by(tipo) %>%
+                summarise(variacion = sd(balanceado), across(c(acierto, balanceado, f1), mean)), by = "tipo")
   # La tabla con los indicadores de todas las técnicas se muestra en la metodología
-  # Importancia de cada variable en el random forest
+  # Importancia de cada variable: random forest con toda la muestra (solo para interpretar)
+  frecuencia <- table(datos_modelo$momento)
+  bosque <- ranger::ranger(momento ~ ., data = datos_modelo, num.trees = 300, importance = "permutation", seed = 2026
+                           ,class.weights = as.numeric(1 / frecuencia / sum(1 / frecuencia)))
   importancia <- enframe(bosque$variable.importance, "variable", "importancia") %>%
     arrange(desc(importancia))
   saveRDS(list(comparacion = comparacion, mejor = (comparacion[-1, ] %>% slice_max(balanceado, n = 1, with_ties = FALSE))$modelo
-               ,n_entrena = length(entrena), n_prueba = nrow(prueba), n_escuchas = nrow(escuchas_animo)
-               ,ajuste_xgb = ajuste_xgb, importancia = importancia)
+               ,n_muestra = nrow(datos_modelo), n_grupos = 5, por_grupo = por_grupo
+               ,n_escuchas = nrow(escuchas_animo), importancia = importancia)
           ,"data/modelos.rds")
 }
 

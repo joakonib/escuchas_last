@@ -230,7 +230,7 @@ donde $d_i$ son los abandonos en el tiempo $t_i$ y $n_i$ los artistas todavía "
 
 ### Cómo se armó la prueba
 
-Los modelos aprenden con un grupo de escuchas y se evalúan con otro, para lo cual la división se hace por artista. Es decir, los artistas se ordenan al azar y cada uno queda entero en un grupo hasta juntar cerca del 70% de las escuchas para entrenar, mientras que el 30% restante, de artistas que los modelos nunca vieron, sirve para evaluarlos.
+Los modelos se evalúan con validación cruzada de 5 grupos de artistas, es decir, los artistas se reparten al azar en cinco grupos y cada uno queda entero en uno de ellos. Luego, cada grupo sirve una vez de prueba mientras las técnicas aprenden con los otros cuatro, por lo cual cada escucha se evalúa con artistas que el modelo nunca vio, y el resultado final corresponde al promedio de los cinco grupos. Cabe señalar que antes se usaba una sola división (70% para entrenar y 30% para probar), pero con ella el acierto balanceado variaba cerca de 4 puntos según qué artistas caían en la prueba, lo cual hacía que la cifra cambiara de una actualización a otra sin que el modelo hubiera cambiado.
 
 ¿Por qué por artista? Ánimo, género y popularidad son características del artista, y escucho muchas veces a los mismos. Por lo tanto, si se separara al azar por escucha, un mismo artista quedaría en los dos grupos y el modelo podría acertar memorizándolo (fuga de información), lo cual inflaría el acierto.
 
@@ -242,9 +242,9 @@ Los modelos aprenden con un grupo de escuchas y se evalúan con otro, para lo cu
 | **Regresión logística multinomial** | Mide cuánto empuja cada característica hacia cada momento (razón de probabilidades) | Referencia: horario laboral; variables continuas en desviaciones estándar. Paquete `nnet` |
 | **Árbol de inferencia condicional** (Hothorn, Hornik y Zeileis, 2006) | Aprende reglas legibles. A diferencia del árbol clásico (CART), elige cada corte con pruebas estadísticas, sin favorecer variables con muchos cortes posibles, y no corta si la diferencia no es significativa | α = 0,01; máximo 4 niveles; hojas de 300 escuchas o más. Paquete `partykit` |
 | **Random forest** (Breiman, 2001) | Promedia cientos de árboles independientes | 300 árboles; importancia por permutación. Paquete `ranger` |
-| **Gradient boosting** (Friedman, 2001; Chen y Guestrin, 2016) | Suma árboles chicos, cada uno corrigiendo los errores de los anteriores | Profundidad, peso mínimo por hoja y número de rondas elegidos con validación cruzada de 5 grupos de artistas dentro del entrenamiento (con parada temprana); tasa 0,03; submuestreo de 80%. Paquete `xgboost` |
+| **Gradient boosting** (Friedman, 2001; Chen y Guestrin, 2016) | Suma árboles chicos, cada uno corrigiendo los errores de los anteriores | Profundidad 4 y tasa 0,03 (la combinación que eligió una búsqueda previa con validación cruzada); el número de rondas se elige en cada grupo con un 20% de los artistas del propio entrenamiento (parada temprana); submuestreo de 80%. Paquete `xgboost` |
 
-Los parámetros de la regresión, el árbol y el random forest son valores estándar. Los del gradient boosting se ajustan con validación cruzada agrupada por artista, siempre dentro del grupo de entrenamiento, de modo que el grupo de prueba nunca se mira para ajustar y la comparación sigue siendo justa.
+Los parámetros de la regresión, el árbol y el random forest son valores estándar, mientras que en el gradient boosting el número de rondas se ajusta dentro de cada entrenamiento, de modo que el grupo de prueba nunca se mira para ajustar y la comparación sigue siendo justa.
 
 ### Cómo se comparan
 
@@ -257,17 +257,19 @@ Los parámetros de la regresión, el árbol y el random forest son valores está
 #| eval: !expr file.exists("data/modelos.rds")
 m <- readRDS("data/modelos.rds")
 tabla(
-  dplyr::mutate(m$comparacion[, c("modelo", "acierto", "balanceado", "f1")]
+  dplyr::mutate(m$comparacion[, c("modelo", "acierto", "balanceado", "variacion", "f1")]
                 ,modelo = ifelse(modelo == m$mejor, paste("🏆", modelo), modelo))
   ,titulo = "Resultados de las cinco técnicas"
-  ,subtitulo = paste0("En escuchas de artistas que los modelos nunca vieron (", format(m$n_entrena, big.mark = ".")
-                     ," para entrenar y ", format(m$n_prueba, big.mark = ".")
-                     ," para probar). 🏆 = la que se muestra en el reporte")
+  ,subtitulo = paste0("Promedio de una validación cruzada de ", m$n_grupos %||% 5, " grupos de artistas sobre "
+                     ,format(m$n_muestra %||% 40000, big.mark = "."), " escuchas: cada escucha se prueba una vez, con artistas"
+                     ," que el modelo no vio al aprender. ± es la variación del acierto balanceado entre grupos."
+                     ," 🏆 = la que se muestra en el reporte")
   ,clase = "tabla-texto"
   ,columnas = list(
     modelo     = colDef(name = "Técnica", minWidth = 220, style = list(fontWeight = 600))
     ,acierto    = colDef(name = "Acierto", format = colFormat(percent = TRUE, digits = 0), maxWidth = 90)
     ,balanceado = colDef(name = "Balanceado", format = colFormat(percent = TRUE, digits = 0), maxWidth = 100)
+    ,variacion  = colDef(name = "±", format = colFormat(percent = TRUE, digits = 1), maxWidth = 70)
     ,f1         = colDef(name = "F1", format = colFormat(percent = TRUE, digits = 0), maxWidth = 80)
   ))
 ```

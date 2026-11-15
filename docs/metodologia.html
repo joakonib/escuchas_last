@@ -4201,7 +4201,7 @@ line-height: 1.35;
 <span class="nav-actual" aria-current="page">🔧 Metodología</span>
 <a href="flujo.html">🔄 Flujo</a>
 </nav>
-<div class="generado">🕒 Fecha y hora de generación: 15-11-2026, 19:54 (hora de Chile)</div>
+<div class="generado">🕒 Fecha y hora de generación: 15-11-2026, 20:04 (hora de Chile)</div>
 <div class="volver">
 <a class="volver-principal" href="analisis_escuchas.html">← Reporte general</a>
 <a class="volver-portada" href="index.html" title="Portada" aria-label="Portada">🏠</a>
@@ -4482,7 +4482,7 @@ line-height: 1.35;
 </section>
 <section id="cómo-se-armó-la-prueba" class="level3">
 <h3 class="anchored" data-anchor-id="cómo-se-armó-la-prueba">Cómo se armó la prueba</h3>
-<p>Los modelos aprenden con un grupo de escuchas y se evalúan con otro, para lo cual la división se hace por artista. Es decir, los artistas se ordenan al azar y cada uno queda entero en un grupo hasta juntar cerca del 70% de las escuchas para entrenar, mientras que el 30% restante, de artistas que los modelos nunca vieron, sirve para evaluarlos.</p>
+<p>Los modelos se evalúan con validación cruzada de 5 grupos de artistas, es decir, los artistas se reparten al azar en cinco grupos y cada uno queda entero en uno de ellos. Luego, cada grupo sirve una vez de prueba mientras las técnicas aprenden con los otros cuatro, por lo cual cada escucha se evalúa con artistas que el modelo nunca vio, y el resultado final corresponde al promedio de los cinco grupos. Cabe señalar que antes se usaba una sola división (70% para entrenar y 30% para probar), pero con ella el acierto balanceado variaba cerca de 4 puntos según qué artistas caían en la prueba, lo cual hacía que la cifra cambiara de una actualización a otra sin que el modelo hubiera cambiado.</p>
 <p>¿Por qué por artista? Ánimo, género y popularidad son características del artista, y escucho muchas veces a los mismos. Por lo tanto, si se separara al azar por escucha, un mismo artista quedaría en los dos grupos y el modelo podría acertar memorizándolo (fuga de información), lo cual inflaría el acierto.</p>
 </section>
 <section id="las-técnicas" class="level3">
@@ -4524,11 +4524,11 @@ line-height: 1.35;
 <tr class="odd">
 <td><strong>Gradient boosting</strong> (Friedman, 2001; Chen y Guestrin, 2016)</td>
 <td>Suma árboles chicos, cada uno corrigiendo los errores de los anteriores</td>
-<td>Profundidad, peso mínimo por hoja y número de rondas elegidos con validación cruzada de 5 grupos de artistas dentro del entrenamiento (con parada temprana); tasa 0,03; submuestreo de 80%. Paquete <code>xgboost</code></td>
+<td>Profundidad 4 y tasa 0,03 (la combinación que eligió una búsqueda previa con validación cruzada); el número de rondas se elige en cada grupo con un 20% de los artistas del propio entrenamiento (parada temprana); submuestreo de 80%. Paquete <code>xgboost</code></td>
 </tr>
 </tbody>
 </table>
-<p>Los parámetros de la regresión, el árbol y el random forest son valores estándar. Los del gradient boosting se ajustan con validación cruzada agrupada por artista, siempre dentro del grupo de entrenamiento, de modo que el grupo de prueba nunca se mira para ajustar y la comparación sigue siendo justa.</p>
+<p>Los parámetros de la regresión, el árbol y el random forest son valores estándar, mientras que en el gradient boosting el número de rondas se ajusta dentro de cada entrenamiento, de modo que el grupo de prueba nunca se mira para ajustar y la comparación sigue siendo justa.</p>
 </section>
 <section id="cómo-se-comparan" class="level3">
 <h3 class="anchored" data-anchor-id="cómo-se-comparan">Cómo se comparan</h3>
@@ -4541,13 +4541,13 @@ line-height: 1.35;
 <div class="cell-output-display">
 <div class="tabla tabla-texto">
 <div class="tabla-titulo">Resultados de las cinco técnicas</div>
-<div class="tabla-subtitulo">En escuchas de artistas que los modelos nunca vieron (27.732 para entrenar y 12.268 para probar). 🏆 = la que se muestra en el reporte</div>
+<div class="tabla-subtitulo">Promedio de una validación cruzada de 5 grupos de artistas sobre 40.000 escuchas: cada escucha se prueba una vez, con artistas que el modelo no vio al aprender. ± es la variación del acierto balanceado entre grupos. 🏆 = la que se muestra en el reporte</div>
 <div class="tabla-ayuda">
 ↕ Haz clic en el nombre de una columna para ordenar
-<button class="tabla-reset" type="button" onclick="Reactable.toggleSortBy(&#39;tabla-3r0xjul3dh&#39;, &#39;.orden&#39;, false); Reactable.setSearch(&#39;tabla-3r0xjul3dh&#39;, &#39;&#39;)">↺ Orden original</button>
+<button class="tabla-reset" type="button" onclick="Reactable.toggleSortBy(&#39;tabla-2taflb5zi9&#39;, &#39;.orden&#39;, false); Reactable.setSearch(&#39;tabla-2taflb5zi9&#39;, &#39;&#39;)">↺ Orden original</button>
 </div>
-<div class="reactable html-widget html-fill-item" id="tabla-3r0xjul3dh" style="width:auto;height:auto;"></div>
-<script type="application/json" data-for="tabla-3r0xjul3dh">{"x":{"tag":{"name":"Reactable","attribs":{"data":{"modelo":["Línea base (siempre el momento más común)","Regresión logística multinomial","Árbol de inferencia condicional","Random forest (300 árboles)","🏆 Gradient boosting (xgboost, ajustado por validación cruzada)"],"acierto":[0.499266384088686,0.411884577763287,0.522089990218454,0.5105151613955,0.439272905119009],"balanceado":[0.333333333333333,0.402174871241493,0.383139379948177,0.419380400927368,0.430179360079405],"f1":[0.222004748183186,0.345412410892172,0.346842123292192,0.419679385010946,0.388871186933557],".orden":[1,2,3,4,5]},"columns":[{"id":"modelo","name":"Técnica","type":"character","minWidth":220,"style":{"fontWeight":600}},{"id":"acierto","name":"Acierto","type":"numeric","format":{"cell":{"digits":0,"percent":true},"aggregated":{"digits":0,"percent":true}},"maxWidth":90},{"id":"balanceado","name":"Balanceado","type":"numeric","format":{"cell":{"digits":0,"percent":true},"aggregated":{"digits":0,"percent":true}},"maxWidth":100},{"id":"f1","name":"F1","type":"numeric","format":{"cell":{"digits":0,"percent":true},"aggregated":{"digits":0,"percent":true}},"maxWidth":80},{"id":".orden","name":".orden","type":"numeric","show":false}],"pagination":false,"defaultPageSize":12,"highlight":true,"striped":true,"compact":true,"theme":{"color":"#1f1f1f","backgroundColor":"#ffffff","borderColor":"#ecebe7","stripedColor":"#f7f9f7","highlightColor":"#e6f0e8","cellPadding":"7px 10px","style":{"fontSize":"13.5px"},"headerStyle":{"background":"#2f2f2f","color":"#ffffff","fontWeight":600,"fontSize":"12.5px","borderBottom":"none"},"searchInputStyle":{"width":"100%","marginBottom":"8px"},"paginationStyle":{"fontSize":"12.5px"}},"language":{"searchPlaceholder":"Buscar…","noData":"Sin resultados","pageNext":"Siguiente","pagePrevious":"Anterior","pageNumbers":"{page} de {pages}","pageInfo":"{rowStart}–{rowEnd} de {rows}"},"elementId":"tabla-3r0xjul3dh","dataKey":"2652ab687990de8235bf797713cc750b"},"children":[]},"class":"reactR_markup"},"evals":[],"jsHooks":[]}</script>
+<div class="reactable html-widget html-fill-item" id="tabla-2taflb5zi9" style="width:auto;height:auto;"></div>
+<script type="application/json" data-for="tabla-2taflb5zi9">{"x":{"tag":{"name":"Reactable","attribs":{"data":{"modelo":["Línea base (siempre el momento más común)","Regresión logística multinomial","Árbol de inferencia condicional","Random forest (300 árboles)","🏆 Gradient boosting (xgboost)"],"acierto":[0.499514073871908,0.421485090364503,0.521994850750525,0.501054894306218,0.454589847910547],"balanceado":[0.333333333333333,0.402031826387809,0.391673334789292,0.409752496747482,0.435360656064253],"variacion":[0,0.0123589940780496,0.013145081678501,0.0105233617420618,0.0156070950267869],"f1":[0.222032247799044,0.366185877407125,0.368751271218424,0.409163670498649,0.406025810896738],".orden":[1,2,3,4,5]},"columns":[{"id":"modelo","name":"Técnica","type":"character","minWidth":220,"style":{"fontWeight":600}},{"id":"acierto","name":"Acierto","type":"numeric","format":{"cell":{"digits":0,"percent":true},"aggregated":{"digits":0,"percent":true}},"maxWidth":90},{"id":"balanceado","name":"Balanceado","type":"numeric","format":{"cell":{"digits":0,"percent":true},"aggregated":{"digits":0,"percent":true}},"maxWidth":100},{"id":"variacion","name":"±","type":"numeric","format":{"cell":{"digits":1,"percent":true},"aggregated":{"digits":1,"percent":true}},"maxWidth":70},{"id":"f1","name":"F1","type":"numeric","format":{"cell":{"digits":0,"percent":true},"aggregated":{"digits":0,"percent":true}},"maxWidth":80},{"id":".orden","name":".orden","type":"numeric","show":false}],"pagination":false,"defaultPageSize":12,"highlight":true,"striped":true,"compact":true,"theme":{"color":"#1f1f1f","backgroundColor":"#ffffff","borderColor":"#ecebe7","stripedColor":"#f7f9f7","highlightColor":"#e6f0e8","cellPadding":"7px 10px","style":{"fontSize":"13.5px"},"headerStyle":{"background":"#2f2f2f","color":"#ffffff","fontWeight":600,"fontSize":"12.5px","borderBottom":"none"},"searchInputStyle":{"width":"100%","marginBottom":"8px"},"paginationStyle":{"fontSize":"12.5px"}},"language":{"searchPlaceholder":"Buscar…","noData":"Sin resultados","pageNext":"Siguiente","pagePrevious":"Anterior","pageNumbers":"{page} de {pages}","pageInfo":"{rowStart}–{rowEnd} de {rows}"},"elementId":"tabla-2taflb5zi9","dataKey":"8c7beb3876aa5be74b2de11b76ef65a2"},"children":[]},"class":"reactR_markup"},"evals":[],"jsHooks":[]}</script>
 </div>
 </div>
 </div>
