@@ -104,7 +104,7 @@ tagList(navegacion("flujo"), linea_generacion(), boton_volver())
 
 ## 🎧 De dónde salen las escuchas
 
-Last.fm registra cada canción que pongo, aunque a veces el *scrobbler* se desconecta, por lo cual la base que utilizan todos los análisis junta dos fuentes, tal como se muestra a continuación.
+`r as.character(ciro("audifonos", "ciro-lateral"))`Last.fm registra cada canción que pongo, aunque a veces el *scrobbler* se desconecta, por lo cual la base que utilizan todos los análisis junta dos fuentes, tal como se muestra a continuación.
 
 ```{r}
 #| label: tabla-fuentes
@@ -121,6 +121,8 @@ En este cruce Last.fm es la fuente principal, ya que una escucha de Spotify solo
 
 ## ⏱️ Dos maneras de correrlo
 
+`r as.character(ciro("cafe", "ciro-lateral"))`El flujo se puede correr de dos maneras.
+
 | | Mensual automático | Corrida completa |
 |---|---|---|
 | **Cómo se lanza** | `actualizar.bat`, tarea programada de Windows el día 1 a las 10:00 | `bash scripts/flujo_nocturno.sh --mes AAAA-MM`, con Claude |
@@ -130,6 +132,8 @@ En este cruce Last.fm es la fuente principal, ya que una escucha de Spotify solo
 | **Opciones** | — | `--desde-cero`, `--reentrenar`, `--apagar` (solo con confirmación) |
 
 ## 🛡️ Reglas que cuidan los datos
+
+`r as.character(ciro("guardia", "ciro-lateral"))`Estas reglas protegen los datos en cada corrida.
 
 - **Nada se pisa a medias:** cada archivo se guarda primero en uno temporal y luego se reemplaza, de modo que un corte no daña la versión anterior.
 - **Todo es incremental:** cada script retoma donde quedó, por lo cual reintentar no duplica nada.
@@ -145,9 +149,11 @@ En este cruce Last.fm es la fuente principal, ya que una escucha de Spotify solo
 | Temas de las letras (embeddings + UMAP + k-means) | Las letras nuevas superan el 15%, o con `--reentrenar` |
 | Clasificadores (cinco técnicas) | Las escuchas crecen más de 5%, o con `--reentrenar` |
 
-Fuera de esos casos, lo nuevo se clasifica con el modelo guardado, sin moverlo. De esta manera los temas y las playlists no cambian de un mes a otro y sus textos siguen siendo válidos.
+`r as.character(ciro("laboratorio", "ciro-lateral"))`Fuera de esos casos, lo nuevo se clasifica con el modelo guardado, sin moverlo. De esta manera los temas y las playlists no cambian de un mes a otro y sus textos siguen siendo válidos.
 
 ## 📦 Hoy en la base
+
+`r as.character(ciro("nicho", "ciro-lateral"))`Estas son las cifras de la base al momento de la última corrida.
 
 ```{r}
 #| label: cifras-base

@@ -176,6 +176,8 @@ tagList(
 
 ## 🏆 Lo mejor del mes
 
+`r as.character(ciro("colocolo", "ciro-lateral"))`La canción, el artista y el disco que más sonaron este mes.
+
 ```{r}
 #| label: podio
 cancion1 <- top_can[1, ]
@@ -230,7 +232,7 @@ conc5 <- sum(head(top_art$n, 5)) / nrow(mes)
 ```
 
 ::: {.callout-note appearance="simple" icon="false"}
-**¿Qué me dice?** Con el `r pct(top_art$n[1] / nrow(mes))` de mis escuchas, `r top_art$artista[1]` fue el artista del mes, mientras que los cinco primeros suman el `r pct(conc5)`, lo cual da cuenta de `r if (conc5 > 0.5) "un mes concentrado en pocos artistas" else if (conc5 > 0.3) "un mes con favoritos claros, aunque repartido" else "un mes variado, sin un artista que domine"`.
+**¿Qué me dice?** `r as.character(ciro("crooner", "ciro-lateral"))`Con el `r pct(top_art$n[1] / nrow(mes))` de mis escuchas, `r top_art$artista[1]` fue el artista del mes, mientras que los cinco primeros suman el `r pct(conc5)`, lo cual da cuenta de `r if (conc5 > 0.5) "un mes concentrado en pocos artistas" else if (conc5 > 0.3) "un mes con favoritos claros, aunque repartido" else "un mes variado, sin un artista que domine"`.
 :::
 
 #### Discos
@@ -326,7 +328,7 @@ mas_que_normal <- gen_mes %>% filter(n >= 10) %>% mutate(dif = share - share_his
 ```
 
 ::: {.callout-note appearance="simple" icon="false"}
-**¿Qué me dice?** `r if (tiene_tags) paste0("El género del mes fue el ", tolower(g1$genero), ", con un ", pct(g1$share), " de lo que escuché frente a un ", pct(g1$share_hist), " en mi historia, mientras que el que más subió respecto de lo habitual fue el ", tolower(mas_que_normal$genero), ".") else ""`
+**¿Qué me dice?** `r as.character(ciro("audifonos", "ciro-lateral"))``r if (tiene_tags) paste0("El género del mes fue el ", tolower(g1$genero), ", con un ", pct(g1$share), " de lo que escuché frente a un ", pct(g1$share_hist), " en mi historia, mientras que el que más subió respecto de lo habitual fue el ", tolower(mas_que_normal$genero), ".") else ""`
 :::
 
 #### Países
@@ -403,7 +405,7 @@ interactivo(p)
 
 ## 🔬 Análisis del mes
 
-A continuación, el mes se compara con toda mi historia desde 2013, con el fin de evaluar qué tan distinto fue a lo habitual.
+`r as.character(ciro("eras", "ciro-lateral"))`A continuación, el mes se compara con toda mi historia desde 2013, con el fin de evaluar qué tan distinto fue a lo habitual.
 
 ```{r}
 #| label: analisis-preparacion

@@ -210,7 +210,7 @@ if (tiene_tags) {
 
 *Actualizado con datos hasta el `r fmt_fecha(ultimo_dia)`.*
 
-Respecto a lo que escucho, el género con mayor peso corresponde al post-punk, con un `r pct(cf$pp_total)` de mis escuchas, seguido por una familia completa de metal que va desde el heavy hasta el black, el sludge, el thrash, el death, el stoner y el doom. Asimismo, el post-hardcore tiene una presencia importante y el hip-hop comienza a asomar, mientras que la mayor parte de mi música corresponde a géneros intensos, tal como se revisa en la lectura psicológica.
+`r as.character(ciro("natural", "ciro-lateral"))`Respecto a lo que escucho, el género con mayor peso corresponde al post-punk, con un `r pct(cf$pp_total)` de mis escuchas, seguido por una familia completa de metal que va desde el heavy hasta el black, el sludge, el thrash, el death, el stoner y el doom. Asimismo, el post-hardcore tiene una presencia importante y el hip-hop comienza a asomar, mientras que la mayor parte de mi música corresponde a géneros intensos, tal como se revisa en la lectura psicológica.
 
 En cuanto a la evolución, entre 2013 y 2015 predominaban el metal y el hardcore, con artistas como Black Sabbath, Type O Negative y Godflesh, y con el punk de Attaque 77 de por medio. El post-punk, que en 2013 no tenía presencia alguna, alcanzó su punto más alto en `r cf$pp_peak_anio` con un `r pct(cf$pp_peak)` de mis escuchas y actualmente se ubica en torno al `r pct(cf$pp_hoy)`, lo cual se explica en gran medida por la ola británica e irlandesa. En este sentido, IDLES fue mi artista del año en `r cf$idles` ocasiones, seguido por Fontaines D.C. y Black Country, New Road. Durante los últimos dos años mi escucha se abrió hacia lo más melódico, tal como lo muestra La Brígida Orquesta, que fue mi artista de 2025.
 
@@ -349,7 +349,7 @@ lejos <- slice_min(cruces, veces, n = 1, with_ties = FALSE)
 
 #### Popularidad de mis artistas
 
-Clasifiqué a todos mis artistas en cuatro niveles según cuántos oyentes tienen en Last.fm, la red de más de 60 millones de usuarios donde registro mis escuchas.
+`r as.character(ciro("nicho", "ciro-lateral"))`Clasifiqué a todos mis artistas en cuatro niveles según cuántos oyentes tienen en Last.fm, la red de más de 60 millones de usuarios donde registro mis escuchas.
 
 ```{r}
 #| label: nicho
@@ -495,7 +495,7 @@ music <- escuchas %>%
 
 ## 🌍 Mi huella en el mundo
 
-Last.fm informa cuántas reproducciones y oyentes tiene cada artista entre todos sus usuarios, lo cual permite evaluar qué tan grande es mi presencia dentro de su público. Cabe señalar que estas cifras consideran solo a quienes usan Last.fm y que el promedio por oyente incluye a quienes escucharon al artista una sola vez, por lo cual tiende a ser bajo.
+`r as.character(ciro("mundo", "ciro-lateral"))`Last.fm informa cuántas reproducciones y oyentes tiene cada artista entre todos sus usuarios, lo cual permite evaluar qué tan grande es mi presencia dentro de su público. Cabe señalar que estas cifras consideran solo a quienes usan Last.fm y que el promedio por oyente incluye a quienes escucharon al artista una sola vez, por lo cual tiende a ser bajo.
 
 ```{r}
 #| label: huella
@@ -701,7 +701,7 @@ tabla(tibble(`Abro con` = paste0(abridores$artista, " (×", formato_veces(abrido
 ```
 
 ::: {.callout-note appearance="simple" icon="false"}
-**¿Qué me dice?** `r paste0("El artista con que más tiendo a partir una sesión es ", abridores$artista[1], ", que aparece al inicio ", formato_veces(abridores$veces_abre[1]), " veces más de lo esperado, mientras que para cerrar destaca ", cerradores$artista[1], ", con ", formato_veces(cerradores$veces_cierra[1]), " veces más.")` Cabe señalar que el final de una sesión también depende de cuándo se acaba el disco o de cuándo dejo de escuchar, por lo cual este resultado debe tomarse como una tendencia.
+**¿Qué me dice?** `r as.character(ciro("cafe", "ciro-lateral"))``r paste0("El artista con que más tiendo a partir una sesión es ", abridores$artista[1], ", que aparece al inicio ", formato_veces(abridores$veces_abre[1]), " veces más de lo esperado, mientras que para cerrar destaca ", cerradores$artista[1], ", con ", formato_veces(cerradores$veces_cierra[1]), " veces más.")` Cabe señalar que el final de una sesión también depende de cuándo se acaba el disco o de cuándo dejo de escuchar, por lo cual este resultado debe tomarse como una tendencia.
 :::
 
 #### ¿Discos o canciones?
@@ -755,6 +755,8 @@ tabla(discos_seguidos, titulo = "Los discos que más veces puse de corrido"
 :::
 
 ## 🌟 Mis artistas
+
+`r as.character(ciro("fan", "ciro-lateral"))`Mis artistas, discos y canciones más escuchados, en total y año a año.
 
 ::: {.panel-tabset}
 
@@ -1045,7 +1047,7 @@ tabla(tibble(artista = top_gen$artista
 ```
 
 ::: {.callout-note appearance="simple" icon="false"}
-**¿Qué me dice?** De los `r miles(nrow(genealogia))` artistas analizados, un `r pct(sin_padrino)` llegó sin que sonara otro artista durante las tres horas anteriores, lo cual corresponde a descubrimientos más bien directos. Respecto al resto, `r padrinos$padrino[1]` es quien más me ha llevado a otros artistas, con `r padrinos$ahijados[1]` ahijados directos. Asimismo, la cadena más larga tiene `r length(mas_largo)` eslabones y parte en `r mas_largo[1]`, para terminar en `r tail(mas_largo, 1)`.
+**¿Qué me dice?** `r as.character(ciro("genealogia", "ciro-lateral"))`De los `r miles(nrow(genealogia))` artistas analizados, un `r pct(sin_padrino)` llegó sin que sonara otro artista durante las tres horas anteriores, lo cual corresponde a descubrimientos más bien directos. Respecto al resto, `r padrinos$padrino[1]` es quien más me ha llevado a otros artistas, con `r padrinos$ahijados[1]` ahijados directos. Asimismo, la cadena más larga tiene `r length(mas_largo)` eslabones y parte en `r mas_largo[1]`, para terminar en `r tail(mas_largo, 1)`.
 :::
 
 ## 🌦️ Momentos
@@ -1654,7 +1656,7 @@ epocas_acm <- filter(categorias_acm, variable == "Época") %>% arrange(categoria
 ```
 
 ::: {.callout-note appearance="simple" icon="false"}
-**¿Qué me dice?** `r if (exists("familias")) paste0("La primera dimensión concentra el ", pct(res_acm$tasa[1]), " de la información y opone a ", polos_eje(1, -1), " frente a ", polos_eje(1, 1), ", mientras que la segunda opone a ", polos_eje(2, 1), " frente a ", polos_eje(2, -1), ". ", if (all(diff(epocas_acm$d1) < 0) || all(diff(epocas_acm$d1) > 0)) "Respecto a la época de llegada, esta avanza de manera ordenada a lo largo de la primera dimensión, lo cual da cuenta de que mi gusto se fue desplazando entre esos dos polos. " else "Respecto a la época de llegada, esta no sigue un recorrido del todo ordenado a lo largo de la primera dimensión. ", "Asimismo, la familia con mayor peso concentra el ", pct(familias$share[1]), " de las escuchas de estos artistas y reúne a ", familias$ejemplos[1], ".") else "—"`
+**¿Qué me dice?** `r as.character(ciro("laboratorio", "ciro-lateral"))``r if (exists("familias")) paste0("La primera dimensión concentra el ", pct(res_acm$tasa[1]), " de la información y opone a ", polos_eje(1, -1), " frente a ", polos_eje(1, 1), ", mientras que la segunda opone a ", polos_eje(2, 1), " frente a ", polos_eje(2, -1), ". ", if (all(diff(epocas_acm$d1) < 0) || all(diff(epocas_acm$d1) > 0)) "Respecto a la época de llegada, esta avanza de manera ordenada a lo largo de la primera dimensión, lo cual da cuenta de que mi gusto se fue desplazando entre esos dos polos. " else "Respecto a la época de llegada, esta no sigue un recorrido del todo ordenado a lo largo de la primera dimensión. ", "Asimismo, la familia con mayor peso concentra el ", pct(familias$share[1]), " de las escuchas de estos artistas y reúne a ", familias$ejemplos[1], ".") else "—"`
 :::
 
 #### 🎧 Playlists ocultas
@@ -2302,7 +2304,7 @@ cf$intensa <- music$share[str_starts(as.character(music$dimension), "Intensa")]
 
 *Esta lectura es lúdica, ya que los estudios hablan de tendencias promedio en muchas personas y no de diagnósticos individuales.*
 
-Con un `r pct(cf$intensa)` de música intensa según el modelo MUSIC (Rentfrow y otros, 2011), mi perfil se ubica casi por completo en lo intenso y rebelde. Al respecto, Rentfrow y Gosling (2003) encontraron que quienes prefieren el rock, lo alternativo y el metal puntúan más alto en apertura a la experiencia, y que dicha preferencia no se asocia a mayor neuroticismo ni a menor amabilidad, lo cual va en contra del estereotipo. Asimismo, North (2008) señala que quienes escuchan metal se parecen bastante a quienes escuchan música clásica, ya que tienden a ser personas creativas, tranquilas consigo mismas y algo introvertidas.
+`r as.character(ciro("encuestas", "ciro-lateral"))`Con un `r pct(cf$intensa)` de música intensa según el modelo MUSIC (Rentfrow y otros, 2011), mi perfil se ubica casi por completo en lo intenso y rebelde. Al respecto, Rentfrow y Gosling (2003) encontraron que quienes prefieren el rock, lo alternativo y el metal puntúan más alto en apertura a la experiencia, y que dicha preferencia no se asocia a mayor neuroticismo ni a menor amabilidad, lo cual va en contra del estereotipo. Asimismo, North (2008) señala que quienes escuchan metal se parecen bastante a quienes escuchan música clásica, ya que tienden a ser personas creativas, tranquilas consigo mismas y algo introvertidas.
 
 Respecto al ánimo, todos mis años caen en el cuadrante tenso y oscuro, con valencia negativa y energía alta. En este sentido, la investigación sobre la paradoja de la música triste (Vuoskoski y otros, 2012) indica que quienes disfrutan este tipo de música tienden a puntuar más alto en empatía y apertura. Por su parte, Sharman y Dingle (2015) observaron que escuchar música extrema después de enojarse no aumenta la rabia, ya que ayuda a procesarla y sube las emociones positivas. Mis días más oscuros, con el doom de Cathedral, Black Sabbath y Witchfinder General, se encuentran todos entre 2013 y 2017, mientras que los más luminosos corresponden a la cumbia de Chico Trujillo y La Floripondio.
 
@@ -2489,7 +2491,7 @@ tabla(tabla_hitos, titulo = "Escuchas que marcaron hitos"
 
 ## 🗂️ Explorador de artistas
 
-Todos los artistas con al menos 20 escuchas. Se puede buscar y ordenar por cualquier columna.
+`r as.character(ciro("archivo", "ciro-lateral"))`Todos los artistas con al menos 20 escuchas. Se puede buscar y ordenar por cualquier columna.
 
 ```{r}
 #| label: explorador

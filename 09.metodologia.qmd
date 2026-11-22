@@ -99,6 +99,8 @@ Los datos se guardan en formato Parquet, el cual conserva los tipos (fechas y n�
 
 ## 🧹 Limpieza y preparación
 
+`r as.character(ciro("limpieza", "ciro-lateral"))`Antes de cualquier análisis, los datos pasan por los siguientes pasos de limpieza.
+
 | Paso | Qué se hace | Por qué |
 |---|---|---|
 | Fechas inválidas | Se excluyen las escuchas con fecha anterior a 2002 | Last.fm guarda algunas escuchas sin fecha válida como 01-01-1970 |
@@ -116,7 +118,7 @@ Los datos se guardan en formato Parquet, el cual conserva los tipos (fechas y n�
 ### Omnivorismo
 
 ::: {.callout-note appearance="simple" icon="false"}
-**En simple.** ¿A cuántos géneros igual de escuchados equivale mi mezcla real? Si escucho un solo género, vale 1; si reparto parejo entre 30, vale 30.
+**En simple.** `r as.character(ciro("explorador", "ciro-lateral"))`¿A cuántos géneros igual de escuchados equivale mi mezcla real? Si escucho un solo género, vale 1; si reparto parejo entre 30, vale 30.
 :::
 
 Es el **número efectivo de géneros**, el exponencial de la entropía de Shannon, donde $p_g$ es la proporción de escuchas del género $g$ en el año:
@@ -133,7 +135,7 @@ Se usa en ecología para medir biodiversidad. La interpretación sociológica vi
 ## 🎭 Ánimo musical (análisis de sentimiento)
 
 ::: {.callout-note appearance="simple" icon="false"}
-**En simple.** Cada artista recibe una nota de **valencia** (de triste a alegre) y de **energía** (de calma a intensa), según las etiquetas de ánimo que le ponen los usuarios de Last.fm. Después promedio lo que escuché en cada año, hora o día.
+**En simple.** `r as.character(ciro("neblina", "ciro-lateral"))`Cada artista recibe una nota de **valencia** (de triste a alegre) y de **energía** (de calma a intensa), según las etiquetas de ánimo que le ponen los usuarios de Last.fm. Después promedio lo que escuché en cada año, hora o día.
 :::
 
 **En detalle.** Se basa en el **modelo circunflejo del afecto** de Russell (1980), que ubica cualquier emoción en dos ejes: valencia y activación. Armé un diccionario que asigna a cada etiqueta un valor en ambos ejes, entre −1 y +1; por ejemplo, *sad* = (−1; −0,3), *aggressive* = (−0,4; +1), *chill* = (+0,4; −0,9). El ánimo de un artista es el promedio de sus etiquetas, ponderado por el peso de cada etiqueta, y el de un período es el promedio de sus escuchas.
@@ -142,7 +144,7 @@ Se usa en ecología para medir biodiversidad. La interpretación sociológica vi
 
 ## 🧠 Modelo MUSIC
 
-Rentfrow, Goldberg y Levitin (2011) mostraron que las preferencias musicales se resumen en cinco dimensiones: **M**ellow (suave), **U**npretentious (de raíz), **S**ophisticated (sofisticada), **I**ntense (intensa) y **C**ontemporary (contemporánea). Asigné cada etiqueta de género a una dimensión; cada artista reparte su peso entre las dimensiones según sus etiquetas, y el perfil final pondera por mis escuchas. Es una **aproximación**: el modelo original se mide con encuestas sobre fragmentos musicales, no con etiquetas.
+`r as.character(ciro("metal", "ciro-lateral"))`Rentfrow, Goldberg y Levitin (2011) mostraron que las preferencias musicales se resumen en cinco dimensiones: **M**ellow (suave), **U**npretentious (de raíz), **S**ophisticated (sofisticada), **I**ntense (intensa) y **C**ontemporary (contemporánea). Asigné cada etiqueta de género a una dimensión; cada artista reparte su peso entre las dimensiones según sus etiquetas, y el perfil final pondera por mis escuchas. Es una **aproximación**: el modelo original se mide con encuestas sobre fragmentos musicales, no con etiquetas.
 
 ## 🔬 Técnicas de análisis
 
@@ -151,7 +153,7 @@ Rentfrow, Goldberg y Levitin (2011) mostraron que las preferencias musicales se 
 #### 🗺️ Eras: clustering con restricción temporal
 
 ::: {.callout-note appearance="simple" icon="false"}
-**En simple.** Pongo todos mis meses en fila, cada uno descrito por su mezcla de géneros, y un algoritmo corta la fila en tramos de meses parecidos. Cada tramo es una era, con inicio y final.
+**En simple.** `r as.character(ciro("ozzy", "ciro-lateral"))`Pongo todos mis meses en fila, cada uno descrito por su mezcla de géneros, y un algoritmo corta la fila en tramos de meses parecidos. Cada tramo es una era, con inicio y final.
 :::
 
 **En detalle.** Clustering jerárquico aglomerativo con **restricción de contigüidad** y criterio de **Ward**, conocido en geología como CONISS (Grimm, 1987).
@@ -221,7 +223,7 @@ donde $d_i$ son los abandonos en el tiempo $t_i$ y $n_i$ los artistas todavía "
 ## 🤖 ¿Puede una máquina adivinar cuándo escucho? {#modelos}
 
 ::: {.callout-note appearance="simple" icon="false"}
-**En simple.** Cinco técnicas intentan adivinar en qué momento escuché cada canción sabiendo cómo es la música, la temporada y hace cuánto escucho al artista, pero nunca la hora ni el día. Se ponen a prueba con artistas que nunca vieron y el reporte muestra solo la que mejor adivina.
+**En simple.** `r as.character(ciro("letras", "ciro-lateral"))`Cinco técnicas intentan adivinar en qué momento escuché cada canción sabiendo cómo es la música, la temporada y hace cuánto escucho al artista, pero nunca la hora ni el día. Se ponen a prueba con artistas que nunca vieron y el reporte muestra solo la que mejor adivina.
 :::
 
 ### Qué se adivina y con qué
@@ -286,6 +288,8 @@ El reporte muestra la conclusión de la técnica ganadora junto con las variable
 
 ## 📆 Análisis del reporte mensual
 
+`r as.character(ciro("postpunk", "ciro-lateral"))`El reporte mensual usa los siguientes cálculos.
+
 | Análisis | Cómo se calcula |
 |---|---|
 | ¿Mes típico o raro? | Distancia euclidiana entre la mezcla de géneros del mes y mi promedio histórico. El percentil compara esa distancia con la de todos los meses con al menos 300 escuchas. |
@@ -298,7 +302,7 @@ El reporte muestra la conclusión de la técnica ganadora junto con las variable
 
 ### La música y el clima
 
-El clima diario de Santiago proviene de [Open-Meteo](https://open-meteo.com) (`scripts/04.descargar_clima.R`). Se analizan los días con al menos 10 escuchas con ánimo, y se considera día con lluvia aquel con 1 mm o más. Para que el resultado no se confunda con las estaciones, cada variable se compara con el promedio de su mismo mes y año, controlando además si es fin de semana. Los intervalos de 95% se obtienen con 1.000 remuestreos de semanas completas, ya que los días seguidos se parecen entre sí y un intervalo tradicional resultaría optimista.
+`r as.character(ciro("lluvia", "ciro-lateral"))`El clima diario de Santiago proviene de [Open-Meteo](https://open-meteo.com) (`scripts/04.descargar_clima.R`). Se analizan los días con al menos 10 escuchas con ánimo, y se considera día con lluvia aquel con 1 mm o más. Para que el resultado no se confunda con las estaciones, cada variable se compara con el promedio de su mismo mes y año, controlando además si es fin de semana. Los intervalos de 95% se obtienen con 1.000 remuestreos de semanas completas, ya que los días seguidos se parecen entre sí y un intervalo tradicional resultaría optimista.
 
 ### Lo que dice la letra y cómo suena
 
@@ -326,6 +330,8 @@ Los modelos de playlists ocultas (LDA) y de temas de las letras (embeddings con 
 
 ## ⚠️ Limitaciones generales
 
+`r as.character(ciro("crooner", "ciro-lateral"))`Estas son las principales limitaciones de los datos y de los análisis.
+
 - **Last.fm y Spotify no son todo lo que escucho**: el corte de julio a septiembre de 2026 se rellena con Spotify, pero los de junio de 2016 y de junio a octubre de 2018 siguen abiertos, y la música fuera de las apps conectadas no queda registrada.
 - **Las etiquetas son de la comunidad**: géneros, países y ánimo dependen de lo que los usuarios de Last.fm ponen a cada artista, con sus sesgos (por ejemplo, "female vocalists" se usa mucho más que "male vocalists").
 - **Solo los artistas y canciones principales** tienen letras (las canciones con `r min_letras` escuchas o más; `r miles(cobertura$con_letra)` con letra o instrumentales, el `r cobertura$pct_letra`% de las escuchas). Las etiquetas ya cubren a todos los artistas, pero las letras no a todas las canciones.
@@ -333,4 +339,4 @@ Los modelos de playlists ocultas (LDA) y de temas de las letras (embeddings con 
 
 ## 🛠️ Herramientas
 
-El proyecto se basa en **R** (`dplyr`, `tidyr`, `arrow`, `httr2`, `ggplot2`, `plotly`, `reactable`, `topicmodels`, `uwot`, `survival`, `partykit`, `nnet`, `ranger`, `xgboost`, `ggrepel`, `stopwords`, `cld2` y `cld3`), mientras que **Python** (`sentence-transformers` sobre PyTorch) se utiliza solo para los embeddings de las letras. Asimismo, se usa **Quarto** para los reportes, **Parquet** para los datos, **GitHub Pages** para publicar y el **Programador de tareas de Windows** para la actualización mensual.
+`r as.character(ciro("flujo", "ciro-lateral"))`El proyecto se basa en **R** (`dplyr`, `tidyr`, `arrow`, `httr2`, `ggplot2`, `plotly`, `reactable`, `topicmodels`, `uwot`, `survival`, `partykit`, `nnet`, `ranger`, `xgboost`, `ggrepel`, `stopwords`, `cld2` y `cld3`), mientras que **Python** (`sentence-transformers` sobre PyTorch) se utiliza solo para los embeddings de las letras. Asimismo, se usa **Quarto** para los reportes, **Parquet** para los datos, **GitHub Pages** para publicar y el **Programador de tareas de Windows** para la actualización mensual.
