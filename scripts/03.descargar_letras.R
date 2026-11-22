@@ -57,7 +57,11 @@ mejor_resultado <- function(resultados, artista, cancion, umbral = 0.8) {
   if (length(resultados) == 0 || !is.list(resultados[[1]])) return(NULL)
   con_letra <- keep(resultados, function(r) !is.null(r$plainLyrics) && nzchar(r$plainLyrics))
   if (length(con_letra) == 0) return(NULL)
-  puntaje <- map_dbl(con_letra, function(r) min(parecido(r$artistName, artista), parecido(r$trackName, cancion)))
+  #### un resultado sin nombre de artista o canción no se compara (queda con puntaje 0)
+  puntaje <- map_dbl(con_letra, function(r) {
+    p <- suppressWarnings(min(parecido(r$artistName %||% "", artista), parecido(r$trackName %||% "", cancion)))
+    if (is.finite(p)) p else 0
+  })
   if (max(puntaje) >= umbral) con_letra[[which.max(puntaje)]] else NULL
 }
 
