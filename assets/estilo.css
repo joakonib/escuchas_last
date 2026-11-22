@@ -589,6 +589,8 @@ html { scroll-padding-bottom: 80px; }
   .bienvenida { padding: 12px 14px; }
   .bienvenida.con-ciro { gap: 12px; align-items: flex-start; }
   img.ciro-saludo { width: 64px; }
+  /* Con un Ciro por sección, a 90 px le quitan demasiado ancho al texto en el celular */
+  img.ciro-lateral { width: 64px; margin: 0 0 6px 12px; }
   .callout { font-size: 0.95rem; }
   .generado { font-size: 0.75rem; }
 

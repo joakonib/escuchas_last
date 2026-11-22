@@ -190,7 +190,7 @@ ciro <- function(cual = c("metal", "postpunk", "rapero", "encuestas", "natural",
                   ,lluvia = 324, crooner = 346, cumbia = 334, explorador = 329, colocolo = 327, eras = 350, neblina = 362
                   ,nicho = 371, mundo = 347
                   #### los que aún no tienen imagen quedan con 340 hasta que lleguen (no se muestran)
-                  ,fan = 340, genealogia = 340, laboratorio = 340, archivo = 340, limpieza = 340, guardia = 340)[[cual]] / 360
+                  ,fan = 338, genealogia = 408, laboratorio = 379, archivo = 340, limpieza = 340, guardia = 340)[[cual]] / 360
   ancho <- if (clase == "ciro-saludo") 96 else 90
   htmltools::tags$img(src = archivo, alt = alt, class = clase, width = ancho, height = round(ancho / proporcion))
 }
