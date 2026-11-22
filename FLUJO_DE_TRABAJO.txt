@@ -33,6 +33,9 @@ raíz del proyecto.
                                         (único paso en Python; vector multilingüe
                                         de cada letra; incremental)
   04  scripts/04.descargar_clima.R      Open-Meteo -> data/clima.parquet
+  04.1 scripts/04.1.descargar_audio.R ReccoBeats -> data/audio.parquet
+                                        (valencia y energía del audio de las
+                                        canciones de mis playlists; incremental)
 
   CONTROLES (quedan en el log, no detienen el flujo)
   05  scripts/05.chequear_letras.R      cobertura, duplicadas y vacías
@@ -429,3 +432,12 @@ HISTORIAL DE CAMBIOS DEL FLUJO
                 imágenes de joako.galdames y se siguió con jgaldamesh.
                 ciro_sin_fondo.py suma contorno=N para rehacer el borde
                 blanco cuando no se distingue del fondo.
+
+  22-11-2026  (tarde) Letras: tercera pasada para las que faltan (búsqueda
+              libre en LRCLIB y lyrics.ovh). Audio desde ReccoBeats (paso
+              04.1). Técnicas nuevas: aburrimiento antes del adiós (Benson
+              y otros, 2016), memoria ACT-R para predecir a quién vuelvo,
+              lo conocido y lo nuevo dentro de cada sesión y validación del
+              ánimo de las etiquetas con el audio. leer_spotify() ya lee el
+              historial ampliado de Spotify si se agrega al zip. El commit
+              automático del flujo B ya no sube scripts/.

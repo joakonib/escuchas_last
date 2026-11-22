@@ -46,6 +46,8 @@ rem Letras buscadas en la web (data\letras_web.json), solo donde LRCLIB no tiene
 rem Embeddings de las letras (unico paso en Python, entorno .venv); incremental
 if exist .venv\Scripts\python.exe call :reintentar "Embeddings" .venv\Scripts\python.exe scripts\03.2.embeddings_letras.py
 call :reintentar "Clima" %RSCRIPT% scripts\04.descargar_clima.R
+rem Audio de las canciones de mis playlists (ReccoBeats); incremental
+call :reintentar "Audio" %RSCRIPT% scripts\04.1.descargar_audio.R
 rem Chequeo de letras (paso 2.1): queda en el log
 %RSCRIPT% scripts\05.chequear_letras.R >> %LOG% 2>&1
 

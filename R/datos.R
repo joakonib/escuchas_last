@@ -37,8 +37,32 @@ leer_escuchas <- function(zona = "America/Santiago") {
 
 # 3. Spotify ------
 #### lee los StreamingHistory_music directo del ZIP; endTime viene en UTC
+#### Lee el historial básico (StreamingHistory_music_*.json) o, si el zip trae el historial
+#### ampliado (Streaming_History_Audio_*.json, que se pide aparte a Spotify), ese, que suma
+#### el identificador de la canción, si se saltó y si estaba en aleatorio.
 leer_spotify <- function(zip = "data/my_spotify_data.zip", zona = "America/Santiago") {
-  unzip(zip, list = TRUE)$Name %>%
+  archivos <- unzip(zip, list = TRUE)$Name
+  ampliado <- str_subset(archivos, "Streaming_History_Audio_.*[.]json$")
+  if (length(ampliado) > 0) {
+    return(
+      ampliado %>%
+        map_dfr(~ jsonlite::fromJSON(unz(zip, .x))) %>%
+        as_tibble() %>%
+        filter(!is.na(master_metadata_track_name)) %>%
+        transmute(
+          fecha = with_tz(ymd_hms(ts, tz = "UTC"), zona)
+          ,artista = master_metadata_album_artist_name
+          ,cancion = master_metadata_track_name
+          ,ms = ms_played
+          ,minutos = ms_played / 60000
+          ,cuenta = ms_played >= 30000
+          ,id = str_remove(spotify_track_uri, "spotify:track:")
+          ,saltada = as.logical(skipped)
+          ,aleatorio = as.logical(shuffle)
+        )
+    )
+  }
+  archivos %>%
     str_subset("StreamingHistory_music_[0-9]+[.]json$") %>%
     map_dfr(~ jsonlite::fromJSON(unz(zip, .x))) %>%
     as_tibble() %>%

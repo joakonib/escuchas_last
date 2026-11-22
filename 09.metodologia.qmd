@@ -80,7 +80,7 @@ Para todos los artistas que he escuchado (`r miles(n_artistas)` hoy, el 100% de 
 
 ### 3. Letras e imágenes
 
-- **Letras:** se buscan las canciones que escuché **`r min_letras` veces o más** (el `r cobertura$pct_grupo`% de mis escuchas). Hoy hay `r miles(cobertura$revisadas)` revisadas y `r miles(cobertura$con_letra)` con letra o instrumentales (el `r cobertura$pct_letra`% de mis escuchas); las canciones nuevas que entren al grupo se suman en las actualizaciones mensuales. Las letras provienen de [LRCLIB](https://lrclib.net), y si una canción no aparece se busca otra vez con el título limpio (sin «Remastered», «Live», «feat.», paréntesis ni corchetes) y solo con el artista principal (`scripts/03.descargar_letras.R` → `data/letras.parquet`). Asimismo, `scripts/03.1.sumar_letras_web.R` permite sumar letras buscadas a mano en la web cuando LRCLIB no las tiene, sin reemplazar nunca una letra existente. Cabe señalar que se usan solo para análisis, por lo cual el reporte muestra palabras y temas agregados y nunca letras completas.
+- **Letras:** se buscan las canciones que escuché **`r min_letras` veces o más** (el `r cobertura$pct_grupo`% de mis escuchas). Hoy hay `r miles(cobertura$revisadas)` revisadas y `r miles(cobertura$con_letra)` con letra o instrumentales (el `r cobertura$pct_letra`% de mis escuchas); las canciones nuevas que entren al grupo se suman en las actualizaciones mensuales. Las letras provienen de [LRCLIB](https://lrclib.net), y si una canción no aparece se busca otra vez con el título limpio (sin «Remastered», «Live», «feat.», paréntesis ni corchetes) y solo con el artista principal (`scripts/03.descargar_letras.R` → `data/letras.parquet`). Asimismo, `scripts/03.1.sumar_letras_web.R` permite sumar letras buscadas a mano en la web cuando LRCLIB no las tiene, sin reemplazar nunca una letra existente. Cabe señalar que se usan solo para análisis, por lo cual el reporte muestra palabras y temas agregados y nunca letras completas. Para las que siguen sin letra se intenta una búsqueda de texto libre en LRCLIB y, si tampoco aparece, [lyrics.ovh](https://lyrics.ovh), una segunda base abierta; lo intentado queda marcado para no repetirlo.
 - **Idioma:** se detecta contando palabras frecuentes del español y del inglés, y una letra se considera de otro idioma (francés, portugués o japonés, entre otros) solo si los detectores de Google CLD3 y CLD2 coinciden, ya que cada uno por separado se equivoca en letras cortas.
 - **Embeddings (Python):** `scripts/03.2.embeddings_letras.py` convierte cada letra en un vector de significado con un modelo de lenguaje multilingüe, el cual alimenta los temas de las letras (ver técnicas). Se ejecuta en un entorno propio (`.venv`, Python 3.14) y solo procesa las letras nuevas.
 - **Imágenes:** fotos de artistas y portadas de discos desde la API de Deezer (`R/imagenes.R`), guardadas en `data/imagenes/`.
@@ -217,6 +217,52 @@ El modelo se guarda (`data/modelo_temas_semanticos.rds`) y las letras nuevas se 
 **En detalle.** Para cada artista con al menos 20 escuchas, el tiempo va desde la primera escucha hasta la última. El **evento** ("muerte") es no escucharlo en el último año; los artistas que sigo escuchando quedan **censurados**. El estimador de Kaplan-Meier (1958) es
 $$\hat S(t) = \prod_{t_i \le t}\left(1 - \frac{d_i}{n_i}\right),$$
 donde $d_i$ son los abandonos en el tiempo $t_i$ y $n_i$ los artistas todavía "vivos". Chilenos y extranjeros se comparan con la **prueba log-rank**.
+
+#### 🥱 Aburrimiento antes del adiós
+
+::: {.callout-note appearance="simple" icon="false"}
+**En simple.** Antes de dejar a un artista, ¿lo voy escuchando cada vez más espaciado? Se mide el tiempo entre escuchas a medida que se acerca la última.
+:::
+
+**En detalle.** Sigue a Benson, Kumar y Tomkins (2016), que modelaron secuencias de consumo en historiales de Last.fm y encontraron que los intervalos crecen antes del abandono.
+
+1. Se consideran los artistas con 50 escuchas o más que llevo más de un año sin escuchar, y con al menos 15 días de escucha.
+2. Se cuenta un día de escucha por artista, para medir la distancia entre días y no entre canciones de una misma sesión.
+3. Para cada uno de los últimos diez días de escucha se calcula la mediana de días desde el anterior, y se compara con la mediana del resto de su historia.
+
+**Limitaciones.** "Dejar" a un artista se define con un año sin escucharlo, por lo cual algunos podrían volver; el análisis describe y no predice.
+
+#### 🧠 Memoria ACT-R para predecir a quién vuelvo
+
+::: {.callout-note appearance="simple" icon="false"}
+**En simple.** La memoria recuerda mejor lo que se repite y lo reciente, y olvida de a poco. Con esa fórmula se ordena a mis artistas y se revisa si los primeros vuelven a sonar el mes siguiente.
+:::
+
+**En detalle.** Activación de nivel base de la teoría ACT-R (Anderson y Schooler, 1991), aplicada a Last.fm por Reiter-Haas y otros (2021):
+$$B_i(t) = \ln \sum_{j} (t - t_j)^{-d},\qquad d = 0{,}5,$$
+donde $t_j$ son los días en que escuché al artista $i$ y $t$ se mide en días. Se evalúa en cortes mensuales de los últimos 24 meses: se ordenan los artistas por $B_i$ con los datos previos al corte y se mide qué parte de los 50 primeros escuché en los 30 días siguientes. Se compara con ordenar por frecuencia total y por la última escucha.
+
+**Limitaciones.** El parámetro $d$ se fija en el valor clásico de la teoría y no se ajusta a mis datos. Se predice el artista y no la canción.
+
+#### 🔀 Lo conocido y lo nuevo dentro de cada sesión
+
+::: {.callout-note appearance="simple" icon="false"}
+**En simple.** En cada sesión se cuenta qué parte de las canciones escuchaba por primera vez, y en qué momento de la sesión aparecen.
+:::
+
+**En detalle.** Una sesión termina tras 30 minutos sin música y se consideran las de cinco canciones o más. Una canción es nueva la primera vez que aparece en todo mi historial. Por año se calcula el promedio de canciones nuevas por sesión y el porcentaje de sesiones sin ninguna; además, cada sesión se divide en tercios para ver si lo nuevo aparece al inicio, al medio o al final. El primer año queda fuera, ya que en él casi todo es nuevo. La idea de medir esta mezcla dentro de la sesión viene de trabajos de Deezer presentados en RecSys 2025.
+
+**Limitaciones.** Con los años crece lo que ya conozco, por lo cual parte de la baja es esperable; una canción escuchada antes en otra plataforma cuenta como nueva.
+
+#### 🎚️ Validación del ánimo con el audio
+
+::: {.callout-note appearance="simple" icon="false"}
+**En simple.** ¿El ánimo que sale de las etiquetas se parece al que se escucha en la música? Se compara con la valencia y la energía calculadas desde el audio.
+:::
+
+**En detalle.** `scripts/04.1.descargar_audio.R` toma los identificadores de Spotify de las canciones de mis playlists (la única parte de la exportación de la cuenta que los trae) y consulta [ReccoBeats](https://reccobeats.com), que entrega valencia, energía, bailabilidad, tempo y otras medidas del audio, como lo hacía Spotify hasta noviembre de 2024. Para cada artista con al menos dos canciones con audio se promedian la valencia y la energía, y se comparan con su nota de etiquetas con la correlación de Spearman.
+
+**Limitaciones.** Solo cubre las canciones de mis playlists y los artistas que se pueden cruzar por nombre; ReccoBeats no conoce todas las canciones.
 
 :::
 

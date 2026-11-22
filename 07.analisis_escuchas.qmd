@@ -967,6 +967,58 @@ p <- escuchas %>%
 interactivo(p)
 ```
 
+#### Dentro de cada sesión
+
+::: {.callout-tip appearance="simple" icon="false"}
+**Teoría.** Las sesiones de escucha suelen combinar canciones conocidas con otras nuevas, y el equilibrio entre ambas cambia de una persona a otra y en el tiempo. Investigadores de Deezer lo estudiaron como una mezcla que se puede medir y anticipar dentro de cada sesión (RecSys, 2025).
+:::
+
+```{r}
+#| label: sesiones-nuevo
+#| fig-height: 3.8
+nuevo_canciones <- escuchas %>%
+  mutate(sesion = cumsum(c(TRUE, diff(uts) > 1800))) %>%
+  group_by(artista, cancion) %>%
+  mutate(nueva = row_number() == 1) %>%
+  ungroup() %>%
+  group_by(sesion) %>%
+  filter(n() >= 5) %>%
+  mutate(tercio = cut(row_number() / n(), c(0, 1/3, 2/3, 1), labels = c("inicio", "medio", "final"))) %>%
+  ungroup() %>%
+  filter(anio > min(anio))   # en el primer año casi todo es nuevo
+
+nuevo_sesion <- nuevo_canciones %>%
+  group_by(sesion) %>%
+  summarise(anio = first(anio), nuevas = mean(nueva), .groups = "drop")
+
+nuevo_anual <- nuevo_sesion %>%
+  group_by(anio) %>%
+  summarise(sin_nuevo = mean(nuevas == 0), nuevas = mean(nuevas), sesiones = n(), .groups = "drop") %>%
+  filter(sesiones >= 100)
+
+nuevo_tercio <- nuevo_canciones %>% group_by(tercio) %>% summarise(nuevas = mean(nueva))
+
+p <- nuevo_anual %>%
+  pivot_longer(c(nuevas, sin_nuevo), names_to = "medida", values_to = "valor") %>%
+  mutate(medida = ifelse(medida == "nuevas", "Canciones nuevas en la sesión (promedio)", "Sesiones sin ninguna canción nueva")) %>%
+  ggplot(aes(anio, valor, color = medida, group = medida
+             ,text = paste0("<b>", anio, "</b><br>", medida, ": ", pct(valor)))) +
+  geom_line(linewidth = 1.1) +
+  geom_point(size = 2.4) +
+  scale_color_manual(values = c(`Canciones nuevas en la sesión (promedio)` = verde
+                                ,`Sesiones sin ninguna canción nueva` = principal), name = NULL) +
+  scale_x_continuous(breaks = nuevo_anual$anio, labels = anio_corto) +
+  scale_y_continuous(labels = pct, limits = c(0, NA)) +
+  labs(title = "Lo conocido y lo nuevo dentro de mis sesiones"
+       ,subtitle = "Sesiones de al menos cinco canciones; una canción es nueva la primera vez que la escucho"
+       ,x = NULL, y = NULL)
+interactivo(p)
+
+nuevo_ini <- first(nuevo_anual); nuevo_fin <- last(nuevo_anual)
+```
+
+**¿Qué me dice?** En `r nuevo_ini$anio` las canciones que escuchaba por primera vez eran en promedio el `r pct(nuevo_ini$nuevas)` de cada sesión, mientras que en `r nuevo_fin$anio` bajaron al `r pct(nuevo_fin$nuevas)`, y el `r pct(nuevo_fin$sin_nuevo)` de mis sesiones de ese año no tuvo ninguna canción nueva. Respecto al orden, lo nuevo aparece algo más hacia el final de la sesión (`r pct(nuevo_tercio$nuevas[nuevo_tercio$tercio == "final"])` de canciones nuevas en el último tercio frente a `r pct(nuevo_tercio$nuevas[nuevo_tercio$tercio == "inicio"])` en el primero), lo cual podría indicar que suelo partir con lo conocido y después me doy espacio para probar. Cabe tener en consideración que una canción cuenta como nueva solo la primera vez que la escucho, por lo cual con los años es esperable que la proporción baje a medida que crece lo que ya conozco, y parte de la caída se explica por eso.
+
 :::
 
 ## 🌳 Genealogía de mis descubrimientos
@@ -1290,6 +1342,49 @@ tabla(dias_extremos, titulo = "Mis días más oscuros y más luminosos"
         ,n        = colDef(name = "Escuchas")
       ))
 ```
+
+#### ¿Las etiquetas aciertan?
+
+::: {.callout-note appearance="simple" icon="false"}
+**¿Cómo se mide?** Para las canciones de mis playlists de Spotify se obtuvieron la valencia y la energía del audio desde [ReccoBeats](https://reccobeats.com), que las calcula a partir de la señal (Spotify dejó de entregarlas en 2024). Luego, para cada artista con al menos dos canciones con audio, se comparó el promedio del audio con la nota que le dan sus etiquetas de Last.fm, usando la correlación de Spearman.
+:::
+
+```{r}
+#| label: animo-audio
+#| eval: !expr tiene_tags && file.exists("data/audio.parquet")
+#| fig-height: 3.8
+normalizar_nombre <- function(x) str_squish(str_to_lower(iconv(x, "UTF-8", "ASCII//TRANSLIT")))
+audio_artista <- leer_parquet("data/audio.parquet") %>%
+  filter(!is.na(energia)) %>%
+  mutate(clave = normalizar_nombre(artista)) %>%
+  group_by(clave) %>%
+  summarise(canciones = n(), valencia_audio = mean(valencia), energia_audio = mean(energia), .groups = "drop") %>%
+  filter(canciones >= 2)
+
+cruce_audio <- animo_artista %>%
+  mutate(clave = normalizar_nombre(artista)) %>%
+  inner_join(audio_artista, by = "clave")
+
+rho_val <- cor(cruce_audio$valencia, cruce_audio$valencia_audio, method = "spearman")
+rho_ene <- cor(cruce_audio$energia, cruce_audio$energia_audio, method = "spearman")
+
+p <- cruce_audio %>%
+  select(artista, valencia, energia, valencia_audio, energia_audio) %>%
+  pivot_longer(-artista, names_to = c("medida", "fuente"), names_pattern = "(valencia|energia)_?(audio)?") %>%
+  mutate(fuente = ifelse(fuente == "audio", "audio", "etiquetas")) %>%
+  pivot_wider(names_from = fuente, values_from = value) %>%
+  mutate(medida = ifelse(medida == "valencia", "Valencia", "Energía")) %>%
+  ggplot(aes(etiquetas, audio, text = paste0("<b>", artista, "</b><br>Etiquetas: ", round(etiquetas, 2)
+                                             ,"<br>Audio: ", round(audio, 2)))) +
+  geom_point(color = verde, alpha = 0.7, size = 2) +
+  facet_wrap(~ medida, scales = "free") +
+  labs(title = "El ánimo de las etiquetas frente al del audio"
+       ,subtitle = "Cada punto es un artista; etiquetas de -1 a 1, audio de 0 a 1"
+       ,x = "Según las etiquetas de Last.fm", y = "Según el audio")
+interactivo(p)
+```
+
+**¿Qué me dice?** En los `r if (exists("cruce_audio")) nrow(cruce_audio) else "—"` artistas que se pudieron cruzar, la correlación entre las etiquetas y el audio es de `r if (exists("rho_val")) format(round(rho_val, 2), decimal.mark = ",") else "—"` para la valencia y de `r if (exists("rho_ene")) format(round(rho_ene, 2), decimal.mark = ",") else "—"` para la energía. Esto da cuenta de que las etiquetas de la comunidad, pese a sus sesgos, capturan buena parte de lo que se escucha en la música, por lo cual el ánimo de esta sección es una medida razonable. Cabe señalar que el cruce se limita a las canciones de mis playlists, que son las únicas con identificador de Spotify en la exportación de mi cuenta.
 
 :::
 
@@ -1966,7 +2061,7 @@ texto_modelos <- paste0(
 
 ## 📝 Lo que dicen mis canciones
 
-`r as.character(ciro("letras", "ciro-lateral"))`Bajé las letras de mis canciones más escuchadas desde [LRCLIB](https://lrclib.net), una base abierta de letras, para ver de qué hablan. Por derechos de autor aquí solo muestro palabras y temas agregados, nunca letras completas.
+`r as.character(ciro("letras", "ciro-lateral"))`Bajé las letras de mis canciones más escuchadas desde [LRCLIB](https://lrclib.net) y, cuando no estaban ahí, desde [lyrics.ovh](https://lyrics.ovh), dos bases abiertas de letras, para ver de qué hablan. Por derechos de autor aquí solo muestro palabras y temas agregados, nunca letras completas.
 
 ```{r}
 #| label: letras-preparacion
@@ -2463,6 +2558,116 @@ tabla(fieles, titulo = "Los de siempre"
         ,desde   = colDef(name = "Desde", maxWidth = 80)
       ))
 ```
+
+#### Antes del adiós
+
+::: {.callout-tip appearance="simple" icon="false"}
+**Teoría.** Benson, Kumar y Tomkins (2016) analizaron historiales completos de Last.fm y mostraron que, antes de abandonar algo, las personas lo consumen cada vez más espaciado, como una señal de aburrimiento que aparece antes del abandono.
+:::
+
+```{r}
+#| label: antes-del-adios
+#| fig-height: 3.6
+# Artistas con 50 escuchas o más que llevo más de un año sin escuchar. Se cuenta un día
+# de escucha por artista, para medir el tiempo entre días y no dentro de una sesión.
+dias_artista <- escuchas %>%
+  distinct(artista, dia) %>%
+  arrange(artista, dia) %>%
+  group_by(artista) %>%
+  mutate(n_dias = n(), antes_del_fin = n() - row_number(), intervalo = as.numeric(dia - lag(dia))) %>%
+  ungroup()
+
+abandonados <- escuchas %>%
+  group_by(artista) %>%
+  summarise(total = n(), ultima = max(dia), .groups = "drop") %>%
+  filter(total >= 50, ultima < ultimo_dia - 365) %>%
+  pull(artista)
+
+adios <- dias_artista %>%
+  filter(artista %in% abandonados, n_dias >= 15, !is.na(intervalo))
+adios_curva <- adios %>%
+  filter(antes_del_fin <= 9) %>%
+  group_by(antes_del_fin) %>%
+  summarise(mediana = median(intervalo), .groups = "drop") %>%
+  mutate(etiqueta = ifelse(antes_del_fin == 0, "Última", paste0(antes_del_fin, " antes")))
+adios_medio <- median(adios$intervalo[adios$antes_del_fin >= 10])
+adios_ultimo <- adios_curva$mediana[adios_curva$antes_del_fin == 0]
+n_adios <- n_distinct(adios$artista)
+
+p <- adios_curva %>%
+  mutate(etiqueta = fct_reorder(etiqueta, -antes_del_fin)) %>%
+  ggplot(aes(etiqueta, mediana, text = paste0("<b>", etiqueta, "</b><br>Mediana: ", round(mediana), " días"))) +
+  geom_hline(yintercept = adios_medio, color = gris, linewidth = 0.5, linetype = "dashed") +
+  geom_col(fill = principal, width = 0.7) +
+  labs(title = "El tiempo entre escuchas se estira antes de dejar a un artista"
+       ,subtitle = paste0("Días entre un día de escucha y el anterior, mediana de ", n_adios
+                          ," artistas que dejé (línea: el resto de su historia)")
+       ,x = "Días de escucha antes del último", y = "Días")
+interactivo(p)
+```
+
+**¿Qué me dice?** Entre los `r n_adios` artistas que escuché mucho y luego dejé, la mediana de días entre una escucha y la siguiente es de `r round(adios_medio)` días durante la mayor parte de su historia, pero se estira a medida que se acerca el final, hasta llegar a `r round(adios_ultimo)` días antes de la última escucha. Esto indica que el adiós suele venir precedido de un distanciamiento gradual, tal como describen Benson, Kumar y Tomkins, lo cual podría usarse para anticipar qué artistas estoy dejando de escuchar.
+
+#### ¿A quién vuelvo?
+
+::: {.callout-tip appearance="simple" icon="false"}
+**Teoría.** La teoría ACT-R de la memoria (Anderson y Schooler, 1991) plantea que la probabilidad de recordar algo depende de cuántas veces lo hemos visto y de hace cuánto, con un olvido que decae como una potencia del tiempo. Reiter-Haas y otros (2021) la aplicaron a Last.fm para predecir qué música vuelve a escuchar cada persona.
+:::
+
+```{r}
+#| label: actr
+# Activación de nivel base de cada artista: ln(suma de t^-0,5), con t = días desde cada día
+# en que lo escuché. Se compara con la frecuencia total y con la última vez, en cortes
+# mensuales de los últimos 24 meses: acierto = de los 50 primeros, cuántos escuché en los
+# 30 días siguientes.
+dias_unicos <- distinct(escuchas, artista, dia)
+activacion <- function(t0) {
+  dias_unicos %>%
+    filter(dia < t0) %>%
+    mutate(t = as.numeric(t0 - dia) + 0.5) %>%
+    group_by(artista) %>%
+    summarise(act = log(sum(t^-0.5)), frecuencia = n(), recencia = -min(t), .groups = "drop")
+}
+cortes_actr <- seq(floor_date(ultimo_dia, "month") %m-% months(24)
+                   ,floor_date(ultimo_dia, "month") %m-% months(1), by = "month")
+actr_eval <- map_dfr(cortes_actr, function(t0) {
+  previo <- activacion(t0)
+  siguientes <- dias_unicos %>% filter(dia >= t0, dia < t0 + 30) %>% distinct(artista) %>% pull()
+  map_dfr(c("act", "frecuencia", "recencia"), function(m) {
+    top <- previo %>% slice_max(.data[[m]], n = 50, with_ties = FALSE) %>% pull(artista)
+    tibble(metodo = m, acierto = mean(top %in% siguientes))
+  })
+}) %>%
+  group_by(metodo) %>%
+  summarise(acierto = mean(acierto), .groups = "drop") %>%
+  mutate(metodo = recode(metodo, act = "Memoria (ACT-R)", frecuencia = "Los más escuchados de siempre"
+                         ,recencia = "Los escuchados más recientemente")) %>%
+  arrange(desc(acierto))
+
+ahora <- activacion(ultimo_dia + 1)
+recientes <- dias_unicos %>% filter(dia > ultimo_dia - 30) %>% distinct(artista) %>% pull()
+me_tocan <- ahora %>%
+  filter(!artista %in% recientes) %>%
+  slice_max(act, n = 10, with_ties = FALSE) %>%
+  left_join(dias_unicos %>% group_by(artista) %>% summarise(ultima = max(dia)), by = "artista") %>%
+  transmute(artista, ultima = fmt_fecha(ultima))
+
+tabla(actr_eval, titulo = "¿Qué método adivina mejor a quién vuelvo?"
+      ,subtitulo = "De los 50 artistas que propone cada método, % que escuché en los 30 días siguientes (promedio de 24 meses)"
+      ,columnas = list(
+        metodo   = colDef(name = "Método", minWidth = 220)
+        ,acierto = colDef(name = "Acierto", maxWidth = 100, format = colFormat(percent = TRUE, digits = 0))
+      ))
+
+tabla(me_tocan, titulo = "Los que ya me tocan"
+      ,subtitulo = "Los artistas con más activación en mi memoria que no he escuchado en los últimos 30 días"
+      ,columnas = list(
+        artista = colDef(name = "Artista", minWidth = 180)
+        ,ultima = colDef(name = "Última vez", maxWidth = 120)
+      ))
+```
+
+**¿Qué me dice?** Al ordenar a mis artistas según la activación de ACT-R, el `r pct(actr_eval$acierto[actr_eval$metodo == "Memoria (ACT-R)"])` de los 50 primeros vuelve a sonar en el mes siguiente, frente a un `r pct(actr_eval$acierto[actr_eval$metodo == "Los más escuchados de siempre"])` si se usan los más escuchados de siempre y un `r pct(actr_eval$acierto[actr_eval$metodo == "Los escuchados más recientemente"])` si se usan solo los más recientes. Esto indica que a quién vuelvo depende de ambas cosas a la vez, es decir, de cuánto lo he escuchado y de hace cuánto, con el mismo olvido gradual que describe la teoría para la memoria. La segunda tabla aplica el modelo a hoy, por lo cual muestra a los artistas que, según mi propio historial, deberían volver pronto.
 
 :::
 

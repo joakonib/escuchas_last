@@ -81,6 +81,7 @@ tagList(navegacion("flujo"), linea_generacion(), boton_volver())
     <div class="paso"><b>03.1 · Letras de la web</b><code>03.1.sumar_letras_web.R</code><br>Completa lo que LRCLIB no tiene</div>
     <div class="paso python"><b>03.2 · Embeddings de letras</b><code>03.2.embeddings_letras.py</code><br>Cada letra pasa a un vector de significado multilingüe</div>
     <div class="paso"><b>04 · Clima</b><code>04.descargar_clima.R</code><br>Clima diario de Santiago (Open-Meteo)</div>
+    <div class="paso"><b>04.1 · Audio</b><code>04.1.descargar_audio.R</code><br>Valencia y energía del audio de mis playlists (ReccoBeats)</div>
   </div></div>
   <div class="flecha" aria-hidden="true">↓</div>
   <div class="etapa" role="listitem"><h4>3. Controles</h4><div class="pasos">

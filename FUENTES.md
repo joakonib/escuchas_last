@@ -48,6 +48,11 @@ Se actualiza cada vez que se agrega una fuente nueva.
 | Breiman (2001), *Random Forests*, Machine Learning; Wright y Ziegler (2017), *ranger*, Journal of Statistical Software | Random forest | Laboratorio: "¿Puede una máquina adivinar cuándo escucho?" |
 | Friedman (2001), *Greedy Function Approximation: A Gradient Boosting Machine*, Annals of Statistics; Chen y Guestrin (2016), *XGBoost* | Gradient boosting | Laboratorio: "¿Puede una máquina adivinar cuándo escucho?" |
 | [LRCLIB](https://lrclib.net) | Letras de las canciones más escuchadas (solo análisis local; el reporte muestra palabras y tópicos agregados) | `03.descargar_letras.R` → `data/letras.parquet` |
+| [lyrics.ovh](https://lyrics.ovh) | Letras de las canciones que LRCLIB no tiene, en la tercera pasada (22-11-2026) | `03.descargar_letras.R` → `data/letras.parquet` (fuente `ovh`) |
+| [ReccoBeats](https://reccobeats.com), API de características de audio | Valencia, energía, bailabilidad, tempo y otras medidas del audio, por identificador de Spotify (reemplazo de las de Spotify, cerradas en noviembre de 2024) | `04.1.descargar_audio.R` → `data/audio.parquet`; pestaña "¿Las etiquetas aciertan?" |
+| Benson, Kumar y Tomkins (2016), *Modeling User Consumption Sequences*, WWW | Intervalos que crecen antes de abandonar algo (aburrimiento) | Pestaña "Antes del adiós" |
+| Anderson y Schooler (1991), *Reflections of the Environment in Memory*, Psychological Science; Reiter-Haas y otros (2021), *Predicting Music Relistening Behavior Using the ACT-R Framework*, RecSys | Activación de nivel base (ACT-R) para predecir a quién vuelvo | Pestaña "¿A quién vuelvo?" |
+| Trabajos de Deezer sobre la mezcla de canciones conocidas y nuevas en una sesión (RecSys 2025, [arXiv 2507.17356](https://arxiv.org/abs/2507.17356)) | Medir lo conocido y lo nuevo dentro de cada sesión | Pestaña "Dentro de cada sesión" |
 
 ## Cruces
 
