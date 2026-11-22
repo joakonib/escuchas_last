@@ -110,6 +110,8 @@ reintentar 4 "Letras" "$R" scripts/03.descargar_letras.R
 # Embeddings de las letras: único paso en Python (entorno .venv), incremental
 [ -x .venv/Scripts/python.exe ] && reintentar 2 "Embeddings de letras" .venv/Scripts/python.exe scripts/03.2.embeddings_letras.py
 reintentar 4 "Clima" "$R" scripts/04.descargar_clima.R
+# Audio de las canciones de mis playlists (ReccoBeats); incremental
+reintentar 4 "Audio" "$R" scripts/04.1.descargar_audio.R
 
 # 2. Chequeo de letras
 "$R" scripts/05.chequear_letras.R >> "$LOG" 2>&1
