@@ -5,7 +5,7 @@ que se ejecuta (actualizar.bat para el mensual automático; el script nocturno
 para las corridas completas con Claude). Si un paso está aquí y no en el flujo
 efectivo, o al revés, hay que corregirlo.
 
-Última actualización: 15-11-2026
+Última actualización: 22-11-2026
 
 
 WORKFLOW COMPLETO (MAPA RÁPIDO)
@@ -407,3 +407,23 @@ HISTORIAL DE CAMBIOS DEL FLUJO
               reescritos con el estilo de la tesis de Joaquín (ver ESTILO.md)
               y verificados contra los datos. Ciros nuevos (metal, post-punk,
               encuestas); el natural nuevo queda sin publicar por ahora.
+  22-11-2026  Corrida completa desde cero (descarga de Last.fm de nuevo, 969
+              páginas, verificada contra el respaldo). Lecciones:
+              - Entorno de R: si el flujo se lanza desde una consola de otro R
+                (R 4.3 de rig), hereda R_HOME, R_LIBS_USER y su PATH; Rscript
+                4.6 queda sin paquetes ("no hay paquete llamado 'pacman'") y
+                Quarto toma el R 4.3 sin rmarkdown. flujo_nocturno.sh ahora
+                borra las variables R_*, saca rig del PATH y fija QUARTO_R
+                en R 4.6.
+              - Para detener un flujo no basta con matar el bash principal: su
+                "sleep" de reintento sigue vivo y vuelve a correr el paso.
+                Matar el árbol completo (taskkill /F /T) o mandar TERM al
+                bash del flujo y a su sleep, y confirmar con la lista de
+                procesos (ya estaba en las reglas; pasó igual).
+              - El candado de una corrida cortada (más de 12 h) lo libera solo
+                el flujo B.
+              - Ciros nuevos: lluvia (clima), crooner (amores olvidados),
+                cumbia (momentos), explorador (explorar o volver) y Colo-Colo
+                (hitos; único con azul permitido, por el escudo del club).
+                ciro_sin_fondo.py suma contorno=N para rehacer el borde
+                blanco cuando no se distingue del fondo.

@@ -7,6 +7,8 @@
 #                 bordes hasta la línea oscura que rodea el sticker
 #   umbral=N:     luz desde la que un pixel cuenta como blanco (228 por defecto); subirlo
 #                 (p. ej. 245) cuando los cuadros claros del damero son casi blancos
+#   contorno=N:   rehace un borde blanco de N px alrededor del dibujo, para los stickers
+#                 cuyo borde blanco no se distingue del fondo (lluvia, crooner, Colo-Colo)
 # Originales en input/ciro_ilustraciones/, resultados en assets/ciro/ (y copia en docs/img/).
 import sys
 from PIL import Image, ImageDraw, ImageFilter
@@ -32,6 +34,21 @@ for y in range(0, h, 4):
     for x in (0, w - 1):
         if m.getpixel((x, y)) == fondo: ImageDraw.floodfill(m, (x, y), 128)
 alpha = m.point(lambda v: 0 if v == 128 else 255)
+# contorno=N: cuando el borde blanco del sticker y el fondo son igual de blancos (255) y
+# no hay línea entre ellos, se rehace el borde: el dibujo (lo no blanco) se engorda N px
+# y se quita solo el blanco que queda afuera de esa silueta
+borde = next((int(o.split("=")[1]) for o in opciones if o.startswith("contorno=")), 0)
+if borde:
+    sil = im.convert("L").point(lambda v: 255 if v < 240 else 0)
+    for _ in range(max(1, borde // 4)): sil = sil.filter(ImageFilter.MaxFilter(9))
+    sil = sil.point(lambda v: 255 if v > 0 else 0)
+    for x in range(0, w, 4):
+        for y in (0, h - 1):
+            if sil.getpixel((x, y)) == 0: ImageDraw.floodfill(sil, (x, y), 128)
+    for y in range(0, h, 4):
+        for x in (0, w - 1):
+            if sil.getpixel((x, y)) == 0: ImageDraw.floodfill(sil, (x, y), 128)
+    alpha = sil.point(lambda v: 0 if v == 128 else 255)
 alpha = alpha.filter(ImageFilter.MinFilter(3)).filter(ImageFilter.GaussianBlur(0.8))
 out = im.convert("RGBA"); out.putalpha(alpha)
 out = out.crop(alpha.point(lambda v: 255 if v > 20 else 0).getbbox())

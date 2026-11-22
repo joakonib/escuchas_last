@@ -928,7 +928,7 @@ interactivo(p)
 ```
 
 ::: {.callout-note appearance="simple" icon="false"}
-**¿Qué me dice?** En `r if (tiene_tags) min(omnivoro$anio) else ""` mi mezcla equivalía a unos `r if (tiene_tags) round(omnivoro$efectivos[1]) else "—"` géneros igual de escuchados; en `r if (tiene_tags) max(omnivoro$anio) else ""`, a unos `r if (tiene_tags) round(tail(omnivoro$efectivos, 1)) else "—"`, y llegué a un máximo de `r if (tiene_tags) round(max(omnivoro$efectivos)) else "—"` en `r if (tiene_tags) omnivoro$anio[which.max(omnivoro$efectivos)] else ""`. El número de géneros distintos que toco en un año también subió, de `r if (tiene_tags) omnivoro$generos[1] else "—"` a cerca de `r if (tiene_tags) max(omnivoro$generos) else "—"`. Por lo tanto, pasé de un gusto especializado, que era casi todo metal, a uno omnívoro como el que describe Peterson. Cabe tener en consideración que el primer año del historial está incompleto, ya que comienza en septiembre, lo cual baja un poco su valor.
+**¿Qué me dice?** `r as.character(ciro("explorador", "ciro-lateral"))`En `r if (tiene_tags) min(omnivoro$anio) else ""` mi mezcla equivalía a unos `r if (tiene_tags) round(omnivoro$efectivos[1]) else "—"` géneros igual de escuchados; en `r if (tiene_tags) max(omnivoro$anio) else ""`, a unos `r if (tiene_tags) round(tail(omnivoro$efectivos, 1)) else "—"`, y llegué a un máximo de `r if (tiene_tags) round(max(omnivoro$efectivos)) else "—"` en `r if (tiene_tags) omnivoro$anio[which.max(omnivoro$efectivos)] else ""`. El número de géneros distintos que toco en un año también subió, de `r if (tiene_tags) omnivoro$generos[1] else "—"` a cerca de `r if (tiene_tags) max(omnivoro$generos) else "—"`. Por lo tanto, pasé de un gusto especializado, que era casi todo metal, a uno omnívoro como el que describe Peterson. Cabe tener en consideración que el primer año del historial está incompleto, ya que comienza en septiembre, lo cual baja un poco su valor.
 :::
 
 #### Géneros en el tiempo
@@ -1132,7 +1132,7 @@ interactivo(p)
 ```
 
 ::: {.callout-note appearance="simple" icon="false"}
-**¿Qué me dice?** `r if (exists("alza_est")) paste0("La mayor alza corresponde a ", tolower(alza_est$genero), " en ", tolower(alza_est$estacion), ", con un ", pct(alza_est$dif), " sobre su promedio, mientras que la mayor baja se observa en ", tolower(baja_est$genero), " durante ", tolower(baja_est$estacion), ", con un ", pct(abs(baja_est$dif)), " bajo su promedio. Cabe señalar que estas diferencias resumen todo el historial, por lo cual no necesariamente se repiten todos los años.") else "—"`
+**¿Qué me dice?** `r as.character(ciro("cumbia", "ciro-lateral"))``r if (exists("alza_est")) paste0("La mayor alza corresponde a ", tolower(alza_est$genero), " en ", tolower(alza_est$estacion), ", con un ", pct(alza_est$dif), " sobre su promedio, mientras que la mayor baja se observa en ", tolower(baja_est$genero), " durante ", tolower(baja_est$estacion), ", con un ", pct(abs(baja_est$dif)), " bajo su promedio. Cabe señalar que estas diferencias resumen todo el historial, por lo cual no necesariamente se repiten todos los años.") else "—"`
 :::
 
 #### Pandemia
@@ -1291,7 +1291,7 @@ tabla(dias_extremos, titulo = "Mis días más oscuros y más luminosos"
 
 ## 🌧️ La música y el clima
 
-Crucé mis días de escucha con el clima diario de Santiago, obtenido desde [Open-Meteo](https://open-meteo.com), con el objetivo de evaluar si la lluvia o la temperatura se asocian a lo que escucho. Para que no se confunda con las estaciones, cada día se compara con el resto de su mismo mes y año, controlando además si es fin de semana.
+`r as.character(ciro("lluvia", "ciro-lateral"))`Crucé mis días de escucha con el clima diario de Santiago, obtenido desde [Open-Meteo](https://open-meteo.com), con el objetivo de evaluar si la lluvia o la temperatura se asocian a lo que escucho. Para que no se confunda con las estaciones, cada día se compara con el resto de su mismo mes y año, controlando además si es fin de semana.
 
 ```{r}
 #| label: clima
@@ -2436,7 +2436,7 @@ tabla(reencuentros %>% slice_head(n = 10) %>%
 ```
 
 ::: {.callout-note appearance="simple" icon="false"}
-**¿Qué me dice?** `r paste0(nrow(reencuentros), " artistas volvieron a sonar después de dos años o más de ausencia. El caso con mayor escucha posterior es ", reencuentros$artista[1], ", al cual volví tras ", format(round(reencuentros$ausencia[1] / 365.25, 1), decimal.mark = ","), " años y que desde entonces suma ", miles(reencuentros$despues[1]), " escuchas, mientras que antes tenía ", miles(reencuentros$antes[1]), ". Lo cual da cuenta de que dejar de escuchar a un artista no siempre implica haberlo abandonado.")`
+**¿Qué me dice?** `r as.character(ciro("crooner", "ciro-lateral"))``r paste0(nrow(reencuentros), " artistas volvieron a sonar después de dos años o más de ausencia. El caso con mayor escucha posterior es ", reencuentros$artista[1], ", al cual volví tras ", format(round(reencuentros$ausencia[1] / 365.25, 1), decimal.mark = ","), " años y que desde entonces suma ", miles(reencuentros$despues[1]), " escuchas, mientras que antes tenía ", miles(reencuentros$antes[1]), ". Lo cual da cuenta de que dejar de escuchar a un artista no siempre implica haberlo abandonado.")`
 :::
 
 #### Los de siempre
@@ -2463,6 +2463,8 @@ tabla(fieles, titulo = "Los de siempre"
 :::
 
 ## 🏁 Hitos
+
+`r as.character(ciro("colocolo", "ciro-lateral"))`Estas son las canciones que marcaron cada hito en el conteo total de mis escuchas, desde la primera hasta la más reciente de las cifras redondas.
 
 ```{r}
 #| label: hitos

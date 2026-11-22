@@ -151,7 +151,8 @@ linea_generacion <- function(zona = "America/Santiago") {
 # 5. Ciro, la mascota ------
 #### si la imagen aún no existe no se muestra nada (los Ciros nuevos se suman al llegar)
 ciro <- function(cual = c("metal", "postpunk", "rapero", "encuestas", "natural", "cafe"
-                          ,"audifonos", "flujo", "letras", "hardcore", "ozzy"), clase = "ciro-saludo") {
+                          ,"audifonos", "flujo", "letras", "hardcore", "ozzy"
+                          ,"lluvia", "crooner", "cumbia", "explorador", "colocolo"), clase = "ciro-saludo") {
   cual <- match.arg(cual)
   archivo <- paste0("assets/ciro/ciro_", cual, ".webp")
   if (!file.exists(archivo)) return(NULL)
@@ -165,10 +166,16 @@ ciro <- function(cual = c("metal", "postpunk", "rapero", "encuestas", "natural",
            ,flujo    = "Ciro, mi gato gris y blanco, con casco de obra y chaleco verde, cuidando una máquina de tubos que convierte notas y vinilos en un gráfico de barras"
            ,letras   = "Ciro, mi gato gris y blanco, de detective con sombrero, gabardina y lupa, revisando un cuaderno de partituras"
            ,hardcore = "Ciro, mi gato gris y blanco, gritando al micrófono con polera negra con una dinamita, bandana y muñequera de tachas, como cantante de hardcore"
-           ,ozzy     = "Ciro, mi gato gris y blanco, como Ozzy Osbourne: peluca negra, lentes redondos morados, cruz plateada, chaqueta con flecos y un murciélago en el hombro")[[cual]]
+           ,ozzy     = "Ciro, mi gato gris y blanco, como Ozzy Osbourne: peluca negra, lentes redondos morados, cruz plateada, chaqueta con flecos y un murciélago en el hombro"
+           ,lluvia   = "Ciro, mi gato gris y blanco, con impermeable verde, botas de agua, paraguas y audífonos, caminando feliz bajo una lluvia de gotas y notas musicales"
+           ,crooner  = "Ciro, mi gato gris y blanco, de cantante de bar con traje negro y sombrero, apoyado en un piano viejo junto a un micrófono antiguo, con cara melancólica"
+           ,cumbia   = "Ciro, mi gato gris y blanco, con camisa floreada verde y naranja, bailando cumbia con un güiro entre serpentinas y notas musicales"
+           ,explorador = "Ciro, mi gato gris y blanco, de explorador con sombrero safari, mochila y brújula, mirando entusiasmado un mapa lleno de vinilos"
+           ,colocolo = "Ciro, mi gato gris y blanco, con la camiseta y la bufanda de Colo-Colo, celebrando un gol con el puño en alto y una pata sobre la pelota")[[cual]]
   #### ancho/alto de cada imagen en assets/ciro (todas miden 360 px de alto)
   proporcion <- c(metal = 286, postpunk = 266, rapero = 275, encuestas = 284, natural = 283, cafe = 282
-                  ,audifonos = 349, flujo = 351, letras = 342, hardcore = 321, ozzy = 323)[[cual]] / 360
+                  ,audifonos = 349, flujo = 351, letras = 342, hardcore = 321, ozzy = 323
+                  ,lluvia = 324, crooner = 346, cumbia = 334, explorador = 329, colocolo = 327)[[cual]] / 360
   ancho <- if (clase == "ciro-saludo") 96 else 90
   htmltools::tags$img(src = archivo, alt = alt, class = clase, width = ancho, height = round(ancho / proporcion))
 }
