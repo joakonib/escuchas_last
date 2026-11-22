@@ -119,4 +119,54 @@ if (nrow(por_limpiar) > 0) {
     acumulado
   }, .init = previas)
 }
+# 5. Tercera pasada: búsqueda libre en LRCLIB y segunda fuente ------
+#### Para las que siguen sin letra tras las dos pasadas: (a) búsqueda de texto libre en
+#### LRCLIB (q = "artista título", encuentra versiones con el título escrito distinto) y
+#### (b) lyrics.ovh, una segunda base abierta. Lo intentado queda marcado como
+#### "extra_sin_letra" para no repetirlo en cada corrida.
+buscar_ovh <- function(artista, cancion) {
+  tryCatch({
+    r <- request("https://api.lyrics.ovh/v1") %>%
+      req_url_path_append(artista, cancion) %>%
+      req_user_agent("escuchas_last (https://github.com/joakonib/escuchas_last)") %>%
+      req_throttle(rate = 2) %>%
+      req_timeout(20) %>%
+      req_error(is_error = function(r) FALSE) %>%
+      req_perform()
+    if (resp_status(r) != 200) return(NA_character_)
+    letra <- resp_body_json(r)$lyrics %||% NA_character_
+    if (is.na(letra) || nchar(str_squish(letra)) < 40) NA_character_ else str_trim(letra)
+  }, error = function(e) NA_character_)
+}
+
+por_extra <- previas %>%
+  filter(is.na(letra), !instrumental, is.na(fuente) | fuente == "limpio_sin_letra")
+message("Tercera pasada (búsqueda libre y lyrics.ovh): ", nrow(por_extra), " canciones")
+
+if (nrow(por_extra) > 0) {
+  lotes <- split(por_extra, ceiling(seq_len(nrow(por_extra)) / 100))
+  previas <- reduce(seq_along(lotes), function(acumulado, i) {
+    l <- lotes[[i]]
+    nuevas <- map(seq_len(nrow(l)), function(n) {
+      art <- limpiar_artista(l$artista[n]); can <- limpiar_titulo(l$cancion[n])
+      if (art == "") art <- l$artista[n]
+      if (can == "") can <- l$cancion[n]
+      res <- consulta("search", q = paste(art, can))
+      if (isTRUE(res$fallo_red)) return(NULL)
+      r <- mejor_resultado(res, art, can, umbral = 0.75)
+      letra <- r$plainLyrics %||% NA_character_
+      fuente <- "libre"
+      if (is.na(letra)) { letra <- buscar_ovh(art, can); fuente <- "ovh" }
+      tibble(artista = l$artista[n], cancion = l$cancion[n], letra = letra
+             ,instrumental = FALSE
+             ,fuente = if_else(is.na(letra), "extra_sin_letra", fuente))
+    }) %>%
+      list_rbind()
+    if (nrow(nuevas) > 0) acumulado <- rows_update(acumulado, nuevas, by = c("artista", "cancion"))
+    guardar_parquet(acumulado, archivo)
+    message("Tercera pasada, lote ", i, "/", length(lotes), ": "
+            ,sum(!is.na(acumulado$letra)), " letras encontradas en total")
+    acumulado
+  }, .init = previas)
+}
 message("Listo: ", sum(!is.na(previas$letra)), " de ", nrow(previas), " canciones con letra")

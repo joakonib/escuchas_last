@@ -140,8 +140,12 @@ cp analisis_escuchas.html reporte_mensual.html metodologia.html flujo.html docs/
 
 # 5. Limpieza (paso 4.0 del flujo) y publicación
 rm -rf .Rhistory ./*_files ./*.knit.md ./*.rmarkdown; log "Limpieza de temporales hecha"
-git add -u >> "$LOG" 2>&1
-git add docs assets R scripts FLUJO_DE_TRABAJO.txt >> "$LOG" 2>&1
+#### Solo los reportes y lo que se revisa en la pausa (textos, diccionarios de R/, Ciros).
+#### Nada de scripts/: si alguien los edita mientras el flujo corre, ese cambio va en su
+#### propio commit (el 22-11-2026 un arreglo a medio hacer se subió con este mensaje).
+git add docs assets ./*.qmd R FLUJO_DE_TRABAJO.txt FUENTES.md README.md ESTILO.md >> "$LOG" 2>&1
+pendientes=$(git status --short scripts | wc -l)
+[ "$pendientes" -gt 0 ] && log "Quedan $pendientes cambios en scripts/ sin subir (van en su propio commit)"
 git commit -q -m "change: actualización completa de los reportes ($(date +%d-%m-%Y))" >> "$LOG" 2>&1
 log "Commit: $(git log --oneline -1)"
 reintentar 4 "Pull" git pull --rebase
