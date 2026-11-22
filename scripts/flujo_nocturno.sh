@@ -18,6 +18,13 @@ cd /c/git_joako/escuchas_last || exit 1
 R="/c/Program Files/R/R-4.6.1/bin/x64/Rscript.exe"
 Q="/c/Program Files/RStudio/resources/app/bin/quarto/bin/quarto.exe"
 S=data/respaldo   # respaldos y archivos de control (data/ no se sube)
+
+# Entorno de R limpio: si el flujo se lanza desde una consola de otro R (p. ej. R 4.3
+# de rig), hereda R_HOME, R_LIBS_USER y su PATH, y R 4.6 queda sin sus paquetes
+# (pasó el 22-11-2026). Se borran esas variables y Quarto usa siempre R 4.6.
+for v in $(env | grep -oE '^R_[A-Z_0-9]+'); do unset "$v"; done
+PATH=$(echo "$PATH" | tr ':' '\n' | grep -v 'rig/data/r' | paste -sd:); export PATH
+export QUARTO_R="/c/Program Files/R/R-4.6.1/bin/x64/R.exe"
 LOG=data/noche.log
 
 MES=$(date -d "$(date +%Y-%m-01) -1 day" +%Y-%m)
