@@ -264,6 +264,38 @@ donde $t_j$ son los días en que escuché al artista $i$ y $t$ se mide en días.
 
 **Limitaciones.** Solo cubre las canciones de mis playlists y los artistas que se pueden cruzar por nombre; ReccoBeats no conoce todas las canciones.
 
+#### 🔁 Repetición de las letras (compresión)
+
+::: {.callout-note appearance="simple" icon="false"}
+**En simple.** Un texto que repite mucho se comprime más, como un archivo ZIP. Se mide cuánto se achica cada letra al comprimirla.
+:::
+
+**En detalle.** Sigue a Morris (2017). Cada letra se pasa a minúsculas, se le quitan los signos y se comprime con gzip (el algoritmo LZ77 de los archivos ZIP); la repetición es $1 - \text{comprimido} / \text{original}$. Solo se usan letras de al menos 200 caracteres, porque en textos muy cortos la cabecera del archivo comprimido pesa demasiado. El promedio anual se pondera por escuchas, y la relación con cuántas veces escuché cada canción usa la correlación de Spearman.
+
+**Limitaciones.** La compresión no distingue un coro repetido de una palabra que se repite en distintos versos; las letras en idiomas con palabras largas tienden a comprimirse algo distinto.
+
+#### ✂️ Puntos de cambio (E-Divisive)
+
+::: {.callout-note appearance="simple" icon="false"}
+**En simple.** Un método distinto al de las eras busca los meses en que mi mezcla de géneros cambia de verdad, y dice si cada cambio es significativo.
+:::
+
+**En detalle.** E-Divisive (Matteson y James, 2014; paquete `ecp`) usa la distancia de energía para encontrar, de forma jerárquica, el punto que mejor divide la serie de meses (cada mes es su mezcla de los 15 géneros principales, la misma matriz de las eras). Cada corte se acepta con una prueba de permutaciones (199 permutaciones, p < 0,05) y un tramo mínimo de seis meses. Luego se cuenta cuántos cambios quedan a tres meses o menos de un límite de era.
+
+**Limitaciones.** Con muchos meses detecta también cambios pequeños; el tramo mínimo y el nivel de significancia son decisiones propias.
+
+#### 🕸️ Red de artistas por sesión (Louvain)
+
+::: {.callout-note appearance="simple" icon="false"}
+**En simple.** Se une a dos artistas si suelen sonar en la misma sesión más de lo que se esperaría por azar, y luego se buscan los grupos de artistas más conectados.
+:::
+
+**En detalle.** Artistas con 150 escuchas o más; una sesión termina tras 30 minutos sin música. Dos artistas se unen si comparten al menos cinco sesiones y su información mutua puntual es positiva:
+$$\text{PMI}(a,b) = \ln \frac{P(a,b)}{P(a)\,P(b)},$$
+que se usa como peso de la unión. Las comunidades se obtienen con el método de Louvain (Blondel y otros, 2008; paquete `igraph`), que maximiza la modularidad, y cada una se nombra por su género con más escuchas y su artista más escuchado. El dibujo usa la disposición de Fruchterman y Reingold (1991).
+
+**Limitaciones.** Louvain puede dar comunidades levemente distintas en cada corrida (se fija la semilla); los artistas con pocas escuchas quedan fuera.
+
 :::
 
 ## 🤖 ¿Puede una máquina adivinar cuándo escucho? {#modelos}

@@ -848,6 +848,84 @@ tabla(por_anio, titulo = "Artista y canción de cada año", filas = 20
       ))
 ```
 
+#### Quiénes suenan juntos
+
+::: {.callout-tip appearance="simple" icon="false"}
+**Teoría.** El análisis de redes representa cada artista como un nodo y une a los que suelen sonar en una misma sesión. El método de Louvain (Blondel y otros, 2008) busca luego las comunidades, es decir, grupos de artistas más conectados entre sí que con el resto, sin decirle cuántos grupos hay.
+:::
+
+```{r}
+#| label: red-artistas
+#| eval: !expr tiene_tags
+#| fig-height: 6
+pacman::p_load(igraph)
+# Artistas con 150 escuchas o más. Dos artistas se unen si aparecen en la misma sesión al
+# menos 5 veces y más de lo esperado por azar (información mutua puntual positiva, PMI).
+sesiones_red <- escuchas %>% mutate(sesion = cumsum(c(TRUE, diff(uts) > 1800)))
+principales_red <- count(escuchas, artista) %>% filter(n >= 150) %>% pull(artista)
+presencia <- sesiones_red %>% filter(artista %in% principales_red) %>% distinct(sesion, artista)
+n_sesiones <- n_distinct(sesiones_red$sesion)
+por_artista <- count(presencia, artista, name = "ses")
+aristas <- presencia %>%
+  inner_join(presencia, by = "sesion", relationship = "many-to-many") %>%
+  filter(artista.x < artista.y) %>%
+  count(a = artista.x, b = artista.y, name = "juntas") %>%
+  left_join(por_artista, by = c("a" = "artista")) %>%
+  left_join(por_artista, by = c("b" = "artista"), suffix = c("_a", "_b")) %>%
+  mutate(pmi = log((juntas / n_sesiones) / ((ses_a / n_sesiones) * (ses_b / n_sesiones)))) %>%
+  filter(juntas >= 5, pmi > 0)
+
+red <- graph_from_data_frame(transmute(aristas, a, b, weight = pmi), directed = FALSE)
+set.seed(2026)
+comunidades <- cluster_louvain(red)
+modularidad <- modularity(comunidades)
+
+genero_red <- agregar_genero_pais(distinct(escuchas, artista), tags) %>% select(artista, genero)
+nodos <- tibble(artista = V(red)$name, comunidad = as.integer(membership(comunidades))) %>%
+  left_join(count(escuchas, artista, name = "escuchas"), by = "artista") %>%
+  left_join(genero_red, by = "artista")
+nombre_com <- nodos %>%
+  group_by(comunidad) %>%
+  summarise(artistas = n()
+            ,genero = names(sort(tapply(escuchas, coalesce(genero, "Otros"), sum), decreasing = TRUE))[1]
+            ,emblema = artista[which.max(escuchas)]
+            ,ejemplos = paste(artista[order(-escuchas)][1:min(5, n())], collapse = ", ")
+            ,.groups = "drop") %>%
+  arrange(desc(artistas)) %>%
+  mutate(nombre = paste0(genero, " (", emblema, ")"))
+nodos <- nodos %>% left_join(select(nombre_com, comunidad, nombre), by = "comunidad")
+
+coords <- layout_with_fr(red, weights = E(red)$weight)
+nodos <- nodos %>% mutate(x = coords[, 1], y = coords[, 2])
+lineas <- aristas %>%
+  left_join(select(nodos, artista, x, y), by = c("a" = "artista")) %>%
+  left_join(select(nodos, artista, xend = x, yend = y), by = c("b" = "artista"))
+colores_com <- setNames(c(verde, morado, rosado, "#c98500", "#6b6b67", "#72a982", "#9d7cc7", "#d97aa6")[seq_len(nrow(nombre_com))]
+                        ,nombre_com$nombre)
+
+p <- ggplot() +
+  geom_segment(data = lineas, aes(x, y, xend = xend, yend = yend), color = gris, alpha = 0.15, linewidth = 0.3) +
+  geom_point(data = nodos, aes(x, y, color = nombre, size = escuchas
+                               ,text = paste0("<b>", artista, "</b><br>", nombre, "<br>", miles(escuchas), " escuchas"))) +
+  scale_color_manual(values = colores_com, name = NULL) +
+  scale_size_area(max_size = 9, guide = "none") +
+  scale_x_continuous(breaks = NULL) + scale_y_continuous(breaks = NULL) +
+  labs(title = "Mis artistas según con quién comparten sesión"
+       ,subtitle = "Cada punto es un artista (tamaño: escuchas); el color es su comunidad"
+       ,x = NULL, y = NULL)
+interactivo(p)
+
+tabla(select(nombre_com, nombre, artistas, ejemplos), titulo = "Las comunidades de mi escucha"
+      ,subtitulo = "Nombradas por su género con más escuchas y su artista más escuchado"
+      ,columnas = list(
+        nombre    = colDef(name = "Comunidad", minWidth = 180)
+        ,artistas = colDef(name = "Artistas", maxWidth = 90)
+        ,ejemplos = colDef(name = "Los más escuchados", minWidth = 260)
+      ))
+```
+
+**¿Qué me dice?** `r if (exists("nombre_com")) paste0("Los ", miles(vcount(red)), " artistas que más escucho forman ", nrow(nombre_com), " comunidades según con quién comparten sesión, con una modularidad de ", format(round(modularidad, 2), decimal.mark = ","), " (sobre 0,3 se considera una estructura de comunidades clara). La más grande es ", nombre_com$nombre[1], ", con ", nombre_com$artistas[1], " artistas. Esto indica que mis sesiones tienden a quedarse dentro de un mismo mundo sonoro, y que estas comunidades no calzan del todo con los géneros, ya que juntan artistas de estilos distintos que suelo escuchar en los mismos momentos.") else "—"`
+
 :::
 
 ## 🔍 Explorar o volver a lo conocido
@@ -1647,6 +1725,38 @@ tabla_eras <- resumen_eras %>%
             ,meses, artistas = sapply(artistas, paste, collapse = ", "))
 ```
 
+#### ¿Coinciden con otro método?
+
+::: {.callout-tip appearance="simple" icon="false"}
+**Teoría.** Matteson y James (2014) propusieron E-Divisive, un método que busca los puntos de una serie en que cambia su distribución completa, sin suponer una forma para los datos, y que con una prueba de permutaciones indica si cada cambio es significativo. A diferencia de las eras, no fija de antemano cuántos cortes hay.
+:::
+
+```{r}
+#| label: eras-cambios
+#| eval: !expr tiene_tags
+#| fig-height: 3.4
+pacman::p_load(ecp)
+# Misma matriz que las eras: cada mes con su mezcla de géneros
+set.seed(2026)
+cambios_ed <- e.divisive(as.matrix(X), sig.lvl = 0.05, R = 199, min.size = 6, alpha = 1)
+puntos_cambio <- mezcla$mes[cambios_ed$estimates[-c(1, length(cambios_ed$estimates))]]
+limites_era <- resumen_eras$inicio[-1]
+cerca_de_era <- sapply(puntos_cambio, function(m) min(abs(interval(m, limites_era) %/% months(1))) <= 3)
+
+p <- eras %>%
+  ggplot(aes(mes, 1, fill = nombre, text = paste0("<b>", format(mes, "%m-%Y"), "</b><br>", nombre))) +
+  geom_tile(height = 0.6) +
+  geom_vline(xintercept = puntos_cambio, color = principal, linewidth = 0.7, linetype = "dashed") +
+  scale_fill_manual(values = setNames(colores_era[seq_len(k)], levels(eras$nombre)), name = NULL) +
+  scale_y_continuous(breaks = NULL) +
+  labs(title = "Mis eras y los cambios que detecta E-Divisive"
+       ,subtitle = "Colores: eras; líneas punteadas: cambios significativos (p < 0,05)"
+       ,x = NULL, y = NULL)
+interactivo(p)
+```
+
+**¿Qué me dice?** `r if (exists("puntos_cambio")) paste0("E-Divisive encuentra ", length(puntos_cambio), " cambios significativos en mi mezcla de géneros, mientras que las eras tienen ", length(limites_era), " límites. De esos cambios, ", sum(cerca_de_era), " quedan a tres meses o menos de un límite de era, lo cual indica que los grandes quiebres de mi gusto aparecen con ambos métodos. Los cambios restantes podrían marcar movimientos más finos dentro de una misma era, que el clustering no separa porque busca pocos tramos largos y con nombre propio.") else "—"`
+
 :::
 
 ## 🧪 Laboratorio de clasificación
@@ -2378,6 +2488,65 @@ tagList(
 ::: {.callout-note appearance="simple" icon="false"}
 **¿Qué me dice?** `r if (exists("cor_letra_sonido")) paste0("Se analizaron ", miles(nrow(letra_sonido)), " canciones que escuché al menos 10 veces, y la correlación entre el sentimiento de la letra y el sonido del artista es de ", format(round(cor_letra_sonido, 2), decimal.mark = ","), ", lo cual indica que ", if (abs(cor_letra_sonido) < 0.2) "cómo suena un artista dice bastante poco respecto a lo que dicen sus letras" else "lo que dicen las letras guarda relación con cómo suena el artista", ". Las tablas muestran los contrastes más marcados, aunque algunos responden a limitaciones del léxico, ya que una palabra como fuego se contabiliza como negativa aun cuando la canción sea festiva.") else "—"`
 :::
+
+#### 🔁 ¿Qué tan repetitivas son?
+
+::: {.callout-tip appearance="simple" icon="false"}
+**Teoría.** Colin Morris (2017) midió la repetición de las letras pop comprimiéndolas con el mismo algoritmo de los archivos ZIP, ya que un texto que se repite mucho se comprime más. Con ese método mostró que las letras de las canciones más populares se volvieron más repetitivas con las décadas.
+:::
+
+```{r}
+#| label: letras-repeticion
+#| eval: !expr tiene_letras
+#| fig-height: 3.6
+# Repetición = 1 - tamaño comprimido / tamaño original (gzip), sobre la letra en minúsculas
+# y sin signos. Solo letras de al menos 200 caracteres, para que la medida sea estable.
+repeticion_letra <- function(x) {
+  t <- str_squish(str_to_lower(str_replace_all(x, "[^[:alnum:]' ]", " ")))
+  if (nchar(t, "bytes") < 200) return(NA_real_)
+  b <- charToRaw(t)
+  1 - length(memCompress(b, "gzip")) / length(b)
+}
+letras_rep <- letras %>%
+  mutate(repeticion = map_dbl(letra, repeticion_letra)) %>%
+  filter(!is.na(repeticion))
+
+rep_anual <- escuchas %>%
+  inner_join(select(letras_rep, artista, cancion, repeticion), by = c("artista", "cancion")) %>%
+  group_by(anio) %>%
+  summarise(repeticion = mean(repeticion), n = n(), .groups = "drop") %>%
+  filter(n >= 500)
+
+rho_rep <- cor(letras_rep$repeticion, log(letras_rep$veces), method = "spearman", use = "complete.obs")
+
+p <- rep_anual %>%
+  ggplot(aes(anio, repeticion, text = paste0("<b>", anio, "</b><br>Repetición: ", pct(repeticion)))) +
+  geom_line(color = verde, linewidth = 1.1) +
+  geom_point(color = verde, size = 2.4) +
+  scale_x_continuous(breaks = rep_anual$anio, labels = anio_corto) +
+  scale_y_continuous(labels = pct) +
+  labs(title = "¿Qué tan repetitivas son las letras que escucho?"
+       ,subtitle = "Promedio por escucha de cuánto se comprime cada letra (más alto = más repetitiva)"
+       ,x = NULL, y = NULL)
+interactivo(p)
+
+extremos_rep <- letras_rep %>%
+  filter(veces >= 20) %>%
+  arrange(desc(repeticion)) %>%
+  slice(c(1:5, (n() - 4):n())) %>%
+  transmute(grupo = rep(c("Más repetitivas", "Menos repetitivas"), each = 5), artista, cancion, repeticion)
+
+tabla(extremos_rep, titulo = "Las más y las menos repetitivas"
+      ,subtitulo = "Canciones con letra que escuché al menos 20 veces"
+      ,columnas = list(
+        grupo       = colDef(name = "", maxWidth = 150)
+        ,artista    = colDef(name = "Artista", minWidth = 150)
+        ,cancion    = colDef(name = "Canción", minWidth = 180)
+        ,repeticion = colDef(name = "Repetición", maxWidth = 110, format = colFormat(percent = TRUE, digits = 0))
+      ))
+```
+
+**¿Qué me dice?** `r if (exists("rep_anual")) paste0("En ", first(rep_anual$anio), " las letras que escuchaba se comprimían en promedio un ", pct(first(rep_anual$repeticion)), ", mientras que en ", last(rep_anual$anio), " lo hacen un ", pct(last(rep_anual$repeticion)), ", con el punto más alto en ", rep_anual$anio[which.max(rep_anual$repeticion)], " (", pct(max(rep_anual$repeticion)), "). Esto indica que con los años escucho letras algo más repetitivas, aunque el cambio es moderado. Por otro lado, la correlación entre la repetición de una canción y cuántas veces la escuché es de ", format(round(rho_rep, 2), nsmall = 2, decimal.mark = ","), ", prácticamente nula, lo cual da cuenta de que una letra con más coro no hace que la ponga más veces.") else "—"`
 
 :::
 

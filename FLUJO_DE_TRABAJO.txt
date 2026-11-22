@@ -444,4 +444,10 @@ HISTORIAL DE CAMBIOS DEL FLUJO
               lo conocido y lo nuevo dentro de cada sesión y validación del
               ánimo de las etiquetas con el audio. leer_spotify() ya lee el
               historial ampliado de Spotify si se agrega al zip. El commit
-              automático del flujo B ya no sube scripts/.
+              automático del flujo B ya no sube scripts/.  22-11-2026  (noche) Letras desde la web con el navegador (Tenemos Explosivos
+              en su sitio, Letras.com, Genius y Bandcamp): 91 letras. Las que
+              siguen sin letra quedan en input/letras_por_revisar.xlsx para que
+              Joaquín marque instrumentales (03.3). Técnicas nuevas: repetición
+              de las letras por compresión (Morris, 2017), puntos de cambio
+              E-Divisive frente a las eras (paquete ecp) y red de artistas por
+              sesión con comunidades de Louvain (igraph).
