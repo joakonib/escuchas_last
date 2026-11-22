@@ -43,6 +43,8 @@ call :reintentar "Etiquetas" %RSCRIPT% scripts\02.descargar_tags.R
 call :reintentar "Letras" %RSCRIPT% scripts\03.descargar_letras.R
 rem Letras buscadas en la web (data\letras_web.json), solo donde LRCLIB no tiene
 %RSCRIPT% scripts\03.1.sumar_letras_web.R >> %LOG% 2>&1
+rem Instrumentales marcadas por Joaquin en input\letras_por_revisar.xlsx
+%RSCRIPT% scripts\03.3.marcar_instrumentales.R >> %LOG% 2>&1
 rem Embeddings de las letras (unico paso en Python, entorno .venv); incremental
 if exist .venv\Scripts\python.exe call :reintentar "Embeddings" .venv\Scripts\python.exe scripts\03.2.embeddings_letras.py
 call :reintentar "Clima" %RSCRIPT% scripts\04.descargar_clima.R

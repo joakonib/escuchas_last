@@ -32,6 +32,10 @@ raíz del proyecto.
   03.2 scripts/03.2.embeddings_letras.py PYTHON (.venv) -> data/embeddings_letras.parquet
                                         (único paso en Python; vector multilingüe
                                         de cada letra; incremental)
+  03.3 scripts/03.3.marcar_instrumentales.R input/letras_por_revisar.xlsx
+                                        -> data/letras.parquet (solo las que
+                                        Joaquín marca "Sí" como instrumentales;
+                                        nada se marca sin su revisión)
   04  scripts/04.descargar_clima.R      Open-Meteo -> data/clima.parquet
   04.1 scripts/04.1.descargar_audio.R ReccoBeats -> data/audio.parquet
                                         (valencia y energía del audio de las

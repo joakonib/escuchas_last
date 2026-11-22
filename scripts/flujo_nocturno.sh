@@ -107,6 +107,7 @@ fi
 reintentar 4 "Etiquetas" "$R" scripts/02.descargar_tags.R
 reintentar 4 "Letras" "$R" scripts/03.descargar_letras.R
 "$R" scripts/03.1.sumar_letras_web.R >> "$LOG" 2>&1   # letras buscadas en la web, donde LRCLIB no tiene
+"$R" scripts/03.3.marcar_instrumentales.R >> "$LOG" 2>&1   # instrumentales marcadas por Joaquín en input/letras_por_revisar.xlsx
 # Embeddings de las letras: único paso en Python (entorno .venv), incremental
 [ -x .venv/Scripts/python.exe ] && reintentar 2 "Embeddings de letras" .venv/Scripts/python.exe scripts/03.2.embeddings_letras.py
 reintentar 4 "Clima" "$R" scripts/04.descargar_clima.R

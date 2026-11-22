@@ -62,6 +62,7 @@ No se suben a GitHub (`.gitignore`): `data/`, `reportes/`, `input/`, `.Renviron`
 | `02.descargar_tags.R` | Baja hasta 30 etiquetas, oyentes y reproducciones globales de cada artista. Incremental, guarda cada 200 artistas (tope con `N_ARTISTAS`). |
 | `03.descargar_letras.R` | Baja de LRCLIB las letras de las canciones con 2 escuchas o más (`MIN_ESCUCHAS`). Incremental, guarda cada 100 canciones; con una segunda pasada de títulos limpios y una tercera de búsqueda libre en LRCLIB y en lyrics.ovh. |
 | `03.1.sumar_letras_web.R` | Suma las letras buscadas en la web (`data/letras_web.json`) donde LRCLIB no tiene, sin pisar ninguna. |
+| `03.3.marcar_instrumentales.R` | Marca como instrumentales solo las canciones que Joaquín marcó "Sí" en `input/letras_por_revisar.xlsx` (lista de las que siguen sin letra). |
 | `04.1.descargar_audio.R` | Baja de ReccoBeats la valencia, la energía y otras medidas del audio de las canciones de mis playlists de Spotify (únicas con identificador). Incremental. |
 | `03.2.embeddings_letras.py` | Único paso en Python (entorno `.venv`): convierte cada letra en un vector de significado multilingüe (`paraphrase-multilingual-MiniLM-L12-v2`). Incremental. El resto del modelo de temas (UMAP, k-means, c-TF-IDF) está en `R/temas_semanticos.R`. |
 | `04.descargar_clima.R` | Baja de Open-Meteo el clima diario de Santiago. Incremental. |
