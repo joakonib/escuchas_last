@@ -4203,7 +4203,7 @@ line-height: 1.35;
 <span class="nav-actual" aria-current="page">🔧 Metodología</span>
 <a href="flujo.html">🔄 Flujo</a>
 </nav>
-<div class="generado">🕒 Fecha y hora de generación: 22-11-2026, 16:35 (hora de Chile)</div>
+<div class="generado">🕒 Fecha y hora de generación: 22-11-2026, 17:31 (hora de Chile)</div>
 <div class="volver">
 <a class="volver-principal" href="analisis_escuchas.html">← Reporte general</a>
 <a class="volver-portada" href="index.html" title="Portada" aria-label="Portada">🏠</a>
@@ -4240,7 +4240,7 @@ line-height: 1.35;
 </div>
 <div id="tabset-1-3" class="tab-pane" role="tabpanel" aria-labelledby="tabset-1-3-tab">
 <ul>
-<li><strong>Letras:</strong> se buscan las canciones que escuché <strong>2 veces o más</strong> (el 93% de mis escuchas). Hoy hay 18.149 revisadas y 16.212 con letra o instrumentales (el 84% de mis escuchas); las canciones nuevas que entren al grupo se suman en las actualizaciones mensuales. Las letras provienen de <a href="https://lrclib.net">LRCLIB</a>, y si una canción no aparece se busca otra vez con el título limpio (sin «Remastered», «Live», «feat.», paréntesis ni corchetes) y solo con el artista principal (<code>scripts/03.descargar_letras.R</code> → <code>data/letras.parquet</code>). Asimismo, <code>scripts/03.1.sumar_letras_web.R</code> permite sumar letras buscadas a mano en la web cuando LRCLIB no las tiene, sin reemplazar nunca una letra existente. Cabe señalar que se usan solo para análisis, por lo cual el reporte muestra palabras y temas agregados y nunca letras completas.</li>
+<li><strong>Letras:</strong> se buscan las canciones que escuché <strong>2 veces o más</strong> (el 93% de mis escuchas). Hoy hay 18.149 revisadas y 16.276 con letra o instrumentales (el 85% de mis escuchas); las canciones nuevas que entren al grupo se suman en las actualizaciones mensuales. Las letras provienen de <a href="https://lrclib.net">LRCLIB</a>, y si una canción no aparece se busca otra vez con el título limpio (sin «Remastered», «Live», «feat.», paréntesis ni corchetes) y solo con el artista principal (<code>scripts/03.descargar_letras.R</code> → <code>data/letras.parquet</code>). Asimismo, <code>scripts/03.1.sumar_letras_web.R</code> permite sumar letras buscadas a mano en la web cuando LRCLIB no las tiene, sin reemplazar nunca una letra existente. Cabe señalar que se usan solo para análisis, por lo cual el reporte muestra palabras y temas agregados y nunca letras completas. Para las que siguen sin letra se intenta una búsqueda de texto libre en LRCLIB y, si tampoco aparece, <a href="https://lyrics.ovh">lyrics.ovh</a>, una segunda base abierta; lo intentado queda marcado para no repetirlo.</li>
 <li><strong>Idioma:</strong> se detecta contando palabras frecuentes del español y del inglés, y una letra se considera de otro idioma (francés, portugués o japonés, entre otros) solo si los detectores de Google CLD3 y CLD2 coinciden, ya que cada uno por separado se equivoca en letras cortas.</li>
 <li><strong>Embeddings (Python):</strong> <code>scripts/03.2.embeddings_letras.py</code> convierte cada letra en un vector de significado con un modelo de lenguaje multilingüe, el cual alimenta los temas de las letras (ver técnicas). Se ejecuta en un entorno propio (<code>.venv</code>, Python 3.14) y solo procesa las letras nuevas.</li>
 <li><strong>Imágenes:</strong> fotos de artistas y portadas de discos desde la API de Deezer (<code>R/imagenes.R</code>), guardadas en <code>data/imagenes/</code>.</li>
@@ -4369,7 +4369,7 @@ line-height: 1.35;
 <section id="técnicas-de-análisis" class="level2">
 <h2 class="anchored" data-anchor-id="técnicas-de-análisis">🔬 Técnicas de análisis</h2>
 <div class="tabset-margin-container"></div><div class="panel-tabset">
-<ul class="nav nav-tabs" role="tablist"><li class="nav-item" role="presentation"><a class="nav-link active" id="tabset-2-1-tab" data-bs-toggle="tab" data-bs-target="#tabset-2-1" role="tab" aria-controls="tabset-2-1" aria-selected="true" href>🗺️ Eras: clustering con restricción temporal</a></li><li class="nav-item" role="presentation"><a class="nav-link" id="tabset-2-2-tab" data-bs-toggle="tab" data-bs-target="#tabset-2-2" role="tab" aria-controls="tabset-2-2" aria-selected="false" href>🧭 Análisis de correspondencias múltiples</a></li><li class="nav-item" role="presentation"><a class="nav-link" id="tabset-2-3-tab" data-bs-toggle="tab" data-bs-target="#tabset-2-3" role="tab" aria-controls="tabset-2-3" aria-selected="false" href>🎧 Playlists ocultas (LDA)</a></li><li class="nav-item" role="presentation"><a class="nav-link" id="tabset-2-4-tab" data-bs-toggle="tab" data-bs-target="#tabset-2-4" role="tab" aria-controls="tabset-2-4" aria-selected="false" href>📝 Temas de las letras (embeddings multilingües)</a></li><li class="nav-item" role="presentation"><a class="nav-link" id="tabset-2-5-tab" data-bs-toggle="tab" data-bs-target="#tabset-2-5" role="tab" aria-controls="tabset-2-5" aria-selected="false" href>⏳ Supervivencia (Kaplan-Meier)</a></li></ul>
+<ul class="nav nav-tabs" role="tablist"><li class="nav-item" role="presentation"><a class="nav-link active" id="tabset-2-1-tab" data-bs-toggle="tab" data-bs-target="#tabset-2-1" role="tab" aria-controls="tabset-2-1" aria-selected="true" href>🗺️ Eras: clustering con restricción temporal</a></li><li class="nav-item" role="presentation"><a class="nav-link" id="tabset-2-2-tab" data-bs-toggle="tab" data-bs-target="#tabset-2-2" role="tab" aria-controls="tabset-2-2" aria-selected="false" href>🧭 Análisis de correspondencias múltiples</a></li><li class="nav-item" role="presentation"><a class="nav-link" id="tabset-2-3-tab" data-bs-toggle="tab" data-bs-target="#tabset-2-3" role="tab" aria-controls="tabset-2-3" aria-selected="false" href>🎧 Playlists ocultas (LDA)</a></li><li class="nav-item" role="presentation"><a class="nav-link" id="tabset-2-4-tab" data-bs-toggle="tab" data-bs-target="#tabset-2-4" role="tab" aria-controls="tabset-2-4" aria-selected="false" href>📝 Temas de las letras (embeddings multilingües)</a></li><li class="nav-item" role="presentation"><a class="nav-link" id="tabset-2-5-tab" data-bs-toggle="tab" data-bs-target="#tabset-2-5" role="tab" aria-controls="tabset-2-5" aria-selected="false" href>⏳ Supervivencia (Kaplan-Meier)</a></li><li class="nav-item" role="presentation"><a class="nav-link" id="tabset-2-6-tab" data-bs-toggle="tab" data-bs-target="#tabset-2-6" role="tab" aria-controls="tabset-2-6" aria-selected="false" href>🥱 Aburrimiento antes del adiós</a></li><li class="nav-item" role="presentation"><a class="nav-link" id="tabset-2-7-tab" data-bs-toggle="tab" data-bs-target="#tabset-2-7" role="tab" aria-controls="tabset-2-7" aria-selected="false" href>🧠 Memoria ACT-R para predecir a quién vuelvo</a></li><li class="nav-item" role="presentation"><a class="nav-link" id="tabset-2-8-tab" data-bs-toggle="tab" data-bs-target="#tabset-2-8" role="tab" aria-controls="tabset-2-8" aria-selected="false" href>🔀 Lo conocido y lo nuevo dentro de cada sesión</a></li><li class="nav-item" role="presentation"><a class="nav-link" id="tabset-2-9-tab" data-bs-toggle="tab" data-bs-target="#tabset-2-9" role="tab" aria-controls="tabset-2-9" aria-selected="false" href>🎚️ Validación del ánimo con el audio</a></li></ul>
 <div class="tab-content">
 <div id="tabset-2-1" class="tab-pane active" role="tabpanel" aria-labelledby="tabset-2-1-tab">
 <div class="callout callout-style-simple callout-note no-icon">
@@ -4470,6 +4470,67 @@ line-height: 1.35;
 </div>
 <p><strong>En detalle.</strong> Para cada artista con al menos 20 escuchas, el tiempo va desde la primera escucha hasta la última. El <strong>evento</strong> (“muerte”) es no escucharlo en el último año; los artistas que sigo escuchando quedan <strong>censurados</strong>. El estimador de Kaplan-Meier (1958) es <span class="math display">\hat S(t) = \prod_{t_i \le t}\left(1 - \frac{d_i}{n_i}\right),</span> donde <span class="math inline">d_i</span> son los abandonos en el tiempo <span class="math inline">t_i</span> y <span class="math inline">n_i</span> los artistas todavía “vivos”. Chilenos y extranjeros se comparan con la <strong>prueba log-rank</strong>.</p>
 </div>
+<div id="tabset-2-6" class="tab-pane" role="tabpanel" aria-labelledby="tabset-2-6-tab">
+<div class="callout callout-style-simple callout-note no-icon">
+<div class="callout-body d-flex">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-body-container">
+<p><strong>En simple.</strong> Antes de dejar a un artista, ¿lo voy escuchando cada vez más espaciado? Se mide el tiempo entre escuchas a medida que se acerca la última.</p>
+</div>
+</div>
+</div>
+<p><strong>En detalle.</strong> Sigue a Benson, Kumar y Tomkins (2016), que modelaron secuencias de consumo en historiales de Last.fm y encontraron que los intervalos crecen antes del abandono.</p>
+<ol type="1">
+<li>Se consideran los artistas con 50 escuchas o más que llevo más de un año sin escuchar, y con al menos 15 días de escucha.</li>
+<li>Se cuenta un día de escucha por artista, para medir la distancia entre días y no entre canciones de una misma sesión.</li>
+<li>Para cada uno de los últimos diez días de escucha se calcula la mediana de días desde el anterior, y se compara con la mediana del resto de su historia.</li>
+</ol>
+<p><strong>Limitaciones.</strong> “Dejar” a un artista se define con un año sin escucharlo, por lo cual algunos podrían volver; el análisis describe y no predice.</p>
+</div>
+<div id="tabset-2-7" class="tab-pane" role="tabpanel" aria-labelledby="tabset-2-7-tab">
+<div class="callout callout-style-simple callout-note no-icon">
+<div class="callout-body d-flex">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-body-container">
+<p><strong>En simple.</strong> La memoria recuerda mejor lo que se repite y lo reciente, y olvida de a poco. Con esa fórmula se ordena a mis artistas y se revisa si los primeros vuelven a sonar el mes siguiente.</p>
+</div>
+</div>
+</div>
+<p><strong>En detalle.</strong> Activación de nivel base de la teoría ACT-R (Anderson y Schooler, 1991), aplicada a Last.fm por Reiter-Haas y otros (2021): <span class="math display">B_i(t) = \ln \sum_{j} (t - t_j)^{-d},\qquad d = 0{,}5,</span> donde <span class="math inline">t_j</span> son los días en que escuché al artista <span class="math inline">i</span> y <span class="math inline">t</span> se mide en días. Se evalúa en cortes mensuales de los últimos 24 meses: se ordenan los artistas por <span class="math inline">B_i</span> con los datos previos al corte y se mide qué parte de los 50 primeros escuché en los 30 días siguientes. Se compara con ordenar por frecuencia total y por la última escucha.</p>
+<p><strong>Limitaciones.</strong> El parámetro <span class="math inline">d</span> se fija en el valor clásico de la teoría y no se ajusta a mis datos. Se predice el artista y no la canción.</p>
+</div>
+<div id="tabset-2-8" class="tab-pane" role="tabpanel" aria-labelledby="tabset-2-8-tab">
+<div class="callout callout-style-simple callout-note no-icon">
+<div class="callout-body d-flex">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-body-container">
+<p><strong>En simple.</strong> En cada sesión se cuenta qué parte de las canciones escuchaba por primera vez, y en qué momento de la sesión aparecen.</p>
+</div>
+</div>
+</div>
+<p><strong>En detalle.</strong> Una sesión termina tras 30 minutos sin música y se consideran las de cinco canciones o más. Una canción es nueva la primera vez que aparece en todo mi historial. Por año se calcula el promedio de canciones nuevas por sesión y el porcentaje de sesiones sin ninguna; además, cada sesión se divide en tercios para ver si lo nuevo aparece al inicio, al medio o al final. El primer año queda fuera, ya que en él casi todo es nuevo. La idea de medir esta mezcla dentro de la sesión viene de trabajos de Deezer presentados en RecSys 2025.</p>
+<p><strong>Limitaciones.</strong> Con los años crece lo que ya conozco, por lo cual parte de la baja es esperable; una canción escuchada antes en otra plataforma cuenta como nueva.</p>
+</div>
+<div id="tabset-2-9" class="tab-pane" role="tabpanel" aria-labelledby="tabset-2-9-tab">
+<div class="callout callout-style-simple callout-note no-icon">
+<div class="callout-body d-flex">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-body-container">
+<p><strong>En simple.</strong> ¿El ánimo que sale de las etiquetas se parece al que se escucha en la música? Se compara con la valencia y la energía calculadas desde el audio.</p>
+</div>
+</div>
+</div>
+<p><strong>En detalle.</strong> <code>scripts/04.1.descargar_audio.R</code> toma los identificadores de Spotify de las canciones de mis playlists (la única parte de la exportación de la cuenta que los trae) y consulta <a href="https://reccobeats.com">ReccoBeats</a>, que entrega valencia, energía, bailabilidad, tempo y otras medidas del audio, como lo hacía Spotify hasta noviembre de 2024. Para cada artista con al menos dos canciones con audio se promedian la valencia y la energía, y se comparan con su nota de etiquetas con la correlación de Spearman.</p>
+<p><strong>Limitaciones.</strong> Solo cubre las canciones de mis playlists y los artistas que se pueden cruzar por nombre; ReccoBeats no conoce todas las canciones.</p>
+</div>
 </div>
 </div>
 </section>
@@ -4559,10 +4620,10 @@ line-height: 1.35;
 <div class="tabla-subtitulo">Promedio de una validación cruzada de 5 grupos de artistas sobre 40.000 escuchas: cada escucha se prueba una vez, con artistas que el modelo no vio al aprender. ± es la variación del acierto balanceado entre grupos. 🏆 = la que se muestra en el reporte</div>
 <div class="tabla-ayuda">
 ↕ Haz clic en el nombre de una columna para ordenar
-<button class="tabla-reset" type="button" onclick="Reactable.toggleSortBy(&#39;tabla-rckk68aarw&#39;, &#39;.orden&#39;, false); Reactable.setSearch(&#39;tabla-rckk68aarw&#39;, &#39;&#39;)">↺ Orden original</button>
+<button class="tabla-reset" type="button" onclick="Reactable.toggleSortBy(&#39;tabla-rua7wcun0n&#39;, &#39;.orden&#39;, false); Reactable.setSearch(&#39;tabla-rua7wcun0n&#39;, &#39;&#39;)">↺ Orden original</button>
 </div>
-<div class="reactable html-widget html-fill-item" id="tabla-rckk68aarw" style="width:auto;height:auto;"></div>
-<script type="application/json" data-for="tabla-rckk68aarw">{"x":{"tag":{"name":"Reactable","attribs":{"data":{"modelo":["Línea base (siempre el momento más común)","Regresión logística multinomial","Árbol de inferencia condicional","Random forest (300 árboles)","🏆 Gradient boosting (xgboost)"],"acierto":[0.499514073871908,0.421485090364503,0.521994850750525,0.501054894306218,0.454589847910547],"balanceado":[0.333333333333333,0.402031826387809,0.391673334789292,0.409752496747482,0.435360656064253],"variacion":[0,0.0123589940780496,0.013145081678501,0.0105233617420618,0.0156070950267869],"f1":[0.222032247799044,0.366185877407125,0.368751271218424,0.409163670498649,0.406025810896738],".orden":[1,2,3,4,5]},"columns":[{"id":"modelo","name":"Técnica","type":"character","minWidth":220,"style":{"fontWeight":600}},{"id":"acierto","name":"Acierto","type":"numeric","format":{"cell":{"digits":0,"percent":true},"aggregated":{"digits":0,"percent":true}},"maxWidth":90},{"id":"balanceado","name":"Balanceado","type":"numeric","format":{"cell":{"digits":0,"percent":true},"aggregated":{"digits":0,"percent":true}},"maxWidth":100},{"id":"variacion","name":"±","type":"numeric","format":{"cell":{"digits":1,"percent":true},"aggregated":{"digits":1,"percent":true}},"maxWidth":70},{"id":"f1","name":"F1","type":"numeric","format":{"cell":{"digits":0,"percent":true},"aggregated":{"digits":0,"percent":true}},"maxWidth":80},{"id":".orden","name":".orden","type":"numeric","show":false}],"pagination":false,"defaultPageSize":12,"highlight":true,"striped":true,"compact":true,"theme":{"color":"#1f1f1f","backgroundColor":"#ffffff","borderColor":"#ecebe7","stripedColor":"#f7f9f7","highlightColor":"#e6f0e8","cellPadding":"7px 10px","style":{"fontSize":"13.5px"},"headerStyle":{"background":"#2f2f2f","color":"#ffffff","fontWeight":600,"fontSize":"12.5px","borderBottom":"none"},"searchInputStyle":{"width":"100%","marginBottom":"8px"},"paginationStyle":{"fontSize":"12.5px"}},"language":{"searchPlaceholder":"Buscar…","noData":"Sin resultados","pageNext":"Siguiente","pagePrevious":"Anterior","pageNumbers":"{page} de {pages}","pageInfo":"{rowStart}–{rowEnd} de {rows}"},"elementId":"tabla-rckk68aarw","dataKey":"8c7beb3876aa5be74b2de11b76ef65a2"},"children":[]},"class":"reactR_markup"},"evals":[],"jsHooks":[]}</script>
+<div class="reactable html-widget html-fill-item" id="tabla-rua7wcun0n" style="width:auto;height:auto;"></div>
+<script type="application/json" data-for="tabla-rua7wcun0n">{"x":{"tag":{"name":"Reactable","attribs":{"data":{"modelo":["Línea base (siempre el momento más común)","Regresión logística multinomial","Árbol de inferencia condicional","Random forest (300 árboles)","🏆 Gradient boosting (xgboost)"],"acierto":[0.499514073871908,0.421485090364503,0.521994850750525,0.501054894306218,0.454589847910547],"balanceado":[0.333333333333333,0.402031826387809,0.391673334789292,0.409752496747482,0.435360656064253],"variacion":[0,0.0123589940780496,0.013145081678501,0.0105233617420618,0.0156070950267869],"f1":[0.222032247799044,0.366185877407125,0.368751271218424,0.409163670498649,0.406025810896738],".orden":[1,2,3,4,5]},"columns":[{"id":"modelo","name":"Técnica","type":"character","minWidth":220,"style":{"fontWeight":600}},{"id":"acierto","name":"Acierto","type":"numeric","format":{"cell":{"digits":0,"percent":true},"aggregated":{"digits":0,"percent":true}},"maxWidth":90},{"id":"balanceado","name":"Balanceado","type":"numeric","format":{"cell":{"digits":0,"percent":true},"aggregated":{"digits":0,"percent":true}},"maxWidth":100},{"id":"variacion","name":"±","type":"numeric","format":{"cell":{"digits":1,"percent":true},"aggregated":{"digits":1,"percent":true}},"maxWidth":70},{"id":"f1","name":"F1","type":"numeric","format":{"cell":{"digits":0,"percent":true},"aggregated":{"digits":0,"percent":true}},"maxWidth":80},{"id":".orden","name":".orden","type":"numeric","show":false}],"pagination":false,"defaultPageSize":12,"highlight":true,"striped":true,"compact":true,"theme":{"color":"#1f1f1f","backgroundColor":"#ffffff","borderColor":"#ecebe7","stripedColor":"#f7f9f7","highlightColor":"#e6f0e8","cellPadding":"7px 10px","style":{"fontSize":"13.5px"},"headerStyle":{"background":"#2f2f2f","color":"#ffffff","fontWeight":600,"fontSize":"12.5px","borderBottom":"none"},"searchInputStyle":{"width":"100%","marginBottom":"8px"},"paginationStyle":{"fontSize":"12.5px"}},"language":{"searchPlaceholder":"Buscar…","noData":"Sin resultados","pageNext":"Siguiente","pagePrevious":"Anterior","pageNumbers":"{page} de {pages}","pageInfo":"{rowStart}–{rowEnd} de {rows}"},"elementId":"tabla-rua7wcun0n","dataKey":"8c7beb3876aa5be74b2de11b76ef65a2"},"children":[]},"class":"reactR_markup"},"evals":[],"jsHooks":[]}</script>
 </div>
 </div>
 </div>
@@ -4654,7 +4715,7 @@ line-height: 1.35;
 <ul>
 <li><strong>Last.fm y Spotify no son todo lo que escucho</strong>: el corte de julio a septiembre de 2026 se rellena con Spotify, pero los de junio de 2016 y de junio a octubre de 2018 siguen abiertos, y la música fuera de las apps conectadas no queda registrada.</li>
 <li><strong>Las etiquetas son de la comunidad</strong>: géneros, países y ánimo dependen de lo que los usuarios de Last.fm ponen a cada artista, con sus sesgos (por ejemplo, “female vocalists” se usa mucho más que “male vocalists”).</li>
-<li><strong>Solo los artistas y canciones principales</strong> tienen letras (las canciones con 2 escuchas o más; 16.212 con letra o instrumentales, el 84% de las escuchas). Las etiquetas ya cubren a todos los artistas, pero las letras no a todas las canciones.</li>
+<li><strong>Solo los artistas y canciones principales</strong> tienen letras (las canciones con 2 escuchas o más; 16.276 con letra o instrumentales, el 85% de las escuchas). Las etiquetas ya cubren a todos los artistas, pero las letras no a todas las canciones.</li>
 <li><strong>Las interpretaciones psicológicas son lúdicas</strong>: la investigación habla de tendencias promedio en muchas personas, no de diagnósticos individuales.</li>
 </ul>
 </section>
