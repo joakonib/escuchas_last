@@ -538,6 +538,8 @@ tagList(
 
 ## 📈 La línea de tiempo
 
+`r as.character(ciro("eras", "ciro-lateral"))`Mis escuchas mes a mes y año a año, desde el primer registro en Last.fm. Los meses en gris claro son los que el *scrobbler* no alcanzó a registrar.
+
 ::: {.panel-tabset}
 
 #### Por mes
@@ -1173,7 +1175,7 @@ tabla(pandemia, titulo = "Mi música en tres tiempos"
 
 ## 🎭 Mi ánimo musical
 
-Esta sección presenta un análisis de sentimiento a partir de las etiquetas de ánimo que la comunidad de Last.fm asigna a cada artista ("melancholic", "aggressive", "happy", "chill", "dark", entre otras). Cada etiqueta se ubica en el [modelo circunflejo del afecto de Russell](https://doi.org/10.1037/h0077714), que considera la valencia (de triste a alegre) y la energía (de calma a intensidad). Luego, cada artista recibe el promedio de sus etiquetas, ponderado por su peso, y cada período el promedio de lo que escuché. Cabe señalar que se mide el ánimo de la *música* y no el mío, aunque podría decir algo de este.
+`r as.character(ciro("neblina", "ciro-lateral"))`Esta sección presenta un análisis de sentimiento a partir de las etiquetas de ánimo que la comunidad de Last.fm asigna a cada artista ("melancholic", "aggressive", "happy", "chill", "dark", entre otras). Cada etiqueta se ubica en el [modelo circunflejo del afecto de Russell](https://doi.org/10.1037/h0077714), que considera la valencia (de triste a alegre) y la energía (de calma a intensidad). Luego, cada artista recibe el promedio de sus etiquetas, ponderado por su peso, y cada período el promedio de lo que escuché. Cabe señalar que se mide el ánimo de la *música* y no el mío, aunque podría decir algo de este.
 
 ```{r}
 #| label: animo-calculo

@@ -152,7 +152,7 @@ linea_generacion <- function(zona = "America/Santiago") {
 #### si la imagen aún no existe no se muestra nada (los Ciros nuevos se suman al llegar)
 ciro <- function(cual = c("metal", "postpunk", "rapero", "encuestas", "natural", "cafe"
                           ,"audifonos", "flujo", "letras", "hardcore", "ozzy"
-                          ,"lluvia", "crooner", "cumbia", "explorador", "colocolo"), clase = "ciro-saludo") {
+                          ,"lluvia", "crooner", "cumbia", "explorador", "colocolo", "eras", "neblina"), clase = "ciro-saludo") {
   cual <- match.arg(cual)
   archivo <- paste0("assets/ciro/ciro_", cual, ".webp")
   if (!file.exists(archivo)) return(NULL)
@@ -171,11 +171,13 @@ ciro <- function(cual = c("metal", "postpunk", "rapero", "encuestas", "natural",
            ,crooner  = "Ciro, mi gato gris y blanco, de cantante de bar con traje negro y sombrero, apoyado en un piano viejo junto a un micrófono antiguo, con cara melancólica"
            ,cumbia   = "Ciro, mi gato gris y blanco, con camisa floreada verde y naranja, bailando cumbia con un güiro entre serpentinas y notas musicales"
            ,explorador = "Ciro, mi gato gris y blanco, de explorador con sombrero safari, mochila y brújula, mirando entusiasmado un mapa lleno de vinilos"
-           ,colocolo = "Ciro, mi gato gris y blanco, con la camiseta y la bufanda de Colo-Colo, celebrando un gol con el puño en alto y una pata sobre la pelota")[[cual]]
+           ,colocolo = "Ciro, mi gato gris y blanco, con la camiseta y la bufanda de Colo-Colo, celebrando un gol con el puño en alto y una pata sobre la pelota"
+           ,eras     = "Ciro, mi gato gris y blanco, sentado sobre una torre de cassettes, CDs y vinilos, abrazando un walkman con audífonos naranjas al cuello"
+           ,neblina  = "Ciro, mi gato gris y blanco, con polera negra y los ojos cerrados, sereno frente a una pared de amplificadores envuelta en neblina dorada")[[cual]]
   #### ancho/alto de cada imagen en assets/ciro (todas miden 360 px de alto)
   proporcion <- c(metal = 286, postpunk = 266, rapero = 275, encuestas = 284, natural = 283, cafe = 282
                   ,audifonos = 349, flujo = 351, letras = 342, hardcore = 321, ozzy = 323
-                  ,lluvia = 324, crooner = 346, cumbia = 334, explorador = 329, colocolo = 327)[[cual]] / 360
+                  ,lluvia = 324, crooner = 346, cumbia = 334, explorador = 329, colocolo = 327, eras = 350, neblina = 362)[[cual]] / 360
   ancho <- if (clase == "ciro-saludo") 96 else 90
   htmltools::tags$img(src = archivo, alt = alt, class = clase, width = ancho, height = round(ancho / proporcion))
 }

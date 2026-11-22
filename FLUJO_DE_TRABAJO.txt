@@ -424,6 +424,8 @@ HISTORIAL DE CAMBIOS DEL FLUJO
                 el flujo B.
               - Ciros nuevos: lluvia (clima), crooner (amores olvidados),
                 cumbia (momentos), explorador (explorar o volver) y Colo-Colo
-                (hitos; único con azul permitido, por el escudo del club).
+                (hitos; único con azul permitido, por el escudo del club),
+                eras (línea de tiempo) y neblina (ánimo). Se acabó la cuota de
+                imágenes de joako.galdames y se siguió con jgaldamesh.
                 ciro_sin_fondo.py suma contorno=N para rehacer el borde
                 blanco cuando no se distingue del fondo.
