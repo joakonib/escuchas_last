@@ -54,39 +54,8 @@ escuchas <- leer_escuchas(zona) %>%
   ) %>%
   arrange(uts)
 
-# Paleta: gris oscuro para barras, verde como acento principal y morado y
-# rosado oscuro como secundarios (sin azul)
-principal <- "#3a3a3a"
-verde     <- "#2f7d4a"
-gris      <- "#a3a29d"
-morado    <- "#6b3fa0"
-rosado    <- "#b0306a"
-tinta     <- "#0b0b0b"
-tinta_2   <- "#52514e"
-rampa     <- c("#f1f5f1", "#d4e5d8", "#a7cbb0", "#72a982", "#428556", "#27613a", "#163f25")
-
-theme_set(
-  theme_minimal(base_size = 12) +
-    theme(
-      plot.title.position = "plot"
-      ,plot.title    = element_text(face = "bold", size = 14, color = tinta)
-      ,plot.subtitle = element_text(color = tinta_2, margin = margin(b = 10))
-      ,axis.text     = element_text(color = tinta_2)
-      ,axis.title    = element_text(color = tinta_2, size = 10)
-      ,panel.grid.major = element_line(color = "#ecebe7", linewidth = 0.4),
-      panel.grid.minor = element_blank()
-      ,strip.text    = element_text(face = "bold", hjust = 0, color = tinta)
-      ,legend.position = "top"
-      ,legend.justification = "left"
-      ,plot.background = element_rect(fill = "#fcfcfb", color = NA),
-      panel.background = element_rect(fill = "#fcfcfb", color = NA)
-    )
-)
-
-miles <- label_number(big.mark = ".", decimal.mark = ",")
-pct   <- label_percent(accuracy = 1, decimal.mark = ",")
-fmt_fecha <- function(x) format(x, "%d-%m-%Y")
-anio_corto <- function(x) paste0("'", substr(as.character(x), 3, 4))
+# Paleta, tema de los gráficos y formatos (compartidos con el reporte de letras)
+source("R/estilo_graficos.R")
 ```
 
 ```{r}
@@ -1627,6 +1596,9 @@ eras <- eras %>%
 
 colores_era <- c(verde, morado, rosado, "#c98500", "#6b6b67", "#72a982", "#9d7cc7", "#d97aa6")
 
+#### el reporte de letras (11.letras.qmd) compara la deriva del significado con estas eras
+guardar_parquet(mutate(eras, nombre = as.character(nombre)), "data/eras.parquet")
+
 # Resumen por era: período, artistas principales y géneros con más peso
 resumen_eras <- escuchas %>%
   inner_join(eras, by = "mes") %>%
@@ -2171,7 +2143,7 @@ texto_modelos <- paste0(
 
 ## 📝 Lo que dicen mis canciones
 
-`r as.character(ciro("letras", "ciro-lateral"))`Bajé las letras de mis canciones más escuchadas desde [LRCLIB](https://lrclib.net) y, cuando no estaban ahí, desde [lyrics.ovh](https://lyrics.ovh), dos bases abiertas de letras, para ver de qué hablan. Por derechos de autor aquí solo muestro palabras y temas agregados, nunca letras completas.
+`r as.character(ciro("letras", "ciro-lateral"))`Bajé las letras de mis canciones más escuchadas desde [LRCLIB](https://lrclib.net) y, cuando no estaban ahí, desde [lyrics.ovh](https://lyrics.ovh), dos bases abiertas de letras, para ver de qué hablan. Por derechos de autor aquí solo muestro palabras y temas agregados, nunca letras completas. Este apartado resume lo principal, mientras que el análisis a fondo, con las emociones, quién habla en las canciones, la riqueza del vocabulario y cómo cambió su significado con los años, se encuentra en [el reporte de letras](letras.html).
 
 ```{r}
 #| label: letras-preparacion
@@ -2270,7 +2242,8 @@ palabras_epoca <- tokens %>%
   distinct(artista, cancion, palabra) %>%
   inner_join(epocas, by = c("artista", "cancion"), relationship = "many-to-many") %>%
   group_by(epoca, palabra) %>%
-  summarise(n = sum(v), canciones = n_distinct(paste(artista, cancion)), .groups = "drop") %>%
+  #### cada fila ya es única por época, palabra y canción: n() cuenta canciones
+  summarise(n = sum(v), canciones = n(), .groups = "drop") %>%
   filter(canciones >= 10) %>%
   group_by(palabra) %>%
   mutate(N = sum(n)) %>%
@@ -2431,7 +2404,7 @@ interactivo(p)
 ```
 
 ::: {.callout-note appearance="simple" icon="false"}
-**¿Qué me dice?** Los diez temas quedan bastante parejos, con entre un `r pct(min(peso_temas$share))` y un `r pct(max(peso_temas$share))` cada uno, por lo cual ninguno domina. A diferencia del modelo anterior, que separaba las canciones primero por idioma, aquí se agrupan por lo que dicen, de modo que el amor en inglés y en castellano termina en un mismo tema. Los más presentes corresponden al amor y las despedidas (*`r palabras_de("Amor y despedidas", 5)`*), con `r artista_tema("Amor y despedidas")` como ejemplo, y a las canciones de días, noches y salidas a bailar (*`r palabras_de("Días, noches y recuerdos")`*), con `r artista_tema("Días, noches y recuerdos")`. En castellano se mantienen dos registros propios, por un lado el deseo y la noche del lenguaje urbano y tropical (*`r palabras_de("Deseo y noche, urbano y tropical")`*), y por otro el amor y la vida del rock chileno y argentino (*`r palabras_de("El amor y la vida, en rock chileno y argentino")`*), con `r artista_tema("El amor y la vida, en rock chileno y argentino")`. Respecto a lo más oscuro, este se reparte entre la muerte y la sangre del metal (*`r palabras_de("Muerte, sangre y lo sagrado")`*), con `r artista_tema("Muerte, sangre y lo sagrado")`, la pérdida y la guerra (*`r palabras_de("Pérdida, miedo y oscuridad", 3)`*), con `r artista_tema("Pérdida, miedo y oscuridad")`, y la rabia, la calle y el dinero del hip-hop. Asimismo, el imaginario de luz y oscuridad se divide en dos, uno más espiritual (*`r palabras_de("Luz, cielo y lo sagrado")`*) y otro más contemplativo (*`r palabras_de("Luz y oscuridad")`*), a lo cual se suma la vida y el paso del tiempo (*`r palabras_de("La vida y el paso del tiempo")`*). Cabe tener en consideración que las palabras de cada tema salen mayormente en inglés, dado que es el idioma de la mayoría de mis letras, aunque las canciones de cada grupo incluyen ambos idiomas.
+**¿Qué me dice?** `r if (exists("peso_temas")) { pt <- filter(peso_temas, !str_starts(nombre, "Tema mixto")); mixtos <- filter(peso_temas, str_starts(nombre, "Tema mixto")); oscuros <- filter(pt, str_detect(nombre, "Muerte|Pérdida|Rabia|oscuridad")); paste0("Las letras se agrupan en ", nrow(pt), " temas con nombre, con entre un ", pct(min(pt$share)), " y un ", pct(max(pt$share)), " de mis escuchas cada uno, por lo cual ninguno domina. A diferencia de un modelo por palabras, que separaría las canciones primero por idioma, aquí se agrupan por lo que dicen, de modo que el amor en inglés y en castellano termina en un mismo tema. Los más presentes corresponden a «", pt$nombre[1], "» (*", palabras_de(pt$nombre[1], 5), "*), con ", artista_tema(pt$nombre[1]), " como ejemplo, a «", pt$nombre[2], "» (*", palabras_de(pt$nombre[2]), "*), con ", artista_tema(pt$nombre[2]), ", y a «", pt$nombre[3], "» (*", palabras_de(pt$nombre[3]), "*), con ", artista_tema(pt$nombre[3]), ". ", if (nrow(oscuros)) paste0("Respecto a lo más oscuro, este se reparte entre ", y_lista(paste0("«", oscuros$nombre, "» (", pct(oscuros$share), ")")), ", lo cual suma un ", pct(sum(oscuros$share)), " de lo que escucho. ") else "", if (nrow(mixtos)) paste0("Además, queda un grupo pequeño sin un tema claro (", pct(sum(mixtos$share)), "), que reúne canciones cuyas letras no se parecen a ninguna de las demás. ") else "", "Cabe tener en consideración que las palabras de cada tema salen mayormente en inglés, dado que es el idioma de la mayoría de mis letras, aunque las canciones de cada grupo incluyen ambos idiomas.") } else "—"`
 :::
 
 #### 🎭 Lo que dice y cómo suena
@@ -2501,14 +2474,15 @@ tagList(
 #| fig-height: 3.6
 # Repetición = 1 - tamaño comprimido / tamaño original (gzip), sobre la letra en minúsculas
 # y sin signos. Solo letras de al menos 200 caracteres, para que la medida sea estable.
-repeticion_letra <- function(x) {
-  t <- str_squish(str_to_lower(str_replace_all(x, "[^[:alnum:]' ]", " ")))
+#### la limpieza va vectorizada sobre todas las letras; el bucle solo comprime
+repeticion_letra <- function(t) {
   if (nchar(t, "bytes") < 200) return(NA_real_)
   b <- charToRaw(t)
   1 - length(memCompress(b, "gzip")) / length(b)
 }
 letras_rep <- letras %>%
-  mutate(repeticion = map_dbl(letra, repeticion_letra)) %>%
+  mutate(repeticion = map_dbl(str_squish(str_to_lower(str_replace_all(letra, "[^[:alnum:]' ]", " ")))
+                              ,repeticion_letra)) %>%
   filter(!is.na(repeticion))
 
 rep_anual <- escuchas %>%

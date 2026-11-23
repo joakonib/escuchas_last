@@ -37,6 +37,11 @@ canciones <- map(listas, function(f) {
 previo <- if (file.exists(archivo)) leer_parquet(archivo) else NULL
 pendientes <- if (is.null(previo)) canciones else anti_join(canciones, previo, by = "id")
 message("Canciones con identificador: ", nrow(canciones), " | por consultar: ", nrow(pendientes))
+#### sin pendientes no hay nada que consultar (la tabla vacía no trae la columna id y el cruce fallaba)
+if (nrow(pendientes) == 0) {
+  message("Audio al día: no hay canciones nuevas por consultar")
+  quit(status = 0)
+}
 
 # 2. Consulta a ReccoBeats en lotes de 40 ------
 consultar <- function(ids) {

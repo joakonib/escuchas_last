@@ -147,7 +147,10 @@ fi
 cp analisis_escuchas.html letras.html reporte_mensual.html metodologia.html flujo.html docs/ && log "Reportes copiados a docs/"
 
 # 5. Limpieza (paso 4.0 del flujo) y publicación
-rm -rf .Rhistory ./*_files ./*.knit.md ./*.rmarkdown; log "Limpieza de temporales hecha"
+rm -rf .Rhistory ./*_files ./*.knit.md ./*.rmarkdown
+#### los HTML de la raíz ya están en docs/: se borran para no duplicarlos
+rm -f analisis_escuchas.html letras.html reporte_mensual.html metodologia.html flujo.html
+log "Limpieza de temporales hecha"
 #### Solo los reportes y lo que se revisa en la pausa (textos, diccionarios de R/, Ciros).
 #### Nada de scripts/: si alguien los edita mientras el flujo corre, ese cambio va en su
 #### propio commit (el 22-11-2026 un arreglo a medio hacer se subió con este mensaje).

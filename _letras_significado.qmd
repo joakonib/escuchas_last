@@ -1,0 +1,350 @@
+```{r}
+#| label: sig-temas
+#| eval: !expr tiene_letras
+#| include: false
+# Temas por significado: el mismo modelo guardado que usa el reporte general
+# (data/modelo_temas_semanticos.rds), con sus mismos nombres
+source("R/temas_semanticos.R")
+ids_emb <- paste(emb$artista, emb$cancion, sep = " — ")
+semanticos_sig <- temas_estables(emb, "data/modelo_temas_semanticos.rds")
+palabras_sig <- palabras_tema(tokens, semanticos_sig$asignacion)
+terminos_sig <- do.call(cbind, map(palabras_sig$terminos, function(x) x[1:15]))
+temas_sig <- tibble(tema = seq_len(nrow(palabras_sig))) %>%
+  left_join(describir_temas(terminos_sig), by = "tema")
+tema_de <- semanticos_sig$asignacion %>%
+  select(cancion_id, tema) %>%
+  left_join(temas_sig, by = "tema")
+colores_sig <- c("#163f25", verde, "#a7cbb0", morado, "#c3a9e0", rosado, "#e8a3c2", "#8a8984", "#4a4a47", "#cfcdc6")
+
+# Índice de cada canción en la matriz de vectores
+fila_emb <- tibble(artista = emb$artista, cancion = emb$cancion, fila = seq_len(nrow(emb)))
+```
+
+#### 🗺️ Mapa de significados
+
+::: {.callout-tip appearance="simple" icon="false"}
+**Teoría.** Cada letra se representa con un vector de 384 números que resume su significado, calculado con un modelo de lenguaje multilingüe (Reimers y Gurevych, 2019). UMAP (McInnes y otros, 2018) proyecta esos vectores en un plano intentando conservar quién es vecino de quién, de modo que dos canciones quedan cerca cuando dicen cosas parecidas, aunque estén en idiomas distintos. Las distancias grandes del plano no deben leerse literalmente, ya que UMAP cuida sobre todo la vecindad local.
+:::
+
+```{r}
+#| label: sig-mapa
+#| eval: !expr tiene_letras
+#| fig-height: 6.5
+# Canciones escuchadas al menos 10 veces; el plano se guarda y se reutiliza mientras
+# las canciones sean las mismas (UMAP tarda y cambiaría de orientación en cada render)
+mapa_base <- fila_emb %>%
+  inner_join(escuchas_cancion, by = c("artista", "cancion")) %>%
+  filter(veces >= 10) %>%
+  mutate(cancion_id = paste(artista, cancion, sep = " — ")) %>%
+  left_join(tema_de, by = "cancion_id")
+
+archivo_mapa <- "data/mapa_letras.rds"
+previo_mapa <- if (file.exists(archivo_mapa)) readRDS(archivo_mapa) else NULL
+if (is.null(previo_mapa) || !identical(previo_mapa$ids, mapa_base$cancion_id)) {
+  set.seed(2026)
+  plano <- uwot::umap(M[mapa_base$fila, ], n_neighbors = 15, min_dist = 0.1, metric = "cosine"
+                      ,n_components = 2, n_threads = 1, verbose = FALSE)
+  previo_mapa <- list(ids = mapa_base$cancion_id, plano = plano)
+  saveRDS(previo_mapa, archivo_mapa)
+}
+mapa_base <- mapa_base %>% mutate(x = previo_mapa$plano[, 1], y = previo_mapa$plano[, 2])
+
+# Peso de cada tema en el mapa (para el texto)
+mapa_temas <- mapa_base %>% count(tema_nombre, sort = TRUE)
+
+p <- mapa_base %>%
+  mutate(tema_nombre = factor(tema_nombre, levels = mapa_temas$tema_nombre)) %>%
+  ggplot(aes(x, y, color = tema_nombre
+             ,text = paste0("<b>", artista, "</b> — ", cancion, "<br>", tema_nombre, "<br>", miles(veces), " escuchas"))) +
+  geom_point(aes(size = log10(veces)), alpha = 0.6) +
+  scale_size(range = c(0.6, 3), guide = "none") +
+  scale_color_manual(values = colores_sig, name = NULL) +
+  scale_x_continuous(breaks = NULL) +
+  scale_y_continuous(breaks = NULL) +
+  labs(title = "El mapa de lo que dicen mis canciones"
+       ,subtitle = "Cada punto es una canción escuchada 10 veces o más; cerca = letras de significado parecido"
+       ,x = NULL, y = NULL) +
+  theme(panel.grid = element_blank(), legend.text = element_text(size = 9))
+interactivo(p)
+```
+
+::: {.callout-note appearance="simple" icon="false"}
+**¿Qué me dice?** `r as.character(ciro("telescopio", "ciro-lateral"))``r if (exists("mapa_base")) paste0("En el mapa aparecen ", miles(nrow(mapa_base)), " canciones que escuché al menos 10 veces. El tema con más canciones es «", mapa_temas$tema_nombre[1], "», con ", miles(mapa_temas$n[1]), ", seguido de «", mapa_temas$tema_nombre[2], "». Cabe señalar que los colores corresponden a los temas que se calculan con todas las letras, mientras que la posición sale de una proyección distinta, por lo cual los grupos se ven como regiones con bordes difusos más que como islas separadas. Lo cual da cuenta de que lo que dicen mis canciones forma un continuo, en donde el amor, la noche y la oscuridad se tocan unos con otros.") else "—"`
+:::
+
+#### 🧭 Deriva del significado
+
+::: {.callout-tip appearance="simple" icon="false"}
+**Teoría.** Para medir cuánto cambia de un año a otro lo que dicen las canciones que escucho se calcula el centro de gravedad de sus vectores, ponderado por cuántas veces escuché cada una, y se compara con el del año anterior mediante la distancia coseno, que va de 0 (mismo significado) hacia arriba. Es la misma idea con la que la lingüística computacional mide cómo cambia el significado de una palabra en el tiempo (Hamilton y otros, 2016). Además, E-Divisive (Matteson y James, 2014) busca en qué meses cambia de manera significativa ese centro, para compararlo con las eras de géneros.
+:::
+
+```{r}
+#| label: sig-deriva
+#| eval: !expr tiene_letras
+#| fig-height: 4
+pacman::p_load(ecp)
+cos_dist <- function(a, b) 1 - sum(a * b) / sqrt(sum(a^2) * sum(b^2))
+
+con_vector <- escuchas %>% inner_join(fila_emb, by = c("artista", "cancion"))
+cobertura_vector <- nrow(con_vector) / nrow(escuchas)
+
+# Centro anual ponderado por escuchas
+conteo_anio <- con_vector %>% count(anio, fila)
+centros_anio <- conteo_anio %>%
+  group_by(anio) %>%
+  summarise(centro = list(centroide(M[fila, , drop = FALSE], n)), escuchas = sum(n), .groups = "drop") %>%
+  filter(escuchas >= 500)
+centro_total <- centroide(M[conteo_anio$fila, , drop = FALSE], conteo_anio$n)
+
+deriva <- centros_anio %>%
+  mutate(al_anterior = c(NA, map2_dbl(head(centro, -1), tail(centro, -1), cos_dist))
+         ,al_total = map_dbl(centro, cos_dist, centro_total)) %>%
+  select(anio, escuchas, al_anterior, al_total)
+
+p <- deriva %>%
+  pivot_longer(c(al_anterior, al_total), names_to = "medida", values_to = "distancia") %>%
+  filter(!is.na(distancia)) %>%
+  mutate(medida = recode(medida, al_anterior = "Frente al año anterior", al_total = "Frente a todo mi historial")) %>%
+  ggplot(aes(anio, distancia, color = medida
+             ,text = paste0("<b>", anio, "</b><br>", medida, ": ", coma(distancia, 4)))) +
+  geom_line(linewidth = 1.1) +
+  geom_point(size = 2.2) +
+  scale_color_manual(values = c(verde, morado), name = NULL) +
+  scale_x_continuous(breaks = deriva$anio, labels = anio_corto) +
+  labs(title = "¿Cuánto cambia lo que dicen mis canciones?"
+       ,subtitle = "Distancia coseno entre el significado promedio de cada año y el de referencia (más alto = más cambio)"
+       ,x = NULL, y = NULL)
+interactivo(p)
+
+# Cambios mensuales con E-Divisive sobre los centros de cada mes (10 componentes principales)
+conteo_mes <- con_vector %>% count(mes, fila)
+meses_ok <- conteo_mes %>% group_by(mes) %>% summarise(n = sum(n)) %>% filter(n >= 100) %>% pull(mes)
+centros_mes <- conteo_mes %>%
+  filter(mes %in% meses_ok) %>%
+  arrange(mes) %>%
+  group_by(mes) %>%
+  summarise(centro = list(centroide(M[fila, , drop = FALSE], n)), .groups = "drop")
+X_mes <- prcomp(do.call(rbind, centros_mes$centro))$x[, 1:10]
+set.seed(2026)
+cambios_sig <- e.divisive(X_mes, sig.lvl = 0.05, R = 199, min.size = 6, alpha = 1)
+puntos_sig <- centros_mes$mes[cambios_sig$estimates[-c(1, length(cambios_sig$estimates))]]
+
+limites_eras <- if (!is.null(eras)) eras %>% group_by(era) %>% summarise(inicio = min(mes)) %>% pull(inicio) %>% tail(-1) else as.Date(character(0))
+cerca_era_sig <- if (length(limites_eras) && length(puntos_sig))
+  sapply(puntos_sig, function(m) min(abs(interval(m, limites_eras) %/% months(1))) <= 3) else logical(0)
+
+tabla(tibble(cambio = format(puntos_sig, "%m-%Y")
+             ,era = if (length(cerca_era_sig)) if_else(cerca_era_sig, "Sí", "No") else "—")
+      ,titulo = "Meses en que cambia lo que dicen mis canciones"
+      ,subtitulo = "Cambios significativos según E-Divisive (p < 0,05) y si caen a tres meses o menos de un cambio de era"
+      ,columnas = list(cambio = colDef(name = "Mes del cambio"), era = colDef(name = "¿Cerca de un cambio de era?")))
+```
+
+::: {.callout-note appearance="simple" icon="false"}
+**¿Qué me dice?** `r if (exists("deriva")) { mx <- slice_max(filter(deriva, !is.na(al_anterior)), al_anterior, n = 1); mn <- slice_min(filter(deriva, !is.na(al_anterior)), al_anterior, n = 1); lejos <- slice_max(deriva, al_total, n = 1); paste0("Las canciones con vector de significado cubren el ", pct(cobertura_vector), " de mis escuchas. El mayor salto de un año al siguiente ocurre en ", mx$anio, " (distancia de ", coma(mx$al_anterior, 4), "), mientras que el año más parecido al anterior es ", mn$anio, " (", coma(mn$al_anterior, 4), "). Respecto a todo el historial, el año que más se aleja del significado promedio es ", lejos$anio, ". Por otro lado, E-Divisive encuentra ", length(puntos_sig), " cambios significativos en lo que dicen mis canciones", if (length(cerca_era_sig)) paste0(", de los cuales ", sum(cerca_era_sig), " quedan a tres meses o menos de un cambio de era") else "", ". Cabe tener en consideración que las distancias son pequeñas en términos absolutos, ya que el promedio de miles de canciones tiende a parecerse, por lo cual lo relevante es la comparación entre años más que el valor en sí.") } else "—"`
+:::
+
+#### 🎯 Ideas guiadas
+
+::: {.callout-tip appearance="simple" icon="false"}
+**Teoría.** En vez de dejar que el modelo arme los temas por su cuenta, aquí se definen de antemano doce ideas (protesta, desamor, muerte, fiesta y otras), cada una descrita con cuatro frases en español e inglés, y se mide cuánto se acerca cada letra a cada idea con la similitud coseno entre sus vectores. Es una forma de clasificación sin ejemplos etiquetados (*zero-shot*), cercana a los diccionarios temáticos del análisis de contenido (Grimmer y Stewart, 2013), con la ventaja de que entiende sinónimos y otros idiomas. Las frases de cada idea están en `scripts/anclas_letras.csv`.
+:::
+
+```{r}
+#| label: sig-ideas
+#| eval: !expr tiene_letras
+#| fig-height: 5
+# Similitud de cada letra con cada idea, estandarizada por idea sobre todas las letras
+sim_ideas <- M %*% t(matriz_vectores(anclas))
+colnames(sim_ideas) <- anclas$idea
+z_ideas <- scale(sim_ideas)
+
+ideas_cancion <- bind_cols(select(fila_emb, artista, cancion), as_tibble(z_ideas))
+ideas_anio <- con_vector %>%
+  count(anio, fila) %>%
+  group_by(anio) %>%
+  filter(sum(n) >= 500) %>%
+  summarise(z = list(colSums(z_ideas[fila, , drop = FALSE] * n) / sum(n)), .groups = "drop") %>%
+  mutate(idea = list(colnames(z_ideas))) %>%
+  unnest(c(idea, z))
+
+orden_ideas <- ideas_anio %>% group_by(idea) %>% summarise(z = mean(z)) %>% arrange(z) %>% pull(idea)
+p <- ideas_anio %>%
+  mutate(idea = factor(idea, levels = orden_ideas)) %>%
+  ggplot(aes(factor(anio_corto(anio)), idea, fill = z
+             ,text = paste0("<b>", idea, " en ", anio, "</b><br>Cercanía: ", coma(z, 2), " desviaciones"))) +
+  geom_tile(color = "white") +
+  scale_fill_gradient2(low = morado, mid = "#f4f3ef", high = verde, midpoint = 0, name = "Cercanía") +
+  labs(title = "¿De qué ideas se acercan mis canciones, año a año?"
+       ,subtitle = "Cercanía promedio por escucha a cada idea (verde = más que el promedio de todas mis letras)"
+       ,x = NULL, y = NULL) +
+  theme(panel.grid = element_blank())
+interactivo(p)
+
+# La canción más cercana a cada idea entre las que escuché 20 veces o más
+ejemplos_ideas <- ideas_cancion %>%
+  inner_join(escuchas_cancion, by = c("artista", "cancion")) %>%
+  filter(veces >= 20) %>%
+  pivot_longer(all_of(anclas$idea), names_to = "idea", values_to = "z") %>%
+  group_by(idea) %>%
+  slice_max(z, n = 1, with_ties = FALSE) %>%
+  ungroup() %>%
+  transmute(idea, cancion = paste(artista, cancion, sep = " — "), veces) %>%
+  arrange(match(idea, rev(orden_ideas)))
+
+tabla(ejemplos_ideas, titulo = "La canción que mejor representa cada idea"
+      ,subtitulo = "Entre las que escuché al menos 20 veces"
+      ,columnas = list(idea = colDef(name = "Idea", maxWidth = 190, style = list(fontWeight = 600))
+                       ,cancion = colDef(name = "Canción", minWidth = 240)
+                       ,veces = colDef(name = "Escuchas", maxWidth = 90)))
+
+# Para el texto: cambio de cada idea entre los tres primeros y los tres últimos años
+cambio_ideas <- ideas_anio %>%
+  mutate(etapa = case_when(anio <= min(anio) + 2 ~ "inicio", anio >= max(anio) - 2 ~ "final")) %>%
+  filter(!is.na(etapa)) %>%
+  group_by(idea, etapa) %>%
+  summarise(z = mean(z), .groups = "drop") %>%
+  pivot_wider(names_from = etapa, values_from = z) %>%
+  mutate(cambio = final - inicio) %>%
+  arrange(cambio)
+```
+
+::: {.callout-note appearance="simple" icon="false"}
+**¿Qué me dice?** `r if (exists("cambio_ideas")) { sube <- tail(cambio_ideas, 2); baja <- head(cambio_ideas, 2); top <- tail(orden_ideas, 2); paste0("A lo largo de todo el historial, las ideas a las que más se acercan mis canciones son ", tolower(top[2]), " y ", tolower(top[1]), ". Respecto a su evolución, entre los primeros y los últimos años las que más crecen son ", tolower(sube$idea[2]), " (", coma(sube$cambio[2], 2), " desviaciones) y ", tolower(sube$idea[1]), " (", coma(sube$cambio[1], 2), "), mientras que las que más bajan son ", tolower(baja$idea[1]), " (", coma(baja$cambio[1], 2), ") y ", tolower(baja$idea[2]), " (", coma(baja$cambio[2], 2), "). Lo cual podría responder al paso desde el metal y el punk de mis primeros años hacia el post-punk y la escena en castellano, que hablan más de vínculos y de la vida cotidiana que de combate. Cabe señalar que la cercanía mide de qué habla una letra y no su postura, por lo cual una canción contra la guerra y otra que la celebra quedan igual de cerca de esa idea.") } else "—"`
+:::
+
+#### 👯 Parecidos por lo que dicen
+
+::: {.callout-tip appearance="simple" icon="false"}
+**Teoría.** Dos artistas pueden parecerse por cómo suenan o por lo que dicen. Para lo primero se usan las etiquetas de Last.fm de cada artista, y para lo segundo el significado promedio de sus letras. La relación entre ambas miradas se mide con la correlación entre las dos matrices de similitud, al estilo de la prueba de Mantel (1967), en donde la significancia se obtiene permutando los artistas.
+:::
+
+```{r}
+#| label: sig-parecidos
+#| eval: !expr tiene_letras
+# Artistas con al menos 5 letras con vector y con etiquetas
+art_letras <- fila_emb %>% count(artista, name = "letras") %>% filter(letras >= 5)
+art_ok <- intersect(art_letras$artista, unique(tags$artista))
+
+centro_art <- fila_emb %>%
+  filter(artista %in% art_ok) %>%
+  group_by(artista) %>%
+  summarise(centro = list(centroide(M[fila, , drop = FALSE])), .groups = "drop")
+L <- do.call(rbind, centro_art$centro)
+rownames(L) <- centro_art$artista
+sim_letra <- L %*% t(L)
+
+perfil <- tags %>%
+  filter(artista %in% art_ok) %>%
+  group_by(tag) %>% filter(n_distinct(artista) >= 3) %>% ungroup() %>%
+  select(artista, tag, peso) %>%
+  pivot_wider(names_from = tag, values_from = peso, values_fill = 0, values_fn = sum)
+Tg <- as.matrix(select(perfil, -artista))
+rownames(Tg) <- perfil$artista
+#### quedan solo los artistas que conservan etiquetas tras sacar las etiquetas raras
+comunes <- intersect(rownames(L), rownames(Tg))
+L <- L[comunes, , drop = FALSE]
+sim_letra <- L %*% t(L)
+Tg <- Tg[comunes, , drop = FALSE]
+Tg <- Tg / pmax(sqrt(rowSums(Tg^2)), 1e-9)
+sim_tag <- Tg %*% t(Tg)
+
+arriba <- upper.tri(sim_letra)
+rho_mantel <- cor(sim_letra[arriba], sim_tag[arriba], method = "spearman")
+set.seed(2026)
+rho_perm <- replicate(199, {
+  o <- sample(nrow(sim_tag))
+  cor(sim_letra[arriba], sim_tag[o, o][arriba], method = "spearman")
+})
+p_mantel <- (sum(rho_perm >= rho_mantel) + 1) / 200
+
+# Pares entre artistas que escuché al menos 300 veces
+#### y que tengan al menos 5 etiquetas: con menos, la similitud de sonido queda en cero por falta de datos
+con_etiquetas <- rownames(Tg)[rowSums(Tg > 0) >= 5]
+grandes <- escuchas %>% count(artista) %>% filter(n >= 300, artista %in% con_etiquetas) %>% pull(artista)
+pares <- expand_grid(a = grandes, b = grandes) %>%
+  filter(a < b) %>%
+  mutate(letra = sim_letra[cbind(a, b)], sonido = sim_tag[cbind(a, b)]
+         ,r_letra = percent_rank(letra), r_sonido = percent_rank(sonido))
+
+dicen_igual <- pares %>% filter(r_letra >= 0.9, r_sonido <= 0.25) %>% arrange(desc(r_letra - r_sonido)) %>% slice_head(n = 8)
+suenan_igual <- pares %>% filter(r_sonido >= 0.9, r_letra <= 0.25) %>% arrange(desc(r_sonido - r_letra)) %>% slice_head(n = 8)
+
+tabla_pares <- function(d, titulo, subtitulo) {
+  tabla(transmute(d, par = paste(a, "y", b), letra = r_letra, sonido = r_sonido)
+        ,titulo = titulo, subtitulo = subtitulo
+        ,columnas = list(par = colDef(name = "Artistas", minWidth = 240)
+                         ,letra = colDef(name = "Parecido en letra", maxWidth = 130, format = colFormat(percent = TRUE, digits = 0))
+                         ,sonido = colDef(name = "Parecido en sonido", maxWidth = 130, format = colFormat(percent = TRUE, digits = 0))))
+}
+tagList(
+  tabla_pares(dicen_igual, "Dicen lo mismo, pero suenan distinto", "Pares en el 10% más parecido por letra y en el 25% menos parecido por etiquetas (percentil entre pares)")
+  ,tabla_pares(suenan_igual, "Suenan parecido, pero dicen otra cosa", "Pares en el 10% más parecido por etiquetas y en el 25% menos parecido por letra")
+)
+```
+
+::: {.callout-note appearance="simple" icon="false"}
+**¿Qué me dice?** `r if (exists("rho_mantel")) paste0("Se compararon ", miles(nrow(L)), " artistas con al menos cinco letras y etiquetas, y la correlación entre parecerse en lo que dicen y parecerse en cómo suenan es de ", coma(rho_mantel, 2), " (p ", if (p_mantel < 0.01) "< 0,01" else paste("=", coma(p_mantel, 2)), " con 199 permutaciones). Esto indica que ", if (rho_mantel >= 0.3) "el género y el contenido de las letras van bastante de la mano, ya que los artistas que suenan parecido también tienden a hablar de cosas parecidas" else if (rho_mantel >= 0.1) "el género y el contenido de las letras se relacionan, aunque de manera moderada, por lo cual sonar parecido no garantiza decir lo mismo" else "cómo suena un artista dice poco sobre lo que dicen sus letras", ". Las tablas muestran los casos que rompen la regla, en donde el idioma pesa bastante, ya que dos artistas en castellano tienden a quedar cerca en sus letras aunque toquen géneros muy distintos.") else "—"`
+:::
+
+#### 🎣 ¿Qué letras me enganchan?
+
+::: {.callout-tip appearance="simple" icon="false"}
+**Teoría.** Para saber si algún rasgo de la letra se asocia a que una canción la escuche más veces se usa una regresión con efectos fijos de artista (Wooldridge, 2010), es decir, se comparan solo canciones de un mismo artista. De esta forma se descuenta que algunos artistas me gusten más que otros, y cada coeficiente responde a la pregunta de si, entre las canciones de un mismo artista, las que tienen más de ese rasgo son las que pongo más. Los rasgos están estandarizados, por lo cual cada coeficiente indica el cambio en el logaritmo de las escuchas por cada desviación estándar del rasgo.
+:::
+
+```{r}
+#| label: sig-enganche
+#| eval: !expr tiene_letras
+#| fig-height: 5.2
+emo_ancho <- emo %>%
+  select(artista, cancion, emocion, z) %>%
+  pivot_wider(names_from = emocion, values_from = z)
+
+largo_letra <- letras %>% transmute(artista, cancion, largo = lengths(palabras_crudas(letra)))
+
+base_eng <- letras %>%
+  filter(veces >= 2) %>%
+  select(artista, cancion, idioma, veces, mtld, repetidos) %>%
+  inner_join(emo_ancho, by = c("artista", "cancion")) %>%
+  inner_join(select(pro, artista, cancion, Yo, Tú, Nosotros), by = c("artista", "cancion")) %>%
+  inner_join(select(sent, artista, cancion, z_letra), by = c("artista", "cancion")) %>%
+  inner_join(largo_letra, by = c("artista", "cancion")) %>%
+  mutate(espanol = as.numeric(idioma == "Español"), largo = log(largo)) %>%
+  filter(if_all(everything(), ~ !is.na(.x))) %>%
+  group_by(artista) %>% filter(n() >= 5) %>% ungroup()
+
+rasgos <- c(unname(emociones_es), "Yo", "Tú", "Nosotros", "mtld", "repetidos", "largo", "z_letra")
+nombres_rasgos <- c(setNames(unname(emociones_es), unname(emociones_es)), Yo = "Pronombre yo", Tú = "Pronombre tú"
+                    ,Nosotros = "Pronombre nosotros", mtld = "Riqueza del vocabulario", repetidos = "Versos repetidos"
+                    ,largo = "Largo de la letra", z_letra = "Sentimiento positivo")
+
+# Efectos fijos: a cada variable se le resta el promedio de su artista
+fe <- base_eng %>%
+  mutate(y = log(veces), across(all_of(rasgos), ~ as.numeric(scale(.x)))) %>%
+  group_by(artista) %>%
+  mutate(across(c(y, all_of(rasgos)), ~ .x - mean(.x))) %>%
+  ungroup()
+modelo_eng <- lm(reformulate(paste0("`", rasgos, "`"), response = "y", intercept = FALSE), data = fe)
+coef_eng <- broom::tidy(modelo_eng, conf.int = TRUE) %>%
+  mutate(term = str_remove_all(term, "`"), rasgo = nombres_rasgos[term]
+         ,significativo = conf.low > 0 | conf.high < 0)
+
+p <- coef_eng %>%
+  ggplot(aes(estimate, fct_reorder(rasgo, estimate), color = significativo
+             ,text = paste0("<b>", rasgo, "</b><br>Efecto: ", coma(estimate, 3), "<br>IC 95%: ", coma(conf.low, 3), " a ", coma(conf.high, 3)))) +
+  geom_vline(xintercept = 0, color = gris) +
+  geom_errorbar(aes(xmin = conf.low, xmax = conf.high), width = 0, linewidth = 0.8, orientation = "y") +
+  geom_point(size = 2.6) +
+  scale_color_manual(values = c(`TRUE` = verde, `FALSE` = gris), guide = "none") +
+  labs(title = "¿Qué rasgos de la letra se asocian a escuchar más una canción?"
+       ,subtitle = "Efecto en log(escuchas) por desviación estándar, comparando canciones del mismo artista (IC 95%; verde = distinto de cero)"
+       ,x = NULL, y = NULL)
+interactivo(p)
+
+r2_eng <- summary(modelo_eng)$r.squared
+```
+
+::: {.callout-note appearance="simple" icon="false"}
+**¿Qué me dice?** `r if (exists("coef_eng")) { sig <- filter(coef_eng, significativo) %>% arrange(desc(abs(estimate))); pos <- filter(sig, estimate > 0); neg <- filter(sig, estimate < 0); paste0("El modelo usa ", miles(nrow(base_eng)), " canciones de ", miles(n_distinct(base_eng$artista)), " artistas con al menos cinco canciones con letra, y solo considera las canciones con todos los rasgos calculados. En conjunto, los rasgos de la letra explican un ", label_percent(accuracy = 0.1, decimal.mark = ",")(r2_eng), " de las diferencias de escuchas entre canciones de un mismo artista, lo cual indica que lo que dice una letra pesa poco frente a otras razones, como el sonido, el disco o el momento en que la descubrí. ", if (nrow(pos)) paste0("Aun así, ", tolower(paste(head(pos$rasgo, 2), collapse = " y ")), " se asocia", if (min(nrow(pos), 2) > 1) "n" else "", " a escuchar más una canción") else "Ningún rasgo se asocia de manera clara a escuchar más una canción", if (nrow(neg)) paste0(", mientras que ", tolower(paste(head(neg$rasgo, 2), collapse = " y ")), " se asocia", if (min(nrow(neg), 2) > 1) "n" else "", " a escucharla menos") else "", ". Cabe tener en consideración que se trata de asociaciones y no de efectos causales.") } else "—"`
+:::

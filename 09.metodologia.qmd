@@ -298,6 +298,114 @@ que se usa como peso de la unión. Las comunidades se obtienen con el método de
 
 :::
 
+## 📝 El reporte de letras {#letras}
+
+`r as.character(ciro("letras", "ciro-lateral"))`El [reporte de letras](letras.html) profundiza en lo que dicen mis canciones. Todas sus medidas se calculan por canción y luego se ponderan por escuchas, de modo que una canción que escuché cien veces pesa cien veces más que una que escuché una vez. Las funciones están en `R/letras_profundo.R` y, por derechos de autor, el reporte solo muestra medidas agregadas, palabras sueltas y títulos, nunca letras completas.
+
+::: {.panel-tabset}
+
+#### 🎭 Las ocho emociones (NRC)
+
+::: {.callout-note appearance="simple" icon="false"}
+**En simple.** Se cuenta cuántas palabras de cada letra se asocian a la alegría, la tristeza, la rabia, el miedo, la confianza, el asco, la sorpresa y la anticipación.
+:::
+
+**En detalle.** Se usa el léxico NRC (Mohammad y Turney, 2013; paquete `syuzhet`), que asigna a cada palabra las emociones básicas de Plutchik (1980) en las que la clasificaron personas en una encuesta masiva. Para cada letra en español o en inglés, con al menos 30 palabras después de quitar las palabras vacías, la tasa es el número de palabras de cada emoción por cada 100 palabras. Como el léxico en español es una traducción del inglés, cada tasa se estandariza dentro de su idioma (puntaje z), por lo cual se comparan años y eras, y no un idioma contra el otro.
+
+**Limitaciones.** Un léxico no entiende la ironía, la negación ni el contexto, ya que "no tengo miedo" suma miedo; las letras en otros idiomas quedan fuera.
+
+#### 🕰️ Letras según la hora y el clima
+
+::: {.callout-note appearance="simple" icon="false"}
+**En simple.** Se mira si a ciertas horas o en días de lluvia escucho letras más oscuras o más luminosas.
+:::
+
+**En detalle.** A cada escucha se le asigna el sentimiento estandarizado de su letra (positivo menos negativo según NRC, en puntaje z dentro del idioma) y se promedia por hora del día. Para la lluvia, cada día se compara con el resto de su mismo mes y año, de manera que la estación no se confunda con el clima, y se considera lluvioso un día con al menos 1 mm (datos de Open-Meteo para Santiago).
+
+**Limitaciones.** Es una asociación y no una causa; muchas escuchas de un mismo día no son independientes, por lo cual importa más el tamaño de la diferencia que su significancia.
+
+#### 🗣️ Yo, tú, nosotros (pronombres)
+
+::: {.callout-note appearance="simple" icon="false"}
+**En simple.** Se cuenta quién habla en cada letra: si la canción gira en torno a "yo", a "tú", a "nosotros" o a terceras personas.
+:::
+
+**En detalle.** Sigue la línea del LIWC de Pennebaker (Pennebaker, 2011), que usa los pronombres como marcadores de foco psicológico. Para cada letra en español o en inglés se cuentan los pronombres de cada persona con una lista propia para cada idioma (por ejemplo "me" está en ambas, por eso se usa la lista del idioma detectado), y se calcula la proporción de cada persona sobre el total de pronombres personales. Se usan solo letras con al menos 10 pronombres. En español se excluyen "los" y "las", que casi siempre son artículos.
+
+**Limitaciones.** Un pronombre no siempre se refiere a quien canta (una canción puede citar a otro); el español omite el sujeto ("canto" en vez de "yo canto"), por lo cual el "yo" en español queda subestimado y conviene comparar cada idioma en el tiempo y no entre sí.
+
+#### 📚 Riqueza del vocabulario (MTLD)
+
+::: {.callout-note appearance="simple" icon="false"}
+**En simple.** Se mide qué tan variado es el vocabulario de cada letra: cuánto avanza el texto antes de empezar a repetir palabras.
+:::
+
+**En detalle.** Se usa MTLD (McCarthy y Jarvis, 2010), que recorre la letra y corta un tramo cada vez que la proporción de palabras distintas cae a 0,72; el puntaje es el largo de la letra dividido por el número de tramos, promediado leyendo hacia adelante y hacia atrás. A diferencia de la simple razón entre palabras distintas y totales, no castiga a las letras largas. Se calcula sobre todas las palabras (incluidas las vacías) de letras con al menos 80 palabras, sin las marcas de sección como [Chorus].
+
+**Limitaciones.** Un vocabulario variado no equivale a una letra mejor; el rap y el metal narrativo tienden a puntuar alto y el punk o el post-punk de consignas, bajo, por su forma y no por su calidad.
+
+#### 🔁 Versos y coros
+
+::: {.callout-note appearance="simple" icon="false"}
+**En simple.** Se separa cada letra en versos y se mide qué parte de ellos se repite y cuántas veces suena el verso más repetido, que suele ser el coro.
+:::
+
+**En detalle.** Cada verso se pasa a minúsculas y sin signos, y se descartan las líneas vacías y las marcas de sección. Por canción se calculan la proporción de versos que aparecen dos o más veces y las repeticiones del verso más frecuente, en letras de al menos ocho versos. Complementa la medida por compresión (Morris, 2017) del reporte general, porque distingue un coro que vuelve de palabras repetidas en versos distintos. Para que funcione, desde el 22-11-2026 las letras de la web conservan sus saltos de línea.
+
+**Limitaciones.** Algunas fuentes escriben el coro una sola vez con una marca como "(x2)" o "[Coro]", lo cual subestima la repetición de esas letras.
+
+#### 🗺️ Mapa de significados
+
+::: {.callout-note appearance="simple" icon="false"}
+**En simple.** Cada canción se ubica en un plano según lo que dice su letra: las que hablan de lo mismo quedan cerca, aunque estén en idiomas distintos.
+:::
+
+**En detalle.** Se parte de los vectores de 384 dimensiones del modelo multilingüe `paraphrase-multilingual-MiniLM-L12-v2` (Reimers y Gurevych, 2019), los mismos de los temas del reporte general, y se reducen a dos dimensiones con UMAP (McInnes y otros, 2018; paquete `uwot`) usando la distancia coseno y una semilla fija. Cada punto se colorea por su tema y se muestran las canciones con más escuchas, para que el gráfico se pueda leer.
+
+**Limitaciones.** UMAP conserva bien los vecinos cercanos pero no las distancias largas, por lo cual dos grupos lejanos en el plano no están necesariamente más lejos en significado que otros.
+
+#### 🧭 Deriva del significado
+
+::: {.callout-note appearance="simple" icon="false"}
+**En simple.** Se mide cuánto cambia, año a año, lo que dicen en promedio las letras que escucho, y se compara con los cambios de género de las eras.
+:::
+
+**En detalle.** Para cada año se calcula el centroide de los vectores de las letras, ponderado por escuchas y normalizado, y la deriva es la distancia coseno ($1 - \cos$) entre años consecutivos. Además, sobre los centroides mensuales se aplica E-Divisive (Matteson y James, 2014; paquete `ecp`), con la misma configuración que en los géneros, y se cuenta cuántos cambios del significado caen a tres meses o menos de un límite de era (`data/eras.parquet`, que guarda el reporte general).
+
+**Limitaciones.** El centroide resume mucho: dos años con mezclas muy distintas pueden tener un promedio parecido; los meses con pocas escuchas con letra hacen más ruidoso el centroide mensual.
+
+#### 🎯 Ideas guiadas
+
+::: {.callout-note appearance="simple" icon="false"}
+**En simple.** En vez de dejar que el modelo arme los temas solo, se definen doce ideas (protesta, desamor, muerte, fiesta y otras) y se mide qué tan cerca está cada letra de cada una.
+:::
+
+**En detalle.** Cada idea se describe con cuatro frases, dos en español y dos en inglés, en `scripts/anclas_letras.csv`. `scripts/03.4.embeddings_anclas.py` las convierte en vectores con el mismo modelo de las letras, y el vector de cada idea es el promedio normalizado de sus frases. La cercanía de una letra a una idea es la similitud coseno, que se estandariza por idea para comparar las ideas entre sí y se pondera por escuchas para cada año. Es la lógica de los modelos de temas guiados o con semillas, pero sobre vectores de significado.
+
+**Limitaciones.** El resultado depende de cómo se redactan las frases ancla; una idea redactada con palabras muy propias de un género (por ejemplo "guerra" con imágenes del metal) atrae a ese género.
+
+#### 👯 Artistas parecidos por letra y por sonido
+
+::: {.callout-note appearance="simple" icon="false"}
+**En simple.** Se compara qué artistas se parecen por lo que dicen sus letras y cuáles se parecen por cómo suenan, para ver si ambas cosas coinciden.
+:::
+
+**En detalle.** El perfil de letra de cada artista es el centroide de los vectores de sus canciones y el de sonido es su vector de etiquetas de Last.fm, ponderadas por su peso; en ambos casos la similitud entre dos artistas es la similitud coseno. La coincidencia entre las dos matrices se mide con la correlación de Spearman entre todos los pares, al estilo de la prueba de Mantel (Mantel, 1967), y se destacan los pares que dicen lo mismo pero suenan distinto, y al revés. Solo entran artistas con al menos cinco letras.
+
+**Limitaciones.** Las etiquetas describen el sonido de forma indirecta (son palabras de los usuarios de Last.fm); los artistas con pocas letras tienen un centroide menos estable.
+
+#### 🎣 Letras que enganchan
+
+::: {.callout-note appearance="simple" icon="false"}
+**En simple.** Entre las canciones de un mismo artista, ¿las que más escucho tienen letras distintas? Por ejemplo, ¿más coro, más emoción o un vocabulario más simple?
+:::
+
+**En detalle.** Se estima una regresión del logaritmo de las escuchas de cada canción sobre los rasgos de su letra (emociones, pronombres, MTLD, repetición, largo, idioma e ideas guiadas), con efectos fijos de artista. Esto quiere decir que cada canción se compara solo con las demás de su mismo artista, con lo cual se descuenta cuánto me gusta el artista en sí. Los rasgos se estandarizan para que los coeficientes sean comparables, y se muestran con su intervalo de confianza del 95%.
+
+**Limitaciones.** Es una asociación: una canción puede sonar más por ser el single o por estar en una playlist, y no por su letra. Las canciones de un mismo disco no son independientes, por lo cual los intervalos son algo optimistas.
+
+:::
+
 ## 🤖 ¿Puede una máquina adivinar cuándo escucho? {#modelos}
 
 ::: {.callout-note appearance="simple" icon="false"}

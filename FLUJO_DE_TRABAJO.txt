@@ -28,7 +28,11 @@ raíz del proyecto.
   03  scripts/03.descargar_letras.R     LRCLIB     -> data/letras.parquet
   03.1 scripts/03.1.sumar_letras_web.R data/letras_web.json -> data/letras.parquet
                                         (letras buscadas en la web donde LRCLIB
-                                        no tiene; no hace nada si no existe)
+                                        no tiene; conserva los versos; reescribe
+                                        las que ya vinieron de la web; forzar =
+                                        true aplica una decisión de Joaquín aunque
+                                        LRCLIB traiga letra; no hace nada si no
+                                        existe el JSON)
   03.2 scripts/03.2.embeddings_letras.py PYTHON (.venv) -> data/embeddings_letras.parquet
                                         (único paso en Python; vector multilingüe
                                         de cada letra; incremental)
@@ -36,6 +40,11 @@ raíz del proyecto.
                                         -> data/letras.parquet (solo las que
                                         Joaquín marca "Sí" como instrumentales;
                                         nada se marca sin su revisión)
+  03.4 scripts/03.4.embeddings_anclas.py PYTHON (.venv) scripts/anclas_letras.csv
+                                        -> data/embeddings_anclas.parquet
+                                        (vector de cada "idea ancla" del reporte
+                                        de letras, mismo modelo que 03.2; se
+                                        recalcula entero, son 48 frases)
   04  scripts/04.descargar_clima.R      Open-Meteo -> data/clima.parquet
   04.1 scripts/04.1.descargar_audio.R ReccoBeats -> data/audio.parquet
                                         (valencia y energía del audio de las
@@ -51,7 +60,11 @@ raíz del proyecto.
 
   REPORTES (si uno falla, no se publica nada)
   07  07.analisis_escuchas.qmd          -> analisis_escuchas.html
-                                           data/resultados.rds y data/modelos.rds
+                                           data/resultados.rds, data/modelos.rds
+                                           y data/eras.parquet
+  11  11.letras.qmd                     -> letras.html (análisis a fondo de las
+                                           letras; va después del 07 porque usa
+                                           data/eras.parquet)
   08  scripts/08.generar_reporte_mensual.R + 08.reporte_mensual.qmd
                                         -> reporte_mensual.html
                                            reportes/reporte_AAAA-MM.html
@@ -59,7 +72,7 @@ raíz del proyecto.
   10  10.flujo_de_trabajo.qmd           -> flujo.html (este flujo, explicado)
 
   PUBLICACIÓN
-      Copiar los tres HTML a docs/, limpiar temporales, commit, pull y push.
+      Copiar los cinco HTML a docs/, limpiar temporales, commit, pull y push.
       GitHub Pages publica docs/.
 
   CÓMO SE LANZA
@@ -81,14 +94,14 @@ A. Mensual automático (actualizar.bat, tarea programada el día 1 a las 10:00).
    Sin intervención: descarga incremental (con respaldo y verificación de las
    escuchas, y chequeo de letras), render, copia a docs/, commit y push.
    Reintenta 4 veces las descargas, pull y push, y 2 los renders; si un
-   render falla, no publica. Todo queda con hora en data/actualizacion.log.
+   render falla, no publica. Todo queda con hora en data/logs/actualizacion.log.
    No tiene análisis ni revisión de textos (eso requiere a Claude).
 
 B. Corrida completa con Claude (como la del 20/21-10-2026).
    Todo lo de A, más descarga desde cero, ampliación de la base, análisis de los
    datos y actualización de los textos antes del render. Se ejecuta con
    scripts/flujo_nocturno.sh [--mes AAAA-MM] [--desde-cero] [--apagar],
-   que reintenta cada paso y deja log en data/noche.log.
+   que reintenta cada paso y deja log en data/logs/noche.log.
 
 
 FLUJO B, PASO A PASO
@@ -100,7 +113,7 @@ Reglas generales
     retoma donde quedó, sin duplicar.
   - Si una descarga falla todos sus intentos, se registra y se sigue. Si un
     RENDER falla, NO se publica (para no subir HTML viejo como nuevo).
-  - Todo queda con hora en data/noche.log.
+  - Todo queda con hora en data/logs/noche.log.
   - Candado: data/flujo.lock impide que corran dos flujos a la vez (A y B lo
     comparten). Si quedó de una corrida cortada se ignora pasadas 12 horas
     en B y 1 día en A, o se puede borrar a mano.
@@ -177,7 +190,15 @@ FASE 1. Descargas
         etiquetados como instrumentales).
       - Se guardan en data/letras_web.json (artista, cancion, letra,
         instrumental, fuente = URL) y el script las suma con fuente "web",
-        sin pisar nunca una letra de LRCLIB.
+        sin pisar una letra de LRCLIB salvo que la entrada traiga
+        forzar = true (decisión de Joaquín, p. ej. marcar instrumental una
+        canción que LRCLIB trae con letra).
+      - Conserva los versos: limpia espacios dentro de cada línea y deja a lo
+        más una línea en blanco entre estrofas (antes str_squish los borraba).
+        Las letras que ya vinieron de la web se reescriben en cada corrida.
+      - 22-11-2026: búsqueda en Genius (catálogo completo de cada artista desde
+        la API del sitio, en el navegador), Dark Lyrics (metal), Metal Kingdom
+        (Nuclear), Bandcamp y letras que Joaquín pega en el Excel de revisión.
   1.3c Embeddings de letras (scripts/03.2.embeddings_letras.py, Python).
       - Entorno: .venv con Python 3.14 (torch CPU, sentence-transformers,
         bertopic). Crear con: python -m venv .venv y pip install torch
@@ -191,6 +212,14 @@ FASE 1. Descargas
         con 10 temas y palabras de cada tema con c-TF-IDF. HDBSCAN se probó
         y se descartó: con letras dejaba 60-70 % sin tema o todo en 2 grupos.
         Si no existen los embeddings, el reporte vuelve al LDA por palabras.
+  1.3d Ideas ancla (scripts/03.4.embeddings_anclas.py, Python).
+      - scripts/anclas_letras.csv: 12 ideas (protesta, desamor, muerte,
+        fiesta, fe, soledad, ciudad, naturaleza, alcohol y drogas, guerra,
+        nostalgia, deseo), cada una con 4 frases en español e inglés.
+      - Vector de la idea = promedio normalizado de sus frases, con el mismo
+        modelo de 03.2. El reporte de letras compara cada letra con cada idea
+        por similitud coseno (temas guiados). Para cambiar una idea basta con
+        editar el CSV: se recalcula entera en cada corrida.
   1.4 Clima de Santiago (scripts/04.descargar_clima.R, Open-Meteo). Incremental.
 
 FASE 2. Análisis antes del render (el flujo se pausa hasta que termine)
@@ -217,10 +246,11 @@ FASE 2. Análisis antes del render (el flujo se pausa hasta que termine)
 
 FASE 3. Reportes
   3.1 quarto render 07.analisis_escuchas.qmd
+  3.1b quarto render 11.letras.qmd (después del general: usa data/eras.parquet).
   3.2 Rscript scripts/08.generar_reporte_mensual.R <AAAA-MM>
       (mes en curso si el anterior tiene pocos datos).
-  3.3 quarto render 09.metodologia.qmd
-  3.4 Copiar los tres HTML a docs/.
+  3.3 quarto render 09.metodologia.qmd y 10.flujo_de_trabajo.qmd
+  3.4 Copiar los cinco HTML a docs/.
   3.5 Revisión WCAG 2.2 AA en las dos versiones: computador (~1280 px) y
       celular (marco de 380 px dentro de una página, porque Chrome sin ventana
       no baja de ~500 px). Contraste, alt de imágenes, sin deslizar de lado,
@@ -259,9 +289,9 @@ CRITERIOS DE DISEÑO (se aplican en cada cambio)
     columnas de frases), mostrarla como tarjetas que se apilan, no como tabla
     (ej.: los temas de las letras).
   - Portada pública: sin teléfono ni correo; solo LinkedIn.
-  - Navegación: barra arriba de cada reporte (Portada, General, Del mes,
-    Metodología) y botón flotante "Reporte general" en el mensual y la
-    metodología. Cada página nueva se suma a la barra (navegacion() en R/visual.R).
+  - Navegación: barra arriba de cada reporte (Portada, General, Letras,
+    Del mes, Metodología, Flujo) y botón flotante "Reporte general" en el
+    mensual, las letras y la metodología. Cada página nueva se suma a la barra (navegacion() en R/visual.R).
   - El reporte principal muestra solo lo esencial; los detalles técnicos
     (indicadores de modelos, comparaciones) van en la metodología, enlazados.
   - Metodología: contenido por etapas en pestañas, no en cuadros apretados.
@@ -444,10 +474,35 @@ HISTORIAL DE CAMBIOS DEL FLUJO
               lo conocido y lo nuevo dentro de cada sesión y validación del
               ánimo de las etiquetas con el audio. leer_spotify() ya lee el
               historial ampliado de Spotify si se agrega al zip. El commit
-              automático del flujo B ya no sube scripts/.  22-11-2026  (noche) Letras desde la web con el navegador (Tenemos Explosivos
+              automático del flujo B ya no sube scripts/.
+  22-11-2026  (noche) Letras desde la web con el navegador (Tenemos Explosivos
               en su sitio, Letras.com, Genius y Bandcamp): 91 letras. Las que
               siguen sin letra quedan en input/letras_por_revisar.xlsx para que
               Joaquín marque instrumentales (03.3). Técnicas nuevas: repetición
               de las letras por compresión (Morris, 2017), puntos de cambio
               E-Divisive frente a las eras (paquete ecp) y red de artistas por
               sesión con comunidades de Louvain (igraph).
+  22-11-2026  (medianoche) Unas 550 letras más desde Genius, Dark Lyrics,
+              Metal Kingdom y Bandcamp, y 50 instrumentales por decisión de
+              Joaquín (todo Bohren & der Club of Gore). 03.1 conserva los
+              versos y suma el campo forzar. Nuevo paso 03.4 (ideas ancla) en
+              los dos flujos y nuevo reporte 11.letras.qmd -> letras.html
+              (emociones NRC, letras según hora y clima, pronombres, MTLD,
+              versos y coros, mapa semántico, deriva frente a las eras, ideas
+              guiadas, artistas parecidos por letra y por sonido, letras que
+              enganchan). El reporte general guarda data/eras.parquet y la
+              paleta y los formatos pasan a R/estilo_graficos.R (compartido).
+  22-11-2026  Orden del proyecto: los logs vivos pasan a data/logs/ (noche.log y
+              actualizacion.log; los dos flujos crean la carpeta). Se borraron logs de
+              pruebas, un perfilado y CSV huérfanos de data/. En input/ nada se borra:
+              borradores, PNG intermedios, JPG antiguos y fotos duplicadas pasaron a
+              input/respaldo/, y los prompts de Ciro a input/ciro_prompts/.
+  22-11-2026  Los dos flujos borran los HTML de la raíz después de copiarlos a docs/
+              (antes quedaban duplicados); la vista previa se abre desde docs/.
+  22-11-2026  04.1.descargar_audio.R termina sin error cuando no hay canciones nuevas
+              por consultar (la tabla vacía no traía la columna id y el cruce fallaba).
+              Reporte general más rápido: palabras de cada época con n() en vez de
+              n_distinct(paste()) y limpieza de las letras vectorizada en la repetición.
+              Ciros nuevos para el reporte de letras (poeta, máscaras, telescopio y
+              director de coro) y ojos corregidos en el bibliotecario, el de limpieza y
+              el guardia (ámbar dorado y almendrados, como ciro_natural).

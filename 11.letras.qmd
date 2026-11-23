@@ -1,0 +1,399 @@
+---
+title: "📝 Lo que dicen mis canciones"
+subtitle: "Emociones, voces, vocabulario y significado de las letras que escucho"
+lang: es
+format:
+  html:
+    output-file: letras.html
+    theme: cosmo
+    toc: true
+    toc-location: left
+    toc-title: "Contenido"
+    code-fold: true
+    code-summary: "Ver código"
+    embed-resources: true
+    fig-width: 9
+    fig-height: 5
+    fig-dpi: 144
+    css: assets/estilo.css
+    include-before-body: assets/saltar.html
+    include-after-body: assets/redibujar.html
+execute:
+  warning: false
+  message: false
+  echo: false
+---
+
+```{r}
+#| label: setup
+pacman::p_load(
+  tidyverse
+  ,arrow
+  ,scales
+  ,htmltools
+)
+source("R/datos.R")
+source("R/estilo_graficos.R")
+source("R/visual.R")
+source("R/letras.R")
+source("R/letras_profundo.R")
+
+zona <- "America/Santiago"
+escuchas <- leer_escuchas(zona) %>%
+  mutate(
+    dia    = as_date(fecha)
+    ,mes    = floor_date(dia, "month")
+    ,anio   = year(fecha)
+    ,hora   = hour(fecha)
+    ,semana = factor(wday(fecha, week_start = 1), levels = 1:7
+                    ,labels = c("lun", "mar", "mié", "jue", "vie", "sáb", "dom"))
+  )
+
+tiene_letras <- file.exists("data/letras.parquet") && file.exists("data/embeddings_letras.parquet")
+
+# Letras, idioma y escuchas de cada canción
+letras_todas <- leer_parquet("data/letras.parquet")
+letras <- filter(letras_todas, !is.na(letra))
+letras$idioma <- detectar_idioma(letras$letra)
+escuchas_cancion <- count(escuchas, artista, cancion, name = "veces")
+letras <- left_join(letras, escuchas_cancion, by = c("artista", "cancion"))
+tokens <- tokenizar_letras(letras) %>%
+  left_join(select(letras, artista, cancion, veces), by = c("artista", "cancion"))
+
+# Rasgos de cada letra (R/letras_profundo.R)
+emo  <- emociones_letras(tokens)
+pro  <- pronombres_letras(letras)
+sent <- sentimiento_letras(tokens)
+letras$mtld <- map_dbl(palabras_crudas(letras$letra), mtld)
+letras <- left_join(letras, versos_letras(letras), by = c("artista", "cancion"))
+
+# Vectores de significado (03.2 y 03.4) y otras bases
+emb <- leer_parquet("data/embeddings_letras.parquet") %>% semi_join(letras, by = c("artista", "cancion"))
+M <- matriz_vectores(emb)
+anclas <- if (file.exists("data/embeddings_anclas.parquet")) leer_parquet("data/embeddings_anclas.parquet") else NULL
+tags <- leer_parquet("data/tags_artistas.parquet")
+eras <- if (file.exists("data/eras.parquet")) leer_parquet("data/eras.parquet") else NULL
+
+# Promedio por escucha: cada rasgo de una canción pesa según cuántas veces la escuché
+y_lista <- function(x) if (length(x) <= 1) x else paste(paste(head(x, -1), collapse = ", "), "y", tail(x, 1))
+por_escucha <- function(df) inner_join(escuchas, df, by = c("artista", "cancion"), relationship = "many-to-many")
+cobertura <- sum(letras$veces, na.rm = TRUE) / nrow(escuchas)
+```
+
+```{r}
+#| label: portada
+tagList(
+  navegacion("letras")
+  ,linea_generacion()
+  ,div(class = "bienvenida con-ciro", ciro("poeta"), div(
+      p(HTML(paste0("Este reporte profundiza en las letras de lo que escucho. Se analizan "
+                    ,miles(nrow(letras)), " letras de canciones, que suman el ", pct(cobertura)
+                    ," de mis escuchas, obtenidas desde LRCLIB, lyrics.ovh, Letras.com, Genius, Dark Lyrics, "
+                    ,"Metal Kingdom y el Bandcamp de algunas bandas. Por derechos de autor solo se muestran "
+                    ,"cifras, palabras sueltas y títulos, nunca letras completas.")))
+      ,p(HTML("En primera instancia se revisan las emociones de las letras y cuándo las escucho; a continuación, "
+              ,"quién habla en ellas, qué tan rico es su vocabulario y cuánto se repiten; y finalmente, con los "
+              ,"vectores de significado de un modelo de lenguaje, se arma un mapa de lo que dicen, se mide cuánto "
+              ,"cambió con los años y qué rasgos de una letra se asocian a que la vuelva a poner. El detalle de cada "
+              ,"técnica está en la <a href='metodologia.html#letras'>metodología</a>."))))
+  ,boton_volver()
+)
+```
+
+## 🎭 Emociones y momentos
+
+::: {.panel-tabset}
+
+#### 🎭 Las ocho emociones
+
+::: {.callout-tip appearance="simple" icon="false"}
+**Teoría.** El léxico NRC (Mohammad y Turney, 2013) asocia miles de palabras a las ocho emociones básicas de Plutchik (1980): alegría, tristeza, rabia, miedo, confianza, asco, sorpresa y anticipación. Para cada letra se calcula cuántas palabras de cada emoción tiene por cada cien palabras, y como el léxico en español es una traducción, la cifra se estandariza dentro de cada idioma. Cabe señalar que un léxico no entiende la ironía ni el contexto, por lo cual sirve para tendencias de muchas canciones y no para leer una canción en particular.
+:::
+
+```{r}
+#| label: emociones-anio
+#| eval: !expr tiene_letras
+#| fig-height: 4.6
+emo_anio <- por_escucha(select(emo, artista, cancion, emocion, z)) %>%
+  group_by(anio, emocion) %>%
+  summarise(z = mean(z), .groups = "drop")
+
+orden_emo <- emo_anio %>% group_by(emocion) %>% summarise(m = mean(z)) %>% arrange(m) %>% pull(emocion)
+p <- emo_anio %>%
+  mutate(emocion = factor(emocion, levels = orden_emo)) %>%
+  ggplot(aes(factor(anio_corto(anio)), emocion, fill = z
+             ,text = paste0("<b>", emocion, " en ", anio, "</b><br>", coma(z), " desviaciones respecto al promedio"))) +
+  geom_tile(color = "white", linewidth = 0.8) +
+  scale_fill_gradient2(low = verde, mid = "#f4f3ef", high = rosado, midpoint = 0, name = NULL) +
+  labs(title = "Las emociones de mis letras, año a año"
+       ,subtitle = "Presencia de cada emoción en lo escuchado cada año (rosado: más que mi promedio; verde: menos)"
+       ,x = NULL, y = NULL) +
+  theme(panel.grid = element_blank())
+interactivo(p)
+
+# Cambio entre los tres primeros y los tres últimos años
+cambio_emo <- emo_anio %>%
+  mutate(tramo = case_when(anio <= min(anio) + 2 ~ "inicio", anio >= max(anio) - 2 ~ "final")) %>%
+  filter(!is.na(tramo)) %>%
+  group_by(emocion, tramo) %>%
+  summarise(z = mean(z), .groups = "drop") %>%
+  pivot_wider(names_from = tramo, values_from = z) %>%
+  mutate(cambio = final - inicio) %>%
+  arrange(cambio)
+baja_emo <- cambio_emo[1:3, ]
+sube_emo <- slice_max(cambio_emo, cambio, n = 1)
+```
+
+```{r}
+#| label: emociones-era
+#| eval: !expr tiene_letras && !is.null(eras)
+emo_era <- por_escucha(select(emo, artista, cancion, emocion, z)) %>%
+  inner_join(eras, by = "mes") %>%
+  group_by(era, nombre, emocion) %>%
+  summarise(z = mean(z), .groups = "drop") %>%
+  group_by(era, nombre) %>%
+  summarise(mas = emocion[which.max(z)], menos = emocion[which.min(z)]
+            ,z_mas = max(z), .groups = "drop") %>%
+  arrange(era)
+
+tabla(transmute(emo_era, nombre, mas, menos)
+      ,titulo = "La emoción que distingue a cada era"
+      ,subtitulo = "Emoción más y menos presente en las letras de cada era, respecto a mi promedio"
+      ,columnas = list(
+        nombre = colDef(name = "Era", minWidth = 220, style = list(fontWeight = 600))
+        ,mas   = colDef(name = "Más presente", maxWidth = 150)
+        ,menos = colDef(name = "Menos presente", maxWidth = 150)
+      ))
+```
+
+::: {.callout-note appearance="simple" icon="false"}
+**¿Qué me dice?** `r as.character(ciro("mascaras", "ciro-lateral"))``r if (exists("cambio_emo")) paste0("Entre mis tres primeros años y los tres últimos, las emociones que más bajaron en las letras que escucho son ", tolower(baja_emo$emocion[1]), " (", coma(baja_emo$cambio[1]), " desviaciones), ", tolower(baja_emo$emocion[2]), " (", coma(baja_emo$cambio[2]), ") y ", tolower(baja_emo$emocion[3]), " (", coma(baja_emo$cambio[3]), "), mientras que la que más se mantuvo o subió es ", tolower(sube_emo$emocion), " (", coma(sube_emo$cambio), "). Esto hace sentido con el paso desde el metal y el doom de los primeros años, cuyas letras hablan de muerte, guerra y castigo, hacia el post-punk y el rock chileno, más centrados en lo cotidiano. Cabe tener en consideración que las diferencias son moderadas, ya que se trata de promedios de miles de canciones, por lo cual lo relevante es la dirección del cambio más que su tamaño.") else "—"`
+:::
+
+#### 🕰️ ¿Cuándo escucho letras más oscuras?
+
+::: {.callout-tip appearance="simple" icon="false"}
+**Teoría.** La teoría del manejo del ánimo (Zillmann, 1988) plantea que elegimos lo que escuchamos para regular cómo nos sentimos, mientras que la investigación sobre música triste (Van den Tol y Edwards, 2013) muestra que muchas personas buscan canciones tristes justamente cuando están tristes. Aquí se cruza el sentimiento de cada letra (positivo menos negativo, estandarizado por idioma) con la hora, el día y el clima en que la escuché. Para el clima, cada día lluvioso se compara con los días secos de su mismo mes, de modo que no se confunda con la estación.
+:::
+
+```{r}
+#| label: sentimiento-momentos
+#| eval: !expr tiene_letras
+#| fig-height: 3.8
+escuchas_sent <- por_escucha(select(sent, artista, cancion, z_letra))
+
+sent_hora <- escuchas_sent %>%
+  group_by(hora) %>%
+  summarise(z = mean(z_letra), n = n(), ee = sd(z_letra) / sqrt(n()), .groups = "drop")
+
+p <- sent_hora %>%
+  ggplot(aes(hora, z, text = paste0("<b>", hora, ":00</b><br>Sentimiento: ", coma(z), "<br>", miles(n), " escuchas"))) +
+  geom_hline(yintercept = 0, color = gris) +
+  geom_ribbon(aes(ymin = z - 1.96 * ee, ymax = z + 1.96 * ee, group = 1), fill = verde, alpha = 0.15) +
+  geom_line(aes(group = 1), color = verde, linewidth = 1.1) +
+  geom_point(color = verde, size = 2) +
+  scale_x_continuous(breaks = seq(0, 23, 3), labels = function(x) paste0(x, ":00")) +
+  labs(title = "El tono de las letras según la hora"
+       ,subtitle = "Sentimiento promedio de las letras escuchadas a cada hora (más arriba, más positivas)"
+       ,x = NULL, y = NULL)
+interactivo(p)
+
+#### solo horas con al menos el 1% de las escuchas: la madrugada tiene muy pocas y su promedio salta
+horas_firmes <- filter(sent_hora, n >= 0.01 * sum(n))
+hora_oscura <- slice_min(horas_firmes, z, n = 1)
+hora_clara  <- slice_max(horas_firmes, z, n = 1)
+finde <- escuchas_sent %>%
+  mutate(finde = semana %in% c("sáb", "dom")) %>%
+  group_by(finde) %>%
+  summarise(z = mean(z_letra))
+dif_finde <- finde$z[finde$finde] - finde$z[!finde$finde]
+
+# Lluvia: días con al menos 1 mm frente a días secos del mismo mes
+clima <- leer_parquet("data/clima.parquet")
+dias_sent <- escuchas_sent %>%
+  group_by(dia, mes) %>%
+  summarise(z = mean(z_letra), n = n(), .groups = "drop") %>%
+  filter(n >= 10) %>%
+  inner_join(mutate(clima, dia = as_date(dia)), by = "dia") %>%
+  mutate(lluvia = lluvia_mm >= 1)
+modelo_lluvia <- lm(z ~ lluvia + factor(mes), data = dias_sent)
+efecto_lluvia <- coef(summary(modelo_lluvia))["lluviaTRUE", ]
+dias_lluvia <- sum(dias_sent$lluvia)
+```
+
+::: {.callout-note appearance="simple" icon="false"}
+**¿Qué me dice?** `r if (exists("sent_hora")) paste0("Las letras más oscuras las escucho alrededor de las ", hora_oscura$hora, ":00 (", coma(hora_oscura$z), ") y las más luminosas alrededor de las ", hora_clara$hora, ":00 (", coma(hora_clara$z), "), considerando solo las horas con al menos un 1% de mis escuchas, ya que en la madrugada escucho tan poco que su promedio es inestable, como muestra la banda. Respecto a la semana, ", if (abs(dif_finde) < 0.05) paste0("el tono de las letras es prácticamente el mismo el fin de semana que en los días hábiles (", coma(dif_finde), " desviaciones).") else paste0("el fin de semana las letras son ", if (dif_finde > 0) "algo más positivas" else "algo más negativas", " que en los días hábiles (", coma(dif_finde), " desviaciones)."), " En cuanto al clima, en los ", miles(dias_lluvia), " días con lluvia el sentimiento de lo que escucho cambia en ", coma(efecto_lluvia[1]), " desviaciones frente a los días secos del mismo mes, ", if (efecto_lluvia[4] < 0.05) "una diferencia que se distingue del azar" else "una diferencia que no se distingue del azar", " (p = ", coma(efecto_lluvia[4], 2), "). Por lo tanto, ", if (efecto_lluvia[4] < 0.05) "la lluvia sí deja una huella en el tono de las letras que elijo." else "no busco letras más tristes cuando llueve, lo cual coincide con lo que se vio en el reporte general para los géneros.") else "—"`
+:::
+
+:::
+
+## 🗣️ Quién habla y cómo habla
+
+::: {.panel-tabset}
+
+#### 🗣️ Yo, tú, nosotros
+
+::: {.callout-tip appearance="simple" icon="false"}
+**Teoría.** Pennebaker (2011) mostró, con el diccionario LIWC, que las palabras más pequeñas, como los pronombres, dicen mucho de cómo se posiciona quien habla, ya que el yo se asocia a la introspección y al malestar, el tú a la interpelación de otro, y el nosotros a lo colectivo y la pertenencia. Aquí se cuenta, en cada letra, qué parte de sus pronombres personales corresponde a cada persona, usando la lista del idioma de la letra. En español, «los» y «las» no se cuentan porque casi siempre son artículos.
+:::
+
+```{r}
+#| label: pronombres
+#| eval: !expr tiene_letras
+#| fig-height: 4.2
+pro_anio <- por_escucha(select(pro, artista, cancion, Yo, Tú, Nosotros, Ellos)) %>%
+  group_by(anio) %>%
+  summarise(across(c(Yo, Tú, Nosotros, Ellos), mean), .groups = "drop") %>%
+  pivot_longer(-anio, names_to = "persona", values_to = "share") %>%
+  mutate(persona = factor(persona, levels = c("Yo", "Tú", "Nosotros", "Ellos")))
+
+p <- ggplot(pro_anio, aes(factor(anio_corto(anio)), share, fill = persona
+                          ,text = paste0("<b>", anio, "</b><br>", persona, ": ", pct(share)))) +
+  geom_col(width = 0.8) +
+  scale_fill_manual(values = c(Yo = verde, `Tú` = "#a7cbb0", Nosotros = morado, Ellos = gris), name = NULL) +
+  scale_y_continuous(labels = pct, expand = c(0, 0)) +
+  labs(title = "Quién habla en las letras que escucho"
+       ,subtitle = "Parte de los pronombres personales que corresponde a cada persona, por año"
+       ,x = NULL, y = NULL) +
+  theme(panel.grid = element_blank())
+interactivo(p)
+
+yo_ini  <- pro_anio %>% filter(persona == "Yo", anio == min(anio)) %>% pull(share)
+yo_fin  <- pro_anio %>% filter(persona == "Yo", anio == max(anio) - 1) %>% pull(share)
+nos_ini <- pro_anio %>% filter(persona == "Nosotros", anio == min(anio)) %>% pull(share)
+nos_fin <- pro_anio %>% filter(persona == "Nosotros", anio == max(anio) - 1) %>% pull(share)
+
+pro_artista <- pro %>%
+  inner_join(escuchas_cancion, by = c("artista", "cancion")) %>%
+  group_by(artista) %>%
+  summarise(across(c(Yo, Nosotros), mean), letras = n(), escuchas = sum(veces), .groups = "drop") %>%
+  filter(letras >= 8, escuchas >= 150)
+mas_nos <- slice_max(pro_artista, Nosotros, n = 6)
+mas_yo  <- slice_max(pro_artista, Yo, n = 6)
+
+tabla(bind_rows(mutate(mas_nos, grupo = "Más «nosotros»", valor = Nosotros), mutate(mas_yo, grupo = "Más «yo»", valor = Yo)) %>%
+        select(grupo, artista, valor, letras)
+      ,titulo = "Los artistas más colectivos y los más personales"
+      ,subtitulo = "Entre artistas con al menos 8 letras y 150 escuchas"
+      ,columnas = list(
+        grupo    = colDef(name = "", maxWidth = 140)
+        ,artista = colDef(name = "Artista", minWidth = 180)
+        ,valor   = colDef(name = "Parte de sus pronombres", maxWidth = 170, format = colFormat(percent = TRUE, digits = 0))
+        ,letras  = colDef(name = "Letras", maxWidth = 80)
+      ))
+```
+
+::: {.callout-note appearance="simple" icon="false"}
+**¿Qué me dice?** `r if (exists("pro_anio")) paste0("El yo domina en todos los años, ya que pasa de un ", pct(yo_ini), " de los pronombres en ", min(pro_anio$anio), " a un ", pct(yo_fin), " en ", max(pro_anio$anio) - 1, ", mientras que el nosotros baja de un ", pct(nos_ini), " a un ", pct(nos_fin), ". En otras palabras, con los años escucho letras más en primera persona y menos colectivas, lo cual calza con el paso desde el metal y el hardcore, que hablan de un nosotros en lucha, hacia el post-punk, más introspectivo. Respecto a los artistas, los más colectivos son ", y_lista(head(mas_nos$artista, 3)), ", mientras que los más centrados en el yo son ", y_lista(head(mas_yo$artista, 3)), ". Cabe señalar que el último año está incompleto, por lo cual la comparación se hace con el penúltimo.") else "—"`
+:::
+
+#### 📚 Riqueza del vocabulario
+
+::: {.callout-tip appearance="simple" icon="false"}
+**Teoría.** La forma más simple de medir la riqueza de un texto es dividir sus palabras distintas por el total, pero esa razón baja siempre que el texto es más largo. Por eso se usa el MTLD (McCarthy y Jarvis, 2010), que recorre la letra y cuenta cuántas palabras alcanza a avanzar antes de que la variedad caiga bajo un umbral, de modo que no depende del largo. Un MTLD alto indica letras con un vocabulario amplio y poco repetido, como el rap más denso, mientras que uno bajo indica letras de pocas palabras que vuelven una y otra vez. Solo se consideran letras de al menos 80 palabras.
+:::
+
+```{r}
+#| label: vocabulario
+#| eval: !expr tiene_letras
+#| fig-height: 3.6
+mtld_anio <- por_escucha(select(filter(letras, !is.na(mtld)), artista, cancion, mtld)) %>%
+  group_by(anio) %>%
+  summarise(mtld = mean(mtld), n = n(), .groups = "drop") %>%
+  filter(n >= 500)
+
+p <- ggplot(mtld_anio, aes(anio, mtld, text = paste0("<b>", anio, "</b><br>MTLD: ", round(mtld)))) +
+  geom_line(color = verde, linewidth = 1.1) +
+  geom_point(color = verde, size = 2.4) +
+  scale_x_continuous(breaks = mtld_anio$anio, labels = anio_corto) +
+  labs(title = "¿Qué tan rico es el vocabulario de lo que escucho?"
+       ,subtitle = "MTLD promedio por escucha (más alto, vocabulario más amplio y menos repetido)"
+       ,x = NULL, y = NULL)
+interactivo(p)
+
+mtld_artista <- letras %>%
+  filter(!is.na(mtld)) %>%
+  group_by(artista) %>%
+  summarise(mtld = median(mtld), letras = n(), escuchas = sum(veces, na.rm = TRUE), .groups = "drop") %>%
+  filter(letras >= 5, escuchas >= 200)
+ricos <- slice_max(mtld_artista, mtld, n = 6)
+simples <- slice_min(mtld_artista, mtld, n = 6)
+
+tabla(bind_rows(mutate(ricos, grupo = "Vocabulario más amplio"), mutate(simples, grupo = "Más repetitivo")) %>%
+        transmute(grupo, artista, mtld = round(mtld), letras)
+      ,titulo = "Los extremos del vocabulario"
+      ,subtitulo = "MTLD mediano de cada artista, entre los que tienen al menos 5 letras y 200 escuchas"
+      ,columnas = list(
+        grupo    = colDef(name = "", maxWidth = 180)
+        ,artista = colDef(name = "Artista", minWidth = 180)
+        ,mtld    = colDef(name = "MTLD", maxWidth = 80)
+        ,letras  = colDef(name = "Letras", maxWidth = 80)
+      ))
+```
+
+::: {.callout-note appearance="simple" icon="false"}
+**¿Qué me dice?** `r if (exists("mtld_anio")) paste0("El vocabulario de lo que escucho se fue achicando, ya que el MTLD promedio pasa de ", round(first(mtld_anio$mtld)), " en ", first(mtld_anio$anio), " a ", round(last(mtld_anio$mtld)), " en ", last(mtld_anio$anio), ", con el punto más bajo en ", mtld_anio$anio[which.min(mtld_anio$mtld)], " (", round(min(mtld_anio$mtld)), "). Esto indica que con los años elijo letras más simples y repetidas, lo cual coincide con el aumento de los coros que se ve en la pestaña siguiente. En los extremos, el vocabulario más amplio corresponde a ", y_lista(head(ricos$artista, 3)), ", con el rap como protagonista, mientras que el más repetitivo es el de ", y_lista(head(simples$artista, 3)), ", lo cual da cuenta de que en estos artistas pesa más la insistencia de una frase que la cantidad de palabras.") else "—"`
+:::
+
+#### 🔁 Versos y coros
+
+::: {.callout-tip appearance="simple" icon="false"}
+**Teoría.** Además de medir la repetición comprimiendo la letra (Morris, 2017), que se muestra en el reporte general, aquí se mira la estructura de la canción, es decir, qué parte de sus versos se repite y cuántas veces suena el verso más repetido, que suele ser el coro. Para esto se conservaron los saltos de línea de las letras, y se omiten las marcas como «[Coro]» y las letras de menos de ocho versos.
+:::
+
+```{r}
+#| label: versos
+#| eval: !expr tiene_letras
+#| fig-height: 3.6
+versos_anio <- por_escucha(select(filter(letras, !is.na(repetidos)), artista, cancion, repetidos, coro)) %>%
+  group_by(anio) %>%
+  summarise(repetidos = mean(repetidos), coro = mean(coro), n = n(), .groups = "drop") %>%
+  filter(n >= 500)
+
+p <- ggplot(versos_anio, aes(anio, repetidos, text = paste0("<b>", anio, "</b><br>Versos repetidos: ", pct(repetidos)
+                                                            ,"<br>El verso más repetido suena ", coma(coro, 1), " veces"))) +
+  geom_line(color = morado, linewidth = 1.1) +
+  geom_point(color = morado, size = 2.4) +
+  scale_x_continuous(breaks = versos_anio$anio, labels = anio_corto) +
+  scale_y_continuous(labels = pct) +
+  labs(title = "Cuánto se repiten los versos de lo que escucho"
+       ,subtitle = "Parte de los versos de cada letra que aparecen más de una vez, promedio por escucha"
+       ,x = NULL, y = NULL)
+interactivo(p)
+
+rho_versos_mtld <- with(filter(letras, !is.na(repetidos), !is.na(mtld)), cor(repetidos, mtld, method = "spearman"))
+coros <- letras %>%
+  filter(!is.na(coro), veces >= 20) %>%
+  slice_max(coro, n = 8, with_ties = FALSE) %>%
+  transmute(artista, cancion, coro, repetidos)
+
+tabla(coros, titulo = "Las canciones de coro más insistente"
+      ,subtitulo = "Veces que suena su verso más repetido, entre las que escuché al menos 20 veces"
+      ,columnas = list(
+        artista    = colDef(name = "Artista", minWidth = 150)
+        ,cancion   = colDef(name = "Canción", minWidth = 180)
+        ,coro      = colDef(name = "Verso más repetido", maxWidth = 150)
+        ,repetidos = colDef(name = "Versos repetidos", maxWidth = 140, format = colFormat(percent = TRUE, digits = 0))
+      ))
+```
+
+::: {.callout-note appearance="simple" icon="false"}
+**¿Qué me dice?** `r as.character(ciro("coro", "ciro-lateral"))``r if (exists("versos_anio")) paste0("En ", first(versos_anio$anio), " un ", pct(first(versos_anio$repetidos)), " de los versos de lo que escuchaba se repetía dentro de la misma canción, mientras que en ", last(versos_anio$anio), " esa cifra llega a un ", pct(last(versos_anio$repetidos)), ", con el máximo en ", versos_anio$anio[which.max(versos_anio$repetidos)], " (", pct(max(versos_anio$repetidos)), "). Asimismo, la correlación entre los versos repetidos y la riqueza del vocabulario es de ", coma(rho_versos_mtld), ", lo cual indica que ambas medidas se relacionan de manera moderada, dado que una letra con más coro tiende a usar menos palabras distintas. Por lo tanto, las dos apuntan en la misma dirección, hacia canciones algo más estructuradas en torno a un estribillo, aunque cada una captura un aspecto propio.") else "—"`
+:::
+
+:::
+
+## 🧠 Lo que significan
+
+`r as.character(ciro("telescopio", "ciro-lateral"))`Las secciones anteriores cuentan palabras, mientras que esta trabaja con su significado. Cada letra se convirtió en un vector con un modelo de lenguaje multilingüe (MiniLM), de modo que dos canciones que dicen algo parecido quedan cerca aunque estén en idiomas distintos o no compartan palabras. A partir de esos vectores se arma un mapa, se mide cuánto cambió lo que dicen mis letras, se compara cada canción con ideas definidas de antemano, se buscan artistas que dicen lo mismo aunque suenen distinto y se evalúa qué rasgos de una letra se asocian a que la vuelva a poner.
+
+::: {.panel-tabset}
+
+{{< include _letras_significado.qmd >}}
+
+:::
+
+```{r}
+#| label: pie
+boton_volver()
+```

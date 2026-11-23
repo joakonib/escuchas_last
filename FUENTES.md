@@ -57,12 +57,19 @@ Se actualiza cada vez que se agrega una fuente nueva.
 | Benson, Kumar y Tomkins (2016), *Modeling User Consumption Sequences*, WWW | Intervalos que crecen antes de abandonar algo (aburrimiento) | Pestaña "Antes del adiós" |
 | Anderson y Schooler (1991), *Reflections of the Environment in Memory*, Psychological Science; Reiter-Haas y otros (2021), *Predicting Music Relistening Behavior Using the ACT-R Framework*, RecSys | Activación de nivel base (ACT-R) para predecir a quién vuelvo | Pestaña "¿A quién vuelvo?" |
 | Trabajos de Deezer sobre la mezcla de canciones conocidas y nuevas en una sesión (RecSys 2025, [arXiv 2507.17356](https://arxiv.org/abs/2507.17356)) | Medir lo conocido y lo nuevo dentro de cada sesión | Pestaña "Dentro de cada sesión" |
+| Mohammad y Turney (2013), *Crowdsourcing a Word-Emotion Association Lexicon*, Computational Intelligence (léxico NRC, paquete `syuzhet`); Plutchik (1980), *Emotion: A Psychoevolutionary Synthesis* | Las ocho emociones básicas de cada palabra (alegría, tristeza, rabia, miedo, confianza, asco, sorpresa y anticipación) | Reporte de letras: emociones por año y era, y letras según la hora y el clima (`R/letras_profundo.R`) |
+| Pennebaker (2011), *The Secret Life of Pronouns*; Tausczik y Pennebaker (2010), *The Psychological Meaning of Words: LIWC and Computerized Text Analysis Methods*, Journal of Language and Social Psychology | Los pronombres como marcadores de foco (yo, tú, nosotros, ellos); listas propias en español e inglés al estilo del LIWC | Reporte de letras: "Yo, tú, nosotros" |
+| McCarthy y Jarvis (2010), *MTLD, vocd-D, and HD-D: A validation study of sophisticated approaches to lexical diversity assessment*, Behavior Research Methods | Riqueza del vocabulario que no depende del largo del texto (MTLD, umbral 0,72) | Reporte de letras: riqueza del vocabulario (implementación propia en `R/letras_profundo.R`) |
+| Reimers y Gurevych (2019; 2020), modelo `paraphrase-multilingual-MiniLM-L12-v2`; McInnes, Healy y Melville (2018), UMAP (`uwot`) | Vectores de significado de las letras y de las ideas ancla, y su reducción a un plano | Reporte de letras: mapa de significados e ideas guiadas (`03.4.embeddings_anclas.py`, `scripts/anclas_letras.csv`) |
+| Matteson y James (2014), E-Divisive (`ecp`) | Puntos de cambio sobre los centroides mensuales de significado, comparados con las eras | Reporte de letras: deriva del significado |
+| Mantel (1967), *The detection of disease clustering and a generalized regression approach*, Cancer Research | Comparar dos matrices de similitud (letra y etiquetas) con la correlación de todos sus pares | Reporte de letras: artistas parecidos por letra y por sonido |
+| Regresión con efectos fijos (comparación dentro de cada artista) | Qué rasgos de la letra se asocian a escuchar más una canción, descontando el gusto por el artista | Reporte de letras: letras que enganchan |
 
 ## Cruces
 
 | Fuente | Qué se toma | Dónde se usa |
 |---|---|---|
-| [Open-Meteo, Historical Weather API](https://open-meteo.com/en/docs/historical-weather-api) | Temperatura media, lluvia y horas de sol diarias de Santiago | Sección "La música y el clima" |
+| [Open-Meteo, Historical Weather API](https://open-meteo.com/en/docs/historical-weather-api) | Temperatura media, lluvia y horas de sol diarias de Santiago | Sección "La música y el clima"; reporte de letras: letras según el clima |
 | Léxico NRC (Mohammad y Turney, 2013), vía paquete `syuzhet` | Palabras positivas y negativas en inglés y español | Pestaña "Lo que dice y cómo suena" |
 
 ## Estilo de los textos
@@ -90,8 +97,8 @@ Se actualiza cada vez que se agrega una fuente nueva.
 | Fuente | Qué se toma | Dónde se usa |
 |---|---|---|
 | `proyecto_cv/datos/cv.yml` (mi CV) | Perfil breve y enlace a LinkedIn (sin teléfono ni correo, porque la página es pública) | Sección «Sobre mí» |
-| Foto propia de Ciro (`ciro_tatu1.jpg`) | Imagen de la portada | `docs/img/ciro.jpg` |
-| Ilustraciones de Ciro (stickers generados con IA a partir de fotos propias; originales en `input/ciro_ilustraciones/`, prompt en `input/prompt_ciro.md`) | Mascota: natural, metalero, post-punk, rapero, encuestador, con café y camisa hawaiana, hardcore, Ozzy, con audífonos, ingeniero del flujo, detective de letras y, desde el 22-11-2026, bajo la lluvia, crooner, cumbiero, explorador, hincha de Colo-Colo (con el escudo del club; único con azul), torre de cassettes (línea de tiempo) y bajo la neblina de amplificadores (ánimo). Las nuevas se hicieron con Gemini a partir de las fotos de `input/ciro_referencias/` y de las ilustraciones anteriores como referencia de estilo, revisando cada una contra las fotos. Fondo quitado y azules pasados a verde con `scripts/ciro_sin_fondo.py` (opción `fondo-blanco` para las de fondo blanco liso y `contorno=N` cuando el borde blanco no se distingue del fondo; prompts en `input/prompt_ciro_lote3.md`) | `assets/ciro/` (saludos y secciones de los reportes) y `docs/img/` (portada) |
+| Foto propia de Ciro (`ciro_tatu1.jpg`) | Imagen de la portada | `docs/img/joako_ciro.jpg` |
+| Ilustraciones de Ciro (stickers generados con IA a partir de fotos propias; originales en `input/ciro_ilustraciones/`, prompt en `input/ciro_prompts/prompt_ciro.md`) | Mascota: natural, metalero, post-punk, rapero, encuestador, con café y camisa hawaiana, hardcore, Ozzy, con audífonos, ingeniero del flujo, detective de letras y, desde el 22-11-2026, bajo la lluvia, crooner, cumbiero, explorador, hincha de Colo-Colo (con el escudo del club; único con azul), torre de cassettes (línea de tiempo) y bajo la neblina de amplificadores (ánimo). Las nuevas se hicieron con Gemini a partir de las fotos de `input/ciro_referencias/` y de las ilustraciones anteriores como referencia de estilo, revisando cada una contra las fotos. Fondo quitado y azules pasados a verde con `scripts/ciro_sin_fondo.py` (opción `fondo-blanco` para las de fondo blanco liso y `contorno=N` cuando el borde blanco no se distingue del fondo; prompts en `input/ciro_prompts/prompt_ciro_lote3.md`) | `assets/ciro/` (saludos y secciones de los reportes) y `docs/img/` (portada) |
 | Skill de visualización de datos (dataviz) de Claude Code | Validación de la paleta para daltonismo y contraste; separación blanca de 1,5 px entre barras | `R/visual.R` (`interactivo()`) |
 
 ## Diseño y accesibilidad

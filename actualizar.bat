@@ -85,6 +85,8 @@ copy /Y reporte_mensual.html docs\reporte_mensual.html >> %LOG% 2>&1
 copy /Y metodologia.html docs\metodologia.html >> %LOG% 2>&1
 copy /Y flujo.html docs\flujo.html >> %LOG% 2>&1
 del /q 07.analisis_escuchas.knit.md 07.analisis_escuchas.rmarkdown 11.letras.knit.md 11.letras.rmarkdown > nul 2>&1
+rem Los HTML de la raiz ya quedaron copiados en docs: se borran para no duplicarlos
+del /q analisis_escuchas.html letras.html reporte_mensual.html metodologia.html flujo.html > nul 2>&1
 git add docs >> %LOG% 2>&1
 git commit -m "Actualizacion mensual de los reportes" >> %LOG% 2>&1
 set MAXI=4

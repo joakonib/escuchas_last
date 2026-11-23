@@ -108,8 +108,8 @@ Si una consulta falla por la red, la canción o el artista no se registra y se r
 
 ## Actualización
 
-- **Mensual automática:** la tarea **"Last.fm escuchas"** del Programador de tareas de Windows corre `actualizar.bat` el día 1 de cada mes a las 10:00, o en cuanto se prenda el computador si ese día estaba apagado. El log queda en `data/actualizacion.log`.
-- **Corrida completa:** `scripts/flujo_nocturno.sh` agrega una pausa para revisar datos y textos antes de publicar. El log queda en `data/noche.log`.
+- **Mensual automática:** la tarea **"Last.fm escuchas"** del Programador de tareas de Windows corre `actualizar.bat` el día 1 de cada mes a las 10:00, o en cuanto se prenda el computador si ese día estaba apagado. El log queda en `data/logs/actualizacion.log`.
+- **Corrida completa:** `scripts/flujo_nocturno.sh` agrega una pausa para revisar datos y textos antes de publicar. El log queda en `data/logs/noche.log`.
 - **Candado:** `data/flujo.lock` impide que los dos flujos corran a la vez.
 - **Modelos:** los temas y playlists solo se reentrenan si lo nuevo supera el 15 % o con `--reentrenar`, y en ese caso hay que revisar sus textos.
 

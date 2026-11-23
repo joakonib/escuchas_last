@@ -51,12 +51,12 @@ tagList(navegacion("flujo"), linea_generacion(), boton_volver())
 ```
 
 ::: {.bienvenida}
-👋 Esta página explica cómo se mantienen al día [el reporte general](analisis_escuchas.html), [el reporte mensual](reporte_mensual.html) y [la metodología](metodologia.html), considerando de dónde sale cada dato, en qué orden corre cada script y qué reglas cuidan que nada se pierda ni se duplique. El código está en [GitHub](https://github.com/joakonib/escuchas_last) y el detalle técnico, en `FLUJO_DE_TRABAJO.txt`.
+👋 Esta página explica cómo se mantienen al día [el reporte general](analisis_escuchas.html), [el de letras](letras.html), [el reporte mensual](reporte_mensual.html) y [la metodología](metodologia.html), considerando de dónde sale cada dato, en qué orden corre cada script y qué reglas cuidan que nada se pierda ni se duplique. El código está en [GitHub](https://github.com/joakonib/escuchas_last) y el detalle técnico, en `FLUJO_DE_TRABAJO.txt`.
 :::
 
 ## 🗺️ El flujo completo
 
-`r as.character(ciro("flujo", "ciro-lateral"))`R es la base de todo el proyecto, mientras que Python se utiliza en un solo paso, correspondiente a los embeddings de las letras, ya que esos modelos de lenguaje solo se encuentran disponibles en dicho ecosistema.
+`r as.character(ciro("flujo", "ciro-lateral"))`R es la base de todo el proyecto, mientras que Python se utiliza en dos pasos, correspondientes a los vectores de las letras y a los de las ideas ancla del reporte de letras, ya que esos modelos de lenguaje solo se encuentran disponibles en dicho ecosistema.
 
 ::: {.leyenda}
 [Paso en R]{style="--c:#2f7d4a"} [Paso en Python]{style="--c:#7a4fa3"} [Control (solo informa)]{style="--c:#5c5b57"}
@@ -78,8 +78,10 @@ tagList(navegacion("flujo"), linea_generacion(), boton_volver())
   <div class="etapa" role="listitem"><h4>2. Enriquecer</h4><div class="pasos">
     <div class="paso"><b>02 · Etiquetas y oyentes</b><code>02.descargar_tags.R</code><br>Géneros, países y ánimo de cada artista (Last.fm)</div>
     <div class="paso"><b>03 · Letras</b><code>03.descargar_letras.R</code><br>LRCLIB, canciones con 2 escuchas o más</div>
-    <div class="paso"><b>03.1 · Letras de la web</b><code>03.1.sumar_letras_web.R</code><br>Completa lo que LRCLIB no tiene</div>
+    <div class="paso"><b>03.1 · Letras de la web</b><code>03.1.sumar_letras_web.R</code><br>Completa lo que LRCLIB no tiene, conservando los versos</div>
     <div class="paso python"><b>03.2 · Embeddings de letras</b><code>03.2.embeddings_letras.py</code><br>Cada letra pasa a un vector de significado multilingüe</div>
+    <div class="paso"><b>03.3 · Instrumentales</b><code>03.3.marcar_instrumentales.R</code><br>Solo las que marco en el Excel de revisión</div>
+    <div class="paso python"><b>03.4 · Ideas ancla</b><code>03.4.embeddings_anclas.py</code><br>Vector de cada idea guiada del reporte de letras</div>
     <div class="paso"><b>04 · Clima</b><code>04.descargar_clima.R</code><br>Clima diario de Santiago (Open-Meteo)</div>
     <div class="paso"><b>04.1 · Audio</b><code>04.1.descargar_audio.R</code><br>Valencia y energía del audio de mis playlists (ReccoBeats)</div>
   </div></div>
@@ -91,6 +93,7 @@ tagList(navegacion("flujo"), linea_generacion(), boton_volver())
   <div class="flecha" aria-hidden="true">↓</div>
   <div class="etapa" role="listitem"><h4>4. Reportes</h4><div class="pasos">
     <div class="paso"><b>07 · Reporte general</b><code>07.analisis_escuchas.qmd</code><br>Todos los análisis y modelos</div>
+    <div class="paso"><b>11 · Letras a fondo</b><code>11.letras.qmd</code><br>Emociones, voces, vocabulario y significado de las letras (después del general)</div>
     <div class="paso"><b>08 · Reporte mensual</b><code>08.generar_reporte_mensual.R</code><br>El mes anterior (o el que se pida)</div>
     <div class="paso"><b>09 · Metodología</b><code>09.metodologia.qmd</code></div>
     <div class="paso"><b>10 · Este flujo</b><code>10.flujo_de_trabajo.qmd</code></div>
@@ -129,7 +132,7 @@ En este cruce Last.fm es la fuente principal, ya que una escucha de Spotify solo
 | **Cómo se lanza** | `actualizar.bat`, tarea programada de Windows el día 1 a las 10:00 | `bash scripts/flujo_nocturno.sh --mes AAAA-MM`, con Claude |
 | **Qué hace** | Descarga lo nuevo, renderiza y publica | Todo lo anterior, más una pausa para revisar datos y textos antes del render |
 | **Reintentos** | 4 para lo que depende de la red, 2 para los renders | Igual |
-| **Registro** | `data/actualizacion.log` | `data/noche.log` |
+| **Registro** | `data/logs/actualizacion.log` | `data/logs/noche.log` |
 | **Opciones** | — | `--desde-cero`, `--reentrenar`, `--apagar` (solo con confirmación) |
 
 ## 🛡️ Reglas que cuidan los datos
@@ -140,6 +143,7 @@ En este cruce Last.fm es la fuente principal, ya que una escucha de Spotify solo
 - **Todo es incremental:** cada script retoma donde quedó, por lo cual reintentar no duplica nada.
 - **Si falla un render, no se publica:** así nunca se sube un HTML viejo como si fuera nuevo.
 - **Un solo flujo a la vez:** el candado `data/flujo.lock` lo asegura.
+- **Mis decisiones mandan:** una canción solo pasa a instrumental si la marco en el Excel de revisión, y una entrada con `forzar` en `data/letras_web.json` reemplaza incluso una letra de LRCLIB.
 - **Las cifras de los textos se calculan:** solo las interpretaciones se escriben a mano, y se revisan en cada corrida completa.
 
 ## 🧠 Cuándo se reentrenan los modelos

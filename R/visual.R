@@ -119,11 +119,12 @@ interactivo <- function(p, tooltip = "text") {
 }
 
 # 4. Navegación ------
-navegacion <- function(actual = c("general", "mensual", "metodologia", "flujo")) {
+navegacion <- function(actual = c("general", "letras", "mensual", "metodologia", "flujo")) {
   actual <- match.arg(actual)
   paginas <- list(
     portada     = c("index.html", "🏠 Portada")
     ,general     = c("analisis_escuchas.html", "📈 General")
+    ,letras      = c("letras.html", "📝 Letras")
     ,mensual     = c("reporte_mensual.html", "📆 Del mes")
     ,metodologia = c("metodologia.html", "🔧 Metodología")
     ,flujo       = c("flujo.html", "🔄 Flujo")
@@ -153,7 +154,8 @@ linea_generacion <- function(zona = "America/Santiago") {
 ciro <- function(cual = c("metal", "postpunk", "rapero", "encuestas", "natural", "cafe"
                           ,"audifonos", "flujo", "letras", "hardcore", "ozzy"
                           ,"lluvia", "crooner", "cumbia", "explorador", "colocolo", "eras", "neblina"
-                          ,"nicho", "mundo", "fan", "genealogia", "laboratorio", "archivo", "limpieza", "guardia")
+                          ,"nicho", "mundo", "fan", "genealogia", "laboratorio", "archivo", "limpieza", "guardia"
+                          ,"poeta", "mascaras", "telescopio", "coro")
                  ,clase = "ciro-saludo") {
   cual <- match.arg(cual)
   archivo <- paste0("assets/ciro/ciro_", cual, ".webp")
@@ -183,14 +185,19 @@ ciro <- function(cual = c("metal", "postpunk", "rapero", "encuestas", "natural",
            ,laboratorio = "Ciro, mi gato gris y blanco, con delantal de laboratorio y lentes de seguridad, mirando un tubo de ensayo con notas musicales"
            ,archivo  = "Ciro, mi gato gris y blanco, de bibliotecario frente a un fichero de madera lleno de fichas de artistas"
            ,limpieza = "Ciro, mi gato gris y blanco, con delantal y escoba, barriendo notas musicales sueltas"
-           ,guardia  = "Ciro, mi gato gris y blanco, de guardia con casco y escudo, cuidando una caja fuerte llena de discos")[[cual]]
+           ,guardia  = "Ciro, mi gato gris y blanco, de guardia con casco y escudo, cuidando una caja fuerte llena de discos"
+           ,poeta    = "Ciro, mi gato gris y blanco, con boina, escribiendo letras de canciones con una pluma en un cuaderno junto a una guitarra"
+           ,mascaras = "Ciro, mi gato gris y blanco, sosteniendo las máscaras de teatro de la alegría y la tristeza"
+           ,telescopio = "Ciro, mi gato gris y blanco, mirando por un telescopio una constelación de notas musicales"
+           ,coro     = "Ciro, mi gato gris y blanco, con corbatín, dirigiendo con una batuta un coro de notas musicales")[[cual]]
   #### ancho/alto de cada imagen en assets/ciro (todas miden 360 px de alto)
   proporcion <- c(metal = 286, postpunk = 266, rapero = 275, encuestas = 284, natural = 283, cafe = 282
                   ,audifonos = 349, flujo = 351, letras = 342, hardcore = 321, ozzy = 323
                   ,lluvia = 324, crooner = 346, cumbia = 334, explorador = 329, colocolo = 327, eras = 350, neblina = 362
                   ,nicho = 371, mundo = 347
                   #### los que aún no tienen imagen quedan con 340 hasta que lleguen (no se muestran)
-                  ,fan = 338, genealogia = 408, laboratorio = 379, archivo = 340, limpieza = 340, guardia = 340)[[cual]] / 360
+                  ,fan = 338, genealogia = 408, laboratorio = 379, archivo = 377, limpieza = 328, guardia = 343
+                  ,poeta = 316, mascaras = 348, telescopio = 395, coro = 370)[[cual]] / 360
   ancho <- if (clase == "ciro-saludo") 96 else 90
   htmltools::tags$img(src = archivo, alt = alt, class = clase, width = ancho, height = round(ancho / proporcion))
 }
