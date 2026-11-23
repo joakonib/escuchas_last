@@ -2,7 +2,7 @@
 # Flujo B de FLUJO_DE_TRABAJO.txt: corrida completa con revisión antes de publicar.
 # Descarga (opcionalmente desde cero), chequea las letras, se pausa para el análisis
 # de los datos y los textos, renderiza, publica (commit, pull, push) y, si se pide,
-# apaga el PC. Todo queda con hora en data/noche.log.
+# apaga el PC. Todo queda con hora en data/logs/noche.log.
 #
 # Uso: bash scripts/flujo_nocturno.sh [--mes AAAA-MM] [--desde-cero] [--reentrenar] [--apagar]
 #   --mes         mes del reporte mensual (por defecto, el mes anterior)
@@ -25,7 +25,8 @@ S=data/respaldo   # respaldos y archivos de control (data/ no se sube)
 for v in $(env | grep -oE '^R_[A-Z_0-9]+'); do unset "$v"; done
 PATH=$(echo "$PATH" | tr ':' '\n' | grep -v 'rig/data/r' | paste -sd:); export PATH
 export QUARTO_R="/c/Program Files/R/R-4.6.1/bin/x64/R.exe"
-LOG=data/noche.log
+mkdir -p data/logs
+LOG=data/logs/noche.log
 
 MES=$(date -d "$(date +%Y-%m-01) -1 day" +%Y-%m)
 DESDE_CERO=0; APAGAR=0
@@ -110,6 +111,8 @@ reintentar 4 "Letras" "$R" scripts/03.descargar_letras.R
 "$R" scripts/03.3.marcar_instrumentales.R >> "$LOG" 2>&1   # instrumentales marcadas por Joaquín en input/letras_por_revisar.xlsx
 # Embeddings de las letras: único paso en Python (entorno .venv), incremental
 [ -x .venv/Scripts/python.exe ] && reintentar 2 "Embeddings de letras" .venv/Scripts/python.exe scripts/03.2.embeddings_letras.py
+# Vectores de las ideas ancla del reporte de letras (scripts/anclas_letras.csv), mismo modelo
+[ -x .venv/Scripts/python.exe ] && reintentar 2 "Embeddings de anclas" .venv/Scripts/python.exe scripts/03.4.embeddings_anclas.py
 reintentar 4 "Clima" "$R" scripts/04.descargar_clima.R
 # Audio de las canciones de mis playlists (ReccoBeats); incremental
 reintentar 4 "Audio" "$R" scripts/04.1.descargar_audio.R
@@ -131,6 +134,8 @@ rm -f "$S/esperando_analisis"
 # 4. Reportes: si alguno falla, no se publica
 ok=1
 reintentar 2 "Render reporte general" "$Q" render 07.analisis_escuchas.qmd || ok=0
+# El de letras va después del general: usa data/eras.parquet, que guarda el general
+reintentar 2 "Render letras" "$Q" render 11.letras.qmd || ok=0
 reintentar 2 "Render reporte mensual ($MES)" "$R" scripts/08.generar_reporte_mensual.R "$MES" || ok=0
 reintentar 2 "Render metodología" "$Q" render 09.metodologia.qmd || ok=0
 reintentar 2 "Render flujo de trabajo" "$Q" render 10.flujo_de_trabajo.qmd || ok=0
@@ -139,7 +144,7 @@ if [ "$ok" = 0 ]; then
   apagar
   exit 1
 fi
-cp analisis_escuchas.html reporte_mensual.html metodologia.html flujo.html docs/ && log "Reportes copiados a docs/"
+cp analisis_escuchas.html letras.html reporte_mensual.html metodologia.html flujo.html docs/ && log "Reportes copiados a docs/"
 
 # 5. Limpieza (paso 4.0 del flujo) y publicación
 rm -rf .Rhistory ./*_files ./*.knit.md ./*.rmarkdown; log "Limpieza de temporales hecha"

@@ -24,7 +24,20 @@ web <- fromJSON(archivo_web) %>%
   transmute(
     artista
     ,cancion
-    ,letra = na_if(str_squish(letra %||% NA_character_), "")
+    #### conserva los versos: limpia espacios dentro de cada línea y deja a lo más una
+    #### línea en blanco entre estrofas (str_squish borraba los saltos de línea)
+    ,letra = letra %||% NA_character_ %>%
+      str_replace_all("", "") %>%
+      str_replace_all("[ 	  ]+", " ") %>%
+      str_replace_all(" *
+ *", "
+") %>%
+      str_replace_all("
+{3,}", "
+
+") %>%
+      str_trim() %>%
+      na_if("")
     ,instrumental = coalesce(as.logical(instrumental), FALSE)
     ,fuente = "web"
     ,forzar = coalesce(as.logical(if ("forzar" %in% names(.)) forzar else NA), FALSE)
@@ -35,7 +48,9 @@ web <- fromJSON(archivo_web) %>%
 
 # 2. Suma a letras.parquet ------
 letras <- leer_parquet(archivo)
-sin_letra <- letras %>% filter(is.na(letra), !instrumental) %>% select(artista, cancion)
+#### se completan las que no tienen letra y se reescriben las que ya vinieron de la web
+#### (así una letra corregida o con sus versos recuperados reemplaza a la anterior)
+sin_letra <- letras %>% filter((is.na(letra) & !instrumental) | fuente %in% "web") %>% select(artista, cancion)
 nuevas <- web %>%
   filter(forzar | paste(artista, cancion) %in% paste(sin_letra$artista, sin_letra$cancion)) %>%
   semi_join(letras, by = c("artista", "cancion"))

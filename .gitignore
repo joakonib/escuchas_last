@@ -13,3 +13,9 @@ reportes/
 GUIA_HERRAMIENTAS.html
 /.venv/
 /flujo.html
+/letras.html
+*.knit.md
+*.rmarkdown
+~$*
+*.tmp
+__pycache__/

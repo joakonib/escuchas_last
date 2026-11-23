@@ -5,10 +5,11 @@ rem dos reportes y los publica en GitHub Pages (carpeta docs).
 rem Lo ejecuta la tarea "Last.fm escuchas" del Programador de tareas de Windows el
 rem dia 1 de cada mes (o al prender el computador, si ese dia estaba apagado).
 rem Cada paso que puede fallar se reintenta hasta 4 veces (red) o 2 (renders), con 1 minuto entre intentos
-rem (ver FLUJO_DE_TRABAJO.txt). El log queda en data\actualizacion.log
+rem (ver FLUJO_DE_TRABAJO.txt). El log queda en data\logs\actualizacion.log
 
 cd /d C:\git_joako\escuchas_last
-set LOG=data\actualizacion.log
+if not exist data\logs mkdir data\logs
+set LOG=data\logs\actualizacion.log
 set RSCRIPT="C:\Program Files\R\R-4.6.1\bin\x64\Rscript.exe"
 set QUARTO="C:\Program Files\RStudio\resources\app\bin\quarto\bin\quarto.exe"
 if not defined ESPERA set ESPERA=60
@@ -47,6 +48,8 @@ rem Instrumentales marcadas por Joaquin en input\letras_por_revisar.xlsx
 %RSCRIPT% scripts\03.3.marcar_instrumentales.R >> %LOG% 2>&1
 rem Embeddings de las letras (unico paso en Python, entorno .venv); incremental
 if exist .venv\Scripts\python.exe call :reintentar "Embeddings" .venv\Scripts\python.exe scripts\03.2.embeddings_letras.py
+rem Vectores de las ideas ancla del reporte de letras (scripts\anclas_letras.csv)
+if exist .venv\Scripts\python.exe call :reintentar "Anclas" .venv\Scripts\python.exe scripts\03.4.embeddings_anclas.py
 call :reintentar "Clima" %RSCRIPT% scripts\04.descargar_clima.R
 rem Audio de las canciones de mis playlists (ReccoBeats); incremental
 call :reintentar "Audio" %RSCRIPT% scripts\04.1.descargar_audio.R
@@ -58,6 +61,9 @@ rem Si alguno falla, no se publica (para no subir HTML viejo como si fuera nuevo
 set MAXI=2
 set FALLO=
 call :reintentar "Reporte general" %QUARTO% render 07.analisis_escuchas.qmd
+if errorlevel 1 set FALLO=1
+rem Letras va despues del general: usa data\eras.parquet, que guarda el general
+call :reintentar "Letras" %QUARTO% render 11.letras.qmd
 if errorlevel 1 set FALLO=1
 call :reintentar "Reporte mensual" %RSCRIPT% scripts\08.generar_reporte_mensual.R
 if errorlevel 1 set FALLO=1
@@ -74,10 +80,11 @@ if defined FALLO (
 
 rem 3. Publicacion en GitHub Pages y subida de cambios
 copy /Y analisis_escuchas.html docs\analisis_escuchas.html >> %LOG% 2>&1
+copy /Y letras.html docs\letras.html >> %LOG% 2>&1
 copy /Y reporte_mensual.html docs\reporte_mensual.html >> %LOG% 2>&1
 copy /Y metodologia.html docs\metodologia.html >> %LOG% 2>&1
 copy /Y flujo.html docs\flujo.html >> %LOG% 2>&1
-del /q 07.analisis_escuchas.knit.md 07.analisis_escuchas.rmarkdown > nul 2>&1
+del /q 07.analisis_escuchas.knit.md 07.analisis_escuchas.rmarkdown 11.letras.knit.md 11.letras.rmarkdown > nul 2>&1
 git add docs >> %LOG% 2>&1
 git commit -m "Actualizacion mensual de los reportes" >> %LOG% 2>&1
 set MAXI=4
